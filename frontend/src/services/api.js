@@ -65,4 +65,11 @@ export const gear = {
   delete: (id) => api.delete(`/gear/${id}`),
 }
 
+// Admin
+export const admin = {
+  dbStatus: () => api.get('/admin/db-status'),
+  initDb: () => api.post('/admin/init-db'),
+  health: () => api.get('/health'),
+}
+
 export default api

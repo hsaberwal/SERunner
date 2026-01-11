@@ -8,6 +8,7 @@ import SetupGenerator from './pages/SetupGenerator'
 import SetupHistory from './pages/SetupHistory'
 import SetupDetail from './pages/SetupDetail'
 import Gear from './pages/Gear'
+import Setup from './pages/Setup'
 import './App.css'
 
 function PrivateRoute({ children }) {
@@ -26,6 +27,7 @@ function App() {
       <Router>
         <div className="app">
           <Routes>
+            <Route path="/setup" element={<Setup />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route
