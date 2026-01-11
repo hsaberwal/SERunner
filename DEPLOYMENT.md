@@ -91,16 +91,22 @@ railway run alembic upgrade head
 
 ### 7. Verify Deployment
 
-1. **Check Backend**: Visit `https://your-backend-url.railway.app/health`
+1. **Check Backend Health**: Visit https://backend-production-e55b3.up.railway.app/health
    - Should return: `{"status": "healthy"}`
 
-2. **Check API Docs**: Visit `https://your-backend-url.railway.app/docs`
+2. **Check Database Status**: Visit https://backend-production-e55b3.up.railway.app/admin/db-status
+   - Should show connected status and 5 tables
+
+3. **Check API Docs**: Visit https://backend-production-e55b3.up.railway.app/docs
    - You should see the Swagger UI with all endpoints
 
-3. **Check Frontend**: Visit `https://your-frontend-url.railway.app`
+4. **Run First-Time Setup**: Visit https://frontend-production-821b.up.railway.app/setup
+   - Initialize database if needed, then continue to login
+
+5. **Check Frontend**: Visit https://frontend-production-821b.up.railway.app
    - You should see the login page
 
-4. **Test Registration**: Create a new account and test the flow
+6. **Test Registration**: Create a new account and test the flow
 
 ### 8. Custom Domain (Optional)
 
@@ -115,14 +121,14 @@ railway run alembic upgrade head
 DATABASE_URL=${{Postgres.DATABASE_URL}}
 ANTHROPIC_API_KEY=sk-ant-...
 JWT_SECRET=<random-secret-32-chars>
-FRONTEND_URL=https://your-frontend-url.railway.app
+FRONTEND_URL=https://frontend-production-821b.up.railway.app
 CLAUDE_MODEL=claude-3-5-sonnet-20241022
 DEBUG=False
 ```
 
 ### Frontend Service
 ```bash
-VITE_API_URL=https://your-backend-url.railway.app
+VITE_API_URL=https://backend-production-e55b3.up.railway.app
 ```
 
 ## Troubleshooting
@@ -194,11 +200,13 @@ railway status
 
 ## Project URLs
 
-After deployment, save these:
-- **Frontend**: https://your-frontend-url.railway.app
-- **Backend API**: https://your-backend-url.railway.app
-- **API Docs**: https://your-backend-url.railway.app/docs
-- **Railway Dashboard**: https://railway.app/project/[your-project-id]
+Production URLs:
+- **Frontend**: https://frontend-production-821b.up.railway.app
+- **Backend API**: https://backend-production-e55b3.up.railway.app
+- **API Docs**: https://backend-production-e55b3.up.railway.app/docs
+- **Setup Page**: https://frontend-production-821b.up.railway.app/setup
+- **Health Check**: https://backend-production-e55b3.up.railway.app/health
+- **DB Status**: https://backend-production-e55b3.up.railway.app/admin/db-status
 
 ## Support
 

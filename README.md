@@ -115,7 +115,7 @@ docker-compose down
    DATABASE_URL=${{Postgres.DATABASE_URL}}
    ANTHROPIC_API_KEY=your-api-key
    JWT_SECRET=your-secret-key
-   FRONTEND_URL=https://your-frontend-url.railway.app
+   FRONTEND_URL=https://frontend-production-821b.up.railway.app
    ```
 4. Railway will auto-detect Dockerfile and deploy
 
@@ -125,16 +125,23 @@ docker-compose down
 2. Set root directory to `frontend`
 3. Add environment variable:
    ```
-   VITE_API_URL=https://your-backend-url.railway.app
+   VITE_API_URL=https://backend-production-e55b3.up.railway.app
    ```
 4. Railway will auto-detect Dockerfile and deploy
 
-### 4. Run Migrations
+### 4. Initialize Database
 
-After backend deployment:
-```bash
-railway run alembic upgrade head
-```
+Visit the setup page to initialize the database:
+https://frontend-production-821b.up.railway.app/setup
+
+The app will automatically create tables on startup, or you can manually initialize via the setup page.
+
+## Production URLs
+
+- **Frontend**: https://frontend-production-821b.up.railway.app
+- **Backend API**: https://backend-production-e55b3.up.railway.app
+- **API Docs**: https://backend-production-e55b3.up.railway.app/docs
+- **Setup Page**: https://frontend-production-821b.up.railway.app/setup
 
 ## Project Structure
 
