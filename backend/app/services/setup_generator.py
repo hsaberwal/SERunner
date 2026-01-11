@@ -170,8 +170,11 @@ Return your response as a JSON object with these keys:
         user_prompt = self._build_user_prompt(location, performers, past_setups)
 
         # Get response from Claude
+        print("=== CALLING CLAUDE API ===", flush=True)
         logger.info("Calling Claude API...")
         response = await self.claude_service.generate_setup(system_prompt, user_prompt)
+        print(f"=== CLAUDE RESPONSE LENGTH: {len(response) if response else 0} ===", flush=True)
+        print(f"=== CLAUDE RESPONSE PREVIEW: {response[:500] if response else 'EMPTY'} ===", flush=True)
         logger.info(f"Claude API response length: {len(response) if response else 0}")
         logger.info(f"Claude API response preview: {response[:500] if response else 'EMPTY'}")
 

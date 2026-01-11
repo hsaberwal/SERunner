@@ -1,3 +1,5 @@
+import logging
+import sys
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -6,7 +8,16 @@ from app.routers import auth, locations, setups, gear
 from app.database import engine, Base
 from app.models import User, Location, Setup, Gear, KnowledgeBase
 
+# Configure logging to stdout for Railway
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    handlers=[logging.StreamHandler(sys.stdout)]
+)
+logger = logging.getLogger(__name__)
+
 settings = get_settings()
+logger.info(f"Starting {settings.app_name} with CLAUDE_MODEL={settings.claude_model}")
 
 
 @asynccontextmanager
