@@ -13,7 +13,7 @@ function SetupGenerator() {
     location_id: '',
     event_name: '',
     event_date: '',
-    performers: [{ type: '', count: 1, notes: '' }]
+    performers: [{ type: '', count: 1, input_source: '', notes: '' }]
   })
   const [newLocation, setNewLocation] = useState({
     name: '',
@@ -66,10 +66,24 @@ function SetupGenerator() {
     }
   }
 
+  // Get default input source based on performer type
+  const getDefaultInputSource = (performerType) => {
+    const piezoTypes = ['acoustic_guitar', 'rabab', 'dilruba', 'taus', 'violin', 'sarangi']
+    const vocalTypes = ['vocal_female', 'vocal_male']
+    const directTypes = ['keyboard', 'harmonium']
+
+    if (piezoTypes.includes(performerType)) return 'di_piezo'
+    if (vocalTypes.includes(performerType)) return 'beta_58a'
+    if (directTypes.includes(performerType)) return 'direct'
+    if (performerType === 'tabla') return 'beta_57a'
+    if (performerType === 'flute') return 'beta_57a'
+    return ''
+  }
+
   const addPerformer = () => {
     setFormData({
       ...formData,
-      performers: [...formData.performers, { type: '', count: 1, notes: '' }]
+      performers: [...formData.performers, { type: '', count: 1, input_source: '', notes: '' }]
     })
   }
 
@@ -83,6 +97,15 @@ function SetupGenerator() {
   const updatePerformer = (index, field, value) => {
     const newPerformers = [...formData.performers]
     newPerformers[index][field] = value
+
+    // Auto-set default input source when type changes
+    if (field === 'type' && value) {
+      const defaultSource = getDefaultInputSource(value)
+      if (!newPerformers[index].input_source) {
+        newPerformers[index].input_source = defaultSource
+      }
+    }
+
     setFormData({ ...formData, performers: newPerformers })
   }
 
@@ -161,8 +184,11 @@ function SetupGenerator() {
                     onChange={(e) => setNewLocation({ ...newLocation, venue_type: e.target.value })}
                   >
                     <option value="">Select type...</option>
+                    <option value="gurdwara">Gurdwara</option>
                     <option value="church">Church</option>
+                    <option value="temple">Temple</option>
                     <option value="hall">Hall</option>
+                    <option value="cafe">Cafe</option>
                     <option value="outdoor">Outdoor</option>
                     <option value="school">School</option>
                     <option value="other">Other</option>
@@ -246,14 +272,46 @@ function SetupGenerator() {
                     required
                   >
                     <option value="">Select type...</option>
-                    <option value="vocal_female">Female Vocal</option>
-                    <option value="vocal_male">Male Vocal</option>
-                    <option value="flute">Flute</option>
-                    <option value="tabla">Tabla</option>
-                    <option value="acoustic_guitar">Acoustic Guitar</option>
-                    <option value="harmonium">Harmonium</option>
-                    <option value="keyboard">Keyboard</option>
+                    <optgroup label="Vocals">
+                      <option value="vocal_female">Female Vocal</option>
+                      <option value="vocal_male">Male Vocal</option>
+                    </optgroup>
+                    <optgroup label="Percussion">
+                      <option value="tabla">Tabla</option>
+                    </optgroup>
+                    <optgroup label="Wind">
+                      <option value="flute">Flute</option>
+                    </optgroup>
+                    <optgroup label="Strings (Piezo/DI)">
+                      <option value="acoustic_guitar">Acoustic Guitar</option>
+                      <option value="rabab">Rabab / Rubab</option>
+                      <option value="dilruba">Dilruba / Esraj</option>
+                      <option value="taus">Taus / Mayuri</option>
+                      <option value="violin">Violin (Piezo)</option>
+                      <option value="sarangi">Sarangi</option>
+                    </optgroup>
+                    <optgroup label="Keys">
+                      <option value="harmonium">Harmonium</option>
+                      <option value="keyboard">Keyboard / Synth</option>
+                    </optgroup>
                     <option value="other">Other</option>
+                  </select>
+                  <select
+                    className="form-select"
+                    value={performer.input_source}
+                    onChange={(e) => updatePerformer(index, 'input_source', e.target.value)}
+                    style={{ minWidth: '140px' }}
+                  >
+                    <option value="">Input source...</option>
+                    <optgroup label="Microphones">
+                      <option value="beta_58a">Shure Beta 58A</option>
+                      <option value="beta_57a">Shure Beta 57A</option>
+                      <option value="c1000s">AKG C1000S</option>
+                    </optgroup>
+                    <optgroup label="DI / Direct">
+                      <option value="di_piezo">DI Box (Piezo)</option>
+                      <option value="direct">Direct / Line</option>
+                    </optgroup>
                   </select>
                   <input
                     type="number"
@@ -262,7 +320,7 @@ function SetupGenerator() {
                     onChange={(e) => updatePerformer(index, 'count', parseInt(e.target.value))}
                     min="1"
                     placeholder="Count"
-                    style={{ width: '80px' }}
+                    style={{ width: '70px' }}
                   />
                   <input
                     type="text"

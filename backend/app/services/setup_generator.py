@@ -32,8 +32,22 @@ class SetupGenerator:
 
 ### Available Microphones
 - **Shure Beta 58A**: Dynamic, supercardioid - ideal for lead vocals
-- **Shure Beta 57A**: Dynamic, supercardioid - ideal for instruments, guitar amps
+- **Shure Beta 57A**: Dynamic, supercardioid - ideal for instruments, guitar amps, tabla (when C1000S unavailable)
 - **AKG C1000S**: Condenser, cardioid/hypercardioid - ideal for tabla, acoustic instruments
+
+### DI Boxes for Piezo Instruments
+- **Radial PZ-DI**: Active DI optimized for piezo pickups
+  - Default settings: Ground LIFT, Pad OFF, Filter OFF, Phase NORMAL
+  - Use -15dB pad if signal is too hot (clipping on QuPac input)
+  - Low-cut filter on DI can help if there's excessive handling noise
+- **Radial StageBug SB-4**: Compact piezo DI, similar to PZ-DI
+  - Default settings: Ground LIFT, Pad OFF
+  - Great backup or for smaller setups
+
+**DI Box Usage**: Any acoustic instrument with piezo pickup (Guitar, Rabab, Dilruba, Taus, Violin, Sarangi) should go through a DI box. The DI provides:
+1. Impedance matching (piezo needs high impedance input)
+2. Ground lift to eliminate hum
+3. Balanced output to QuPac XLR input
 
 ## Critical Knowledge: QuPac FX Routing
 
@@ -52,13 +66,22 @@ Q is the Width control on QuPac. Lower Q = wider, Higher Q = narrower.
 - Q 3.0-5.0 = Narrow (width slider toward "narrow") - surgical cuts
 - Q 6.0+ = Very narrow - problem frequency removal only
 
+### QuPac Compressor Limits
+- Attack: 0.3ms to 300ms
+- Release: 100ms to 2000ms (minimum 100ms!)
+- Threshold: -46dB to +18dB
+- Ratio: 1:1 to infinity
+- Makeup Gain: 0dB to +18dB
+- Knee: Soft or Hard
+- Type: Manual RMS (default), Manual Peak, Auto Slow Opto, Auto Punchbag
+
 ### Female Vocal (Shure Beta 58A)
 - HPF: 95 Hz
 - Band 1: 325 Hz, +2.5 dB, Q 2.0 (warmth)
 - Band 2: 650 Hz, -4.5 dB, Q 2.5 (cut boxiness)
 - Band 3: 4.5 kHz, +4.5 dB, Q 2.0 (presence)
 - Band 4: 10 kHz, +2 dB, Q 1.5 (air)
-- Compression: 4:1, -8 dB threshold, 15ms attack, 100ms release, soft knee ON
+- Compression: 4:1, -8dB threshold, 15ms attack, 100ms release, soft knee, +3dB gain, Manual RMS
 - Reverb: Hall Small/Stage @ -10 dB send
 
 ### Male Vocal (Shure Beta 58A)
@@ -67,7 +90,7 @@ Q is the Width control on QuPac. Lower Q = wider, Higher Q = narrower.
 - Band 2: 450 Hz, -4 dB, Q 2.5 (cut boxiness)
 - Band 3: 3 kHz, +4 dB, Q 2.0 (presence - lower than female)
 - Band 4: 9.5 kHz, +3 dB, Q 1.5 (air)
-- Compression: 4:1, -8 dB threshold, 15ms attack, 100ms release, soft knee ON
+- Compression: 4:1, -8dB threshold, 15ms attack, 100ms release, soft knee, +3dB gain, Manual RMS
 - Reverb: Hall Small/Stage @ -10 dB send
 
 ### Flute (Beta 57A)
@@ -76,7 +99,7 @@ Q is the Width control on QuPac. Lower Q = wider, Higher Q = narrower.
 - Band 2: 2.8 kHz, -3 dB, Q 2.5 (reduce harshness)
 - Band 3: 5 kHz, +2 dB, Q 1.5 (articulation)
 - Band 4: 9 kHz, +5 dB, Q 1.5 (CRITICAL: add air - Beta 57 lacks this)
-- Compression: 3:1, -9 dB threshold, 17ms attack, 100ms release, soft knee ON
+- Compression: 3:1, -9dB threshold, 17ms attack, 100ms release, soft knee, +2dB gain, Manual RMS
 - Reverb: Arena @ -5 dB send (flute likes space)
 
 ### Tabla (Beta 57A)
@@ -85,7 +108,7 @@ Q is the Width control on QuPac. Lower Q = wider, Higher Q = narrower.
 - Band 2: 220 Hz, +7 dB, Q 2.0 (body - KEY frequency, adjust +6 to +10)
 - Band 3: 2.5 kHz, +3 dB, Q 2.0 (attack definition)
 - Band 4: 8 kHz, +1.5 dB, Q 1.5 (harmonics)
-- Compression: 4:1, -9 dB threshold, 6ms attack (FAST!), 100ms release, soft knee OFF
+- Compression: 4:1, -9dB threshold, 6ms attack (FAST!), 100ms release, hard knee, +4dB gain, Manual Peak
 - Reverb: Hall Small/Stage @ -20 dB send (subtle)
 
 ### Acoustic Guitar (DI/Piezo)
@@ -94,8 +117,80 @@ Q is the Width control on QuPac. Lower Q = wider, Higher Q = narrower.
 - Band 2: 2.7 kHz, -4 dB, Q 3.0 (CRITICAL: remove piezo quack - use narrow Q)
 - Band 3: 5 kHz, +2 dB, Q 1.5 (string definition)
 - Band 4: 9 kHz, +4.5 dB, Q 1.5 (shimmer)
-- Compression: 3:1, -11 dB threshold, 13ms attack, 100ms release, soft knee ON
+- Compression: 3:1, -11dB threshold, 13ms attack, 100ms release, soft knee, +2dB gain, Manual RMS
 - Reverb: Hall Small/Stage @ -15 dB send
+- DI Box: Radial PZ-DI or SB-4, Ground LIFT, Pad OFF
+
+### Rabab / Rubab (DI/Piezo)
+- HPF: 65 Hz (keep low resonance of goat skin)
+- Band 1: 180 Hz, +4 dB, Q 2.0 (body warmth - skin resonance)
+- Band 2: 2.5 kHz, -5 dB, Q 3.0 (CRITICAL: piezo quack removal)
+- Band 3: 4 kHz, +3 dB, Q 2.0 (string attack, pluck definition)
+- Band 4: 8 kHz, +3 dB, Q 1.5 (sympathetic string shimmer)
+- Compression: 3:1, -10dB threshold, 12ms attack, 100ms release, soft knee, +2dB gain, Manual RMS
+- Reverb: Hall Small/Stage @ -12 dB send (medium - suits contemplative music)
+- DI Box: Radial PZ-DI or SB-4, Ground LIFT, Pad OFF
+
+### Dilruba / Esraj (DI/Piezo)
+- HPF: 70 Hz
+- Band 1: 200 Hz, +3 dB, Q 2.0 (body resonance)
+- Band 2: 800 Hz, -2 dB, Q 2.0 (reduce nasal quality if present)
+- Band 3: 2.5 kHz, -4 dB, Q 3.0 (piezo quack)
+- Band 4: 6 kHz, +4 dB, Q 1.5 (bowing articulation, harmonics)
+- Compression: 2.5:1, -12dB threshold, 20ms attack, 150ms release, soft knee, +2dB gain, Manual RMS
+- Reverb: Arena @ -8 dB send (bowed strings love space)
+- DI Box: Radial PZ-DI or SB-4, Ground LIFT, Pad OFF
+- Note: Slower attack preserves bowing dynamics
+
+### Taus / Mayuri (DI/Piezo)
+- HPF: 55 Hz (very low instrument, keep resonance)
+- Band 1: 120 Hz, +3 dB, Q 1.5 (deep body - peacock resonance)
+- Band 2: 350 Hz, +2 dB, Q 2.0 (mid warmth)
+- Band 3: 2.5 kHz, -4 dB, Q 3.0 (piezo quack)
+- Band 4: 5 kHz, +3 dB, Q 1.5 (bow articulation)
+- Compression: 2.5:1, -12dB threshold, 25ms attack, 150ms release, soft knee, +2dB gain, Manual RMS
+- Reverb: Arena @ -8 dB send (deep, meditative sound needs space)
+- DI Box: Radial PZ-DI or SB-4, Ground LIFT, Pad OFF
+
+### Violin (DI/Piezo)
+- HPF: 180 Hz (violin doesn't need lows, clean up)
+- Band 1: 250 Hz, -2 dB, Q 2.0 (reduce boxiness)
+- Band 2: 2.5 kHz, -4 dB, Q 3.0 (piezo quack - CRITICAL)
+- Band 3: 5 kHz, +3 dB, Q 2.0 (bow articulation)
+- Band 4: 10 kHz, +4 dB, Q 1.5 (brilliance, harmonics)
+- Compression: 3:1, -10dB threshold, 15ms attack, 100ms release, soft knee, +2dB gain, Manual RMS
+- Reverb: Hall Small/Stage @ -10 dB send
+- DI Box: Radial PZ-DI or SB-4, Ground LIFT, Pad OFF
+
+### Sarangi (DI/Piezo)
+- HPF: 90 Hz
+- Band 1: 200 Hz, +3 dB, Q 2.0 (body warmth)
+- Band 2: 600 Hz, -3 dB, Q 2.5 (reduce honkiness)
+- Band 3: 2.5 kHz, -4 dB, Q 3.0 (piezo quack)
+- Band 4: 7 kHz, +5 dB, Q 1.5 (sympathetic strings, air)
+- Compression: 2.5:1, -11dB threshold, 18ms attack, 120ms release, soft knee, +2dB gain, Manual RMS
+- Reverb: Arena @ -6 dB send (emotional instrument needs space)
+- DI Box: Radial PZ-DI or SB-4, Ground LIFT, Pad OFF
+
+### Harmonium (Direct/DI or Mic)
+- HPF: 80 Hz
+- Band 1: 200 Hz, +2 dB, Q 2.0 (reed body)
+- Band 2: 500 Hz, -3 dB, Q 2.5 (reduce muddiness)
+- Band 3: 2 kHz, +2 dB, Q 2.0 (note clarity)
+- Band 4: 6 kHz, +3 dB, Q 1.5 (bellows air, presence)
+- Compression: 3:1, -10dB threshold, 20ms attack, 150ms release, soft knee, +2dB gain, Manual RMS
+- Reverb: Hall Small/Stage @ -15 dB send (subtle - already fills space)
+- If using mic (Beta 57A): position 6-8 inches from reeds, angled
+
+### Keyboard/Synth (Direct/DI)
+- HPF: OFF or 30 Hz (depends on patches used)
+- Band 1: 100 Hz, 0 dB (adjust based on patch - cut if boomy)
+- Band 2: 500 Hz, -2 dB, Q 2.0 (clean up mids if needed)
+- Band 3: 3 kHz, +2 dB, Q 2.0 (presence)
+- Band 4: 10 kHz, +2 dB, Q 1.5 (sparkle)
+- Compression: 2:1, -12dB threshold, 20ms attack, 150ms release, soft knee, +1dB gain, Manual RMS
+- Reverb: Depends on patch - often OFF if patch has built-in reverb
+- Note: Start flat and adjust based on the specific patches being used
 
 ## Key Principles
 
@@ -121,9 +216,9 @@ Return a JSON object (no markdown, just raw JSON) with these keys:
    {"1": {"hpf": "95Hz", "band1": "325Hz +2.5dB Q2.0", "band2": "650Hz -4dB Q2.5", "band3": "4.5kHz +4dB Q2.0", "band4": "10kHz +2dB Q1.5"}}
    ```
 
-3. **compression_settings**: dict with channel numbers, SHORT format:
+3. **compression_settings**: dict with channel numbers, include all params:
    ```
-   {"1": {"ratio": "4:1", "threshold": "-8dB", "attack": "15ms", "release": "100ms", "knee": "soft"}}
+   {"1": {"ratio": "4:1", "threshold": "-8dB", "attack": "15ms", "release": "100ms", "knee": "soft", "gain": "+3dB", "type": "Manual RMS"}}
    ```
 
 4. **fx_settings**: dict with FX engine config and per-channel sends:
@@ -141,7 +236,7 @@ Return a JSON object (no markdown, just raw JSON) with these keys:
    5. EQ Band 2: [freq] [gain] Q[width] - [why]
    6. EQ Band 3: [freq] [gain] Q[width] - [why]
    7. EQ Band 4: [freq] [gain] Q[width] - [why]
-   8. Compression: [ratio], [threshold], [attack], [release], [knee]
+   8. Compression: [ratio], [threshold], [attack], [release], [knee], [gain], [type]
    9. FX Send: [which FX] at [level]
 
    ## CHANNEL 2: [Instrument] - [Mic]
