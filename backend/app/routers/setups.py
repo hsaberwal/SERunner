@@ -72,57 +72,71 @@ async def generate_setup(
     db: AsyncSession = Depends(get_db)
 ):
     """Generate a new setup using Claude API"""
-    # Verify location exists and belongs to user
-    result = await db.execute(
-        select(Location).where(
-            Location.id == request.location_id,
-            Location.user_id == current_user.id
-        )
-    )
-    location = result.scalar_one_or_none()
+    import logging
+    logger = logging.getLogger(__name__)
 
-    if not location:
+    try:
+        # Verify location exists and belongs to user
+        result = await db.execute(
+            select(Location).where(
+                Location.id == request.location_id,
+                Location.user_id == current_user.id
+            )
+        )
+        location = result.scalar_one_or_none()
+
+        if not location:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Location not found"
+            )
+
+        # Get past setups for this location (for learning)
+        past_setups_result = await db.execute(
+            select(Setup).where(
+                Setup.location_id == request.location_id,
+                Setup.rating >= 4  # Only use highly-rated setups
+            ).order_by(Setup.created_at.desc()).limit(3)
+        )
+        past_setups = past_setups_result.scalars().all()
+
+        # Generate setup using Claude API
+        logger.info(f"Generating setup for location {location.name} with {len(request.performers)} performers")
+        generator = SetupGenerator()
+        setup_data = await generator.generate(
+            location=location,
+            performers=[p.model_dump() for p in request.performers],
+            past_setups=past_setups,
+            user=current_user
+        )
+        logger.info("Setup generated successfully from Claude API")
+
+        # Create setup record
+        setup = Setup(
+            location_id=request.location_id,
+            user_id=current_user.id,
+            event_name=request.event_name,
+            event_date=request.event_date,
+            performers=[p.model_dump() for p in request.performers],
+            channel_config=setup_data.get("channel_config"),
+            eq_settings=setup_data.get("eq_settings"),
+            compression_settings=setup_data.get("compression_settings"),
+            fx_settings=setup_data.get("fx_settings"),
+            instructions=setup_data.get("instructions")
+        )
+        db.add(setup)
+        await db.commit()
+        await db.refresh(setup)
+
+        return setup
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error generating setup: {type(e).__name__}: {str(e)}")
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Location not found"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error generating setup: {type(e).__name__}: {str(e)}"
         )
-
-    # Get past setups for this location (for learning)
-    past_setups_result = await db.execute(
-        select(Setup).where(
-            Setup.location_id == request.location_id,
-            Setup.rating >= 4  # Only use highly-rated setups
-        ).order_by(Setup.created_at.desc()).limit(3)
-    )
-    past_setups = past_setups_result.scalars().all()
-
-    # Generate setup using Claude API
-    generator = SetupGenerator()
-    setup_data = await generator.generate(
-        location=location,
-        performers=[p.model_dump() for p in request.performers],
-        past_setups=past_setups,
-        user=current_user
-    )
-
-    # Create setup record
-    setup = Setup(
-        location_id=request.location_id,
-        user_id=current_user.id,
-        event_name=request.event_name,
-        event_date=request.event_date,
-        performers=[p.model_dump() for p in request.performers],
-        channel_config=setup_data.get("channel_config"),
-        eq_settings=setup_data.get("eq_settings"),
-        compression_settings=setup_data.get("compression_settings"),
-        fx_settings=setup_data.get("fx_settings"),
-        instructions=setup_data.get("instructions")
-    )
-    db.add(setup)
-    await db.commit()
-    await db.refresh(setup)
-
-    return setup
 
 
 @router.get("", response_model=List[SetupResponse])
