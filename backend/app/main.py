@@ -26,10 +26,12 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# CORS middleware
+# CORS middleware - allow frontend origin
+# Strip trailing slash if present to ensure exact match
+frontend_origin = settings.frontend_url.rstrip("/")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[settings.frontend_url],
+    allow_origins=[frontend_origin],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -54,6 +56,15 @@ async def root():
 @app.get("/health")
 async def health_check():
     return {"status": "healthy"}
+
+
+@app.get("/admin/cors-debug")
+async def cors_debug():
+    """Debug endpoint to check CORS configuration."""
+    return {
+        "frontend_url_setting": settings.frontend_url,
+        "frontend_origin_used": settings.frontend_url.rstrip("/"),
+    }
 
 
 @app.get("/admin/db-status")
