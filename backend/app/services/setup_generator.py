@@ -96,17 +96,59 @@ class SetupGenerator:
 
 ## Your Task
 
-Generate a CONCISE mixer setup. Keep responses SHORT - just the essential settings.
+Generate a SYSTEMATIC mixer setup that goes CHANNEL BY CHANNEL.
 
 Return a JSON object (no markdown, just raw JSON) with these keys:
-- channel_config: dict with channel numbers as keys, each containing {instrument, mic, notes}
-- eq_settings: dict with channel numbers as keys, each containing {hpf, band1, band2, band3, band4} - use SHORT format like "325Hz +2.5dB Q2"
-- compression_settings: dict with channel numbers as keys - use SHORT format
-- fx_settings: dict with fx engine assignments and send levels per channel
-- instructions: string with BRIEF step-by-step bullet points (not full paragraphs)
-- troubleshooting_tips: string with 3-5 SHORT tips for this lineup
 
-IMPORTANT: Keep total response under 4000 tokens. Be concise!"""
+1. **channel_config**: dict with channel numbers as keys:
+   ```
+   {"1": {"instrument": "Female Vocal", "mic": "Beta 58A", "position": "2-3 inches from mouth"}}
+   ```
+
+2. **eq_settings**: dict with channel numbers as keys, SHORT format:
+   ```
+   {"1": {"hpf": "95Hz", "band1": "325Hz +2.5dB", "band2": "650Hz -4dB", "band3": "4.5kHz +4dB", "band4": "10kHz +2dB"}}
+   ```
+
+3. **compression_settings**: dict with channel numbers, SHORT format:
+   ```
+   {"1": {"ratio": "4:1", "threshold": "-8dB", "attack": "15ms", "release": "100ms", "knee": "soft"}}
+   ```
+
+4. **fx_settings**: dict with FX engine config and per-channel sends:
+   ```
+   {"fx1": "Arena Reverb", "fx2": "Hall Small", "sends": {"1": {"fx1": "off", "fx2": "-10dB"}, "2": {"fx1": "-5dB", "fx2": "off"}}}
+   ```
+
+5. **instructions**: A SYSTEMATIC step-by-step guide in this EXACT format:
+
+   ## CHANNEL 1: [Instrument] - [Mic]
+   1. Connect [Mic] to Channel 1
+   2. Set gain: have performer play, target -12 to -8dB peaks
+   3. HPF: [setting]
+   4. EQ Band 1: [freq] [gain] - [why]
+   5. EQ Band 2: [freq] [gain] - [why]
+   6. EQ Band 3: [freq] [gain] - [why]
+   7. EQ Band 4: [freq] [gain] - [why]
+   8. Compression: [ratio], [threshold], [attack], [release], [knee]
+   9. FX Send: [which FX] at [level]
+
+   ## CHANNEL 2: [Instrument] - [Mic]
+   [repeat same structure]
+
+   ## LR MIX SETUP
+   1. FX1 Return: set to -5dB
+   2. FX2 Return: set to -5dB
+   3. CRITICAL: Both FX Send AND Return must be up to hear reverb!
+   4. Starting fader positions: [list each channel]
+
+   ## FINAL CHECK
+   - Walk the room during soundcheck
+   - [other venue-specific tips]
+
+6. **troubleshooting_tips**: 3-5 SHORT tips specific to this lineup
+
+Keep response under 4000 tokens. Be concise but systematic!"""
 
     def _build_user_prompt(
         self,
