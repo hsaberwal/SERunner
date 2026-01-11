@@ -179,29 +179,33 @@ Return your response as a JSON object with these keys:
         logger.info(f"Claude API response preview: {response[:500] if response else 'EMPTY'}")
 
         # Parse JSON response
+        raw_response = response  # Keep original for fallback
         try:
             # Try to extract JSON from response (Claude might wrap it in markdown)
+            json_text = response
             if "```json" in response:
                 json_start = response.index("```json") + 7
                 json_end = response.rindex("```")
-                response = response[json_start:json_end].strip()
+                json_text = response[json_start:json_end].strip()
             elif "```" in response:
                 json_start = response.index("```") + 3
                 json_end = response.rindex("```")
-                response = response[json_start:json_end].strip()
+                json_text = response[json_start:json_end].strip()
 
-            setup_data = json.loads(response)
+            print(f"=== JSON TEXT TO PARSE (first 500 chars): {json_text[:500]} ===", flush=True)
+            setup_data = json.loads(json_text)
             logger.info(f"Successfully parsed JSON with keys: {list(setup_data.keys())}")
             return setup_data
         except (json.JSONDecodeError, ValueError) as e:
             # If JSON parsing fails, return raw response in instructions field
             logger.error(f"JSON parsing failed: {e}")
-            logger.error(f"Raw response: {response[:1000] if response else 'EMPTY'}")
+            logger.error(f"Raw response: {raw_response[:1000] if raw_response else 'EMPTY'}")
+            print(f"=== JSON PARSE ERROR: {e} ===", flush=True)
             return {
                 "channel_config": {},
                 "eq_settings": {},
                 "compression_settings": {},
                 "fx_settings": {},
-                "instructions": response if response else "No response from Claude API",
+                "instructions": raw_response if raw_response else "No response from Claude API",
                 "troubleshooting_tips": f"Error parsing JSON response: {str(e)}"
             }
