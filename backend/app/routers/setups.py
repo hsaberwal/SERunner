@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from pydantic import BaseModel, field_serializer
+from pydantic import BaseModel
 from typing import Optional, List
 from uuid import UUID
 from datetime import date, datetime
@@ -12,6 +12,7 @@ from app.models.setup import Setup
 from app.models.location import Location
 from app.utils.auth import get_current_user
 from app.services.setup_generator import SetupGenerator
+from app.schemas import BaseResponseWithLocation
 
 router = APIRouter()
 
@@ -47,7 +48,8 @@ class SetupUpdate(BaseModel):
     rating: Optional[int] = None
 
 
-class SetupResponse(BaseModel):
+class SetupResponse(BaseResponseWithLocation):
+    """Setup response with automatic UUID/datetime serialization."""
     id: UUID
     location_id: UUID
     event_name: Optional[str]
@@ -61,16 +63,6 @@ class SetupResponse(BaseModel):
     notes: Optional[str]
     rating: Optional[int]
     created_at: datetime
-
-    model_config = {"from_attributes": True}
-
-    @field_serializer('id', 'location_id')
-    def serialize_uuid(self, value: UUID) -> str:
-        return str(value)
-
-    @field_serializer('created_at')
-    def serialize_created_at(self, created_at: datetime) -> str:
-        return created_at.isoformat()
 
 
 @router.post("/generate", response_model=SetupResponse, status_code=status.HTTP_201_CREATED)
