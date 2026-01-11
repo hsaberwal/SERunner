@@ -29,12 +29,17 @@ app = FastAPI(
 # CORS middleware - allow frontend origin
 # Strip trailing slash if present to ensure exact match
 frontend_origin = settings.frontend_url.rstrip("/")
+allowed_origins = [
+    frontend_origin,
+    "https://frontend-production-821b.up.railway.app",  # Explicit backup
+]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[frontend_origin],
+    allow_origins=allowed_origins,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 # Include routers
