@@ -1,9 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from pydantic import BaseModel
+from pydantic import BaseModel, field_serializer
 from typing import Optional, List
 from uuid import UUID
+from datetime import datetime
 
 from app.database import get_db
 from app.models.user import User
@@ -36,10 +37,17 @@ class GearResponse(BaseModel):
     model: Optional[str]
     specs: Optional[dict]
     default_settings: Optional[dict]
-    created_at: str
+    created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
+
+    @field_serializer('id')
+    def serialize_id(self, id: UUID) -> str:
+        return str(id)
+
+    @field_serializer('created_at')
+    def serialize_created_at(self, created_at: datetime) -> str:
+        return created_at.isoformat()
 
 
 @router.get("", response_model=List[GearResponse])
