@@ -1,9 +1,12 @@
 import json
+import logging
 from typing import List, Dict, Any
 from app.services.claude_service import ClaudeService
 from app.models.location import Location
 from app.models.setup import Setup
 from app.models.user import User
+
+logger = logging.getLogger(__name__)
 
 
 class SetupGenerator:
@@ -167,7 +170,10 @@ Return your response as a JSON object with these keys:
         user_prompt = self._build_user_prompt(location, performers, past_setups)
 
         # Get response from Claude
+        logger.info("Calling Claude API...")
         response = await self.claude_service.generate_setup(system_prompt, user_prompt)
+        logger.info(f"Claude API response length: {len(response) if response else 0}")
+        logger.info(f"Claude API response preview: {response[:500] if response else 'EMPTY'}")
 
         # Parse JSON response
         try:
@@ -182,14 +188,17 @@ Return your response as a JSON object with these keys:
                 response = response[json_start:json_end].strip()
 
             setup_data = json.loads(response)
+            logger.info(f"Successfully parsed JSON with keys: {list(setup_data.keys())}")
             return setup_data
         except (json.JSONDecodeError, ValueError) as e:
             # If JSON parsing fails, return raw response in instructions field
+            logger.error(f"JSON parsing failed: {e}")
+            logger.error(f"Raw response: {response[:1000] if response else 'EMPTY'}")
             return {
                 "channel_config": {},
                 "eq_settings": {},
                 "compression_settings": {},
                 "fx_settings": {},
-                "instructions": response,
-                "troubleshooting_tips": "Error parsing JSON response. See instructions for full response."
+                "instructions": response if response else "No response from Claude API",
+                "troubleshooting_tips": f"Error parsing JSON response: {str(e)}"
             }
