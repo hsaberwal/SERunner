@@ -96,21 +96,17 @@ class SetupGenerator:
 
 ## Your Task
 
-When given a performer lineup and venue, provide:
-1. **Channel assignments** with mic selection
-2. **Step-by-step setup instructions** (channel assignment → gain staging → EQ → compression → FX)
-3. **EQ settings** for each channel (HPF, 4-band PEQ with frequencies and gains)
-4. **Compression settings** (attack, release, threshold, ratio, makeup gain, soft knee)
-5. **FX routing** (which FX engine, send levels, and REMINDER about FX Returns in LR view)
-6. **Troubleshooting tips** specific to this lineup
+Generate a CONCISE mixer setup. Keep responses SHORT - just the essential settings.
 
-Return your response as a JSON object with these keys:
+Return a JSON object (no markdown, just raw JSON) with these keys:
 - channel_config: dict with channel numbers as keys, each containing {instrument, mic, notes}
-- eq_settings: dict with channel numbers as keys, each containing {hpf, band1, band2, band3, band4}
-- compression_settings: dict with channel numbers as keys
+- eq_settings: dict with channel numbers as keys, each containing {hpf, band1, band2, band3, band4} - use SHORT format like "325Hz +2.5dB Q2"
+- compression_settings: dict with channel numbers as keys - use SHORT format
 - fx_settings: dict with fx engine assignments and send levels per channel
-- instructions: string with complete step-by-step guide
-- troubleshooting_tips: string with common issues for this lineup"""
+- instructions: string with BRIEF step-by-step bullet points (not full paragraphs)
+- troubleshooting_tips: string with 3-5 SHORT tips for this lineup
+
+IMPORTANT: Keep total response under 4000 tokens. Be concise!"""
 
     def _build_user_prompt(
         self,
