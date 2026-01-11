@@ -38,7 +38,7 @@
    ANTHROPIC_API_KEY=<your-anthropic-api-key>
    JWT_SECRET=<generate-random-secret-key>
    FRONTEND_URL=<will-add-after-frontend-deployment>
-   CLAUDE_MODEL=claude-3-5-sonnet-20241022
+   CLAUDE_MODEL=claude-sonnet-4-5-20250929
    ```
 
    **Generate JWT_SECRET** with:
@@ -122,7 +122,7 @@ DATABASE_URL=${{Postgres.DATABASE_URL}}
 ANTHROPIC_API_KEY=sk-ant-...
 JWT_SECRET=<random-secret-32-chars>
 FRONTEND_URL=https://frontend-production-821b.up.railway.app
-CLAUDE_MODEL=claude-3-5-sonnet-20241022
+CLAUDE_MODEL=claude-sonnet-4-5-20250929
 DEBUG=False
 ```
 
