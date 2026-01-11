@@ -14,6 +14,8 @@ class ClaudeService:
 
     async def generate_setup(self, system_prompt: str, user_prompt: str) -> str:
         """Generate a setup using Claude API"""
+        print(f"=== CLAUDE SERVICE: Using model {self.model} ===", flush=True)
+
         message = await self.client.messages.create(
             model=self.model,
             max_tokens=4096,
@@ -26,4 +28,14 @@ class ClaudeService:
             ]
         )
 
-        return message.content[0].text
+        print(f"=== CLAUDE SERVICE: Response stop_reason={message.stop_reason} ===", flush=True)
+        print(f"=== CLAUDE SERVICE: Response content length={len(message.content)} ===", flush=True)
+        print(f"=== CLAUDE SERVICE: Response usage={message.usage} ===", flush=True)
+
+        if message.content and len(message.content) > 0:
+            text = message.content[0].text
+            print(f"=== CLAUDE SERVICE: Text length={len(text) if text else 0} ===", flush=True)
+            return text
+        else:
+            print("=== CLAUDE SERVICE: No content in response! ===", flush=True)
+            return ""
