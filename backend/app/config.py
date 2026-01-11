@@ -15,7 +15,7 @@ class Settings(BaseSettings):
 
     # Claude API
     anthropic_api_key: str
-    claude_model: str = "claude-3-5-sonnet-20241022"
+    claude_model: str = "claude-sonnet-4-20250514"
 
     # CORS
     frontend_url: str = "http://localhost:5173"
