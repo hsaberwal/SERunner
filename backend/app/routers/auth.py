@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, field_serializer
+from uuid import UUID
 from datetime import timedelta
 
 from app.database import get_db
@@ -34,12 +35,15 @@ class Token(BaseModel):
 
 
 class UserResponse(BaseModel):
-    id: str
+    id: UUID
     email: str
     role: str
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
+
+    @field_serializer('id')
+    def serialize_id(self, id: UUID) -> str:
+        return str(id)
 
 
 @router.post("/register", response_model=Token, status_code=status.HTTP_201_CREATED)
