@@ -274,11 +274,29 @@ Keep response under 4000 tokens. Be concise but systematic!"""
         if location.speaker_setup:
             prompt += f"\n**Speaker Setup**: {json.dumps(location.speaker_setup, indent=2)}\n"
 
+        # Include GEQ cuts from previous ring-outs at this venue
+        if location.lr_geq_cuts:
+            prompt += f"\n**Previous LR GEQ Cuts** (from ring-out): {json.dumps(location.lr_geq_cuts)}\n"
+            prompt += "Note: These frequencies caused feedback before - remind user to check these during soundcheck.\n"
+
+        if location.monitor_geq_cuts:
+            prompt += f"\n**Previous Monitor GEQ Cuts** (from ring-out): {json.dumps(location.monitor_geq_cuts)}\n"
+
+        if location.room_notes:
+            prompt += f"\n**Room Acoustics Notes**: {location.room_notes}\n"
+
         prompt += "\n## Performer Lineup\n"
         for i, performer in enumerate(performers, 1):
-            prompt += f"{i}. **{performer['type']}** (count: {performer.get('count', 1)})"
-            if performer.get('notes'):
-                prompt += f" - {performer['notes']}"
+            performer_type = performer.get('type', 'Unknown')
+            count = performer.get('count', 1)
+            input_source = performer.get('input_source', '')
+            notes = performer.get('notes', '')
+
+            prompt += f"{i}. **{performer_type}** (count: {count})"
+            if input_source:
+                prompt += f" - Input: {input_source}"
+            if notes:
+                prompt += f" - {notes}"
             prompt += "\n"
 
         # Add context from past setups
@@ -294,6 +312,8 @@ Keep response under 4000 tokens. Be concise but systematic!"""
         prompt += "Generate a complete QuPac mixer setup for this event. "
         prompt += "Provide detailed channel assignments, EQ, compression, and FX settings. "
         prompt += "Remember to remind about FX routing (both Send and Return in LR view). "
+        if location.lr_geq_cuts or location.monitor_geq_cuts:
+            prompt += "Include a reminder about the known problem frequencies from previous ring-outs. "
         prompt += "Return the response as a valid JSON object."
 
         return prompt

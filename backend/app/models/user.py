@@ -21,3 +21,4 @@ class User(Base):
     locations = relationship("Location", back_populates="user", cascade="all, delete-orphan")
     setups = relationship("Setup", back_populates="user", cascade="all, delete-orphan")
     gear = relationship("Gear", back_populates="user", cascade="all, delete-orphan")
+    gear_loans = relationship("GearLoan", back_populates="user", cascade="all, delete-orphan")

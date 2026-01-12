@@ -21,6 +21,9 @@ class LocationCreate(BaseModel):
     notes: Optional[str] = None
     speaker_setup: Optional[dict] = None
     default_config: Optional[dict] = None
+    lr_geq_cuts: Optional[dict] = None  # {"250Hz": -3, "1.6kHz": -4, ...}
+    monitor_geq_cuts: Optional[dict] = None
+    room_notes: Optional[str] = None  # Acoustic notes
     is_temporary: bool = False
 
 
@@ -30,6 +33,9 @@ class LocationUpdate(BaseModel):
     notes: Optional[str] = None
     speaker_setup: Optional[dict] = None
     default_config: Optional[dict] = None
+    lr_geq_cuts: Optional[dict] = None
+    monitor_geq_cuts: Optional[dict] = None
+    room_notes: Optional[str] = None
     is_temporary: Optional[bool] = None
 
 
@@ -41,6 +47,9 @@ class LocationResponse(BaseResponse):
     notes: Optional[str]
     speaker_setup: Optional[dict]
     default_config: Optional[dict]
+    lr_geq_cuts: Optional[dict]
+    monitor_geq_cuts: Optional[dict]
+    room_notes: Optional[str]
     is_temporary: bool
     created_at: datetime
 

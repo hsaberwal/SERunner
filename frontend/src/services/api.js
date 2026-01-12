@@ -63,6 +63,13 @@ export const gear = {
   create: (data) => api.post('/gear', data),
   update: (id, data) => api.put(`/gear/${id}`, data),
   delete: (id) => api.delete(`/gear/${id}`),
+  // Loans
+  getLoans: (gearId, includeReturned = false) =>
+    api.get(`/gear/${gearId}/loans`, { params: { include_returned: includeReturned } }),
+  createLoan: (gearId, data) => api.post(`/gear/${gearId}/loans`, data),
+  returnLoan: (gearId, loanId, data = {}) =>
+    api.post(`/gear/${gearId}/loans/${loanId}/return`, data),
+  getOutstandingLoans: () => api.get('/gear/loans/outstanding'),
 }
 
 // Admin

@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 from pydantic import BaseModel
 from typing import Optional, List
 from uuid import UUID
@@ -8,27 +9,50 @@ from datetime import datetime
 
 from app.database import get_db
 from app.models.user import User
-from app.models.gear import Gear
+from app.models.gear import Gear, GearLoan
 from app.utils.auth import get_current_user
 from app.schemas import BaseResponse
 
 router = APIRouter()
 
 
+# ============== Gear Schemas ==============
+
 class GearCreate(BaseModel):
-    type: str  # mic, mixer, speaker, etc.
+    type: str  # mic, di_box, mixer, speaker, cable, etc.
     brand: Optional[str] = None
     model: Optional[str] = None
+    serial_number: Optional[str] = None
+    quantity: int = 1
     specs: Optional[dict] = None
     default_settings: Optional[dict] = None
+    notes: Optional[str] = None
 
 
 class GearUpdate(BaseModel):
     type: Optional[str] = None
     brand: Optional[str] = None
     model: Optional[str] = None
+    serial_number: Optional[str] = None
+    quantity: Optional[int] = None
     specs: Optional[dict] = None
     default_settings: Optional[dict] = None
+    notes: Optional[str] = None
+
+
+class GearLoanResponse(BaseResponse):
+    """Gear loan response"""
+    id: UUID
+    gear_id: UUID
+    borrower_name: str
+    borrower_contact: Optional[str]
+    quantity_loaned: int
+    loan_date: datetime
+    expected_return_date: Optional[datetime]
+    actual_return_date: Optional[datetime]
+    is_returned: bool
+    notes: Optional[str]
+    return_notes: Optional[str]
 
 
 class GearResponse(BaseResponse):
@@ -37,22 +61,69 @@ class GearResponse(BaseResponse):
     type: str
     brand: Optional[str]
     model: Optional[str]
+    serial_number: Optional[str]
+    quantity: int
     specs: Optional[dict]
     default_settings: Optional[dict]
+    notes: Optional[str]
     created_at: datetime
+    active_loans: Optional[List[GearLoanResponse]] = None
+    quantity_available: Optional[int] = None
 
+
+# ============== Loan Schemas ==============
+
+class LoanCreate(BaseModel):
+    borrower_name: str
+    borrower_contact: Optional[str] = None
+    quantity_loaned: int = 1
+    expected_return_date: Optional[datetime] = None
+    notes: Optional[str] = None
+
+
+class LoanReturn(BaseModel):
+    return_notes: Optional[str] = None
+
+
+# ============== Gear Endpoints ==============
 
 @router.get("", response_model=List[GearResponse])
 async def get_gear(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    """Get all gear for current user"""
+    """Get all gear for current user with loan status"""
     result = await db.execute(
-        select(Gear).where(Gear.user_id == current_user.id).order_by(Gear.type, Gear.brand)
+        select(Gear)
+        .options(selectinload(Gear.loans))
+        .where(Gear.user_id == current_user.id)
+        .order_by(Gear.type, Gear.brand)
     )
-    gear = result.scalars().all()
-    return gear
+    gear_items = result.scalars().all()
+
+    # Calculate available quantity for each item
+    response = []
+    for gear in gear_items:
+        active_loans = [loan for loan in gear.loans if not loan.is_returned]
+        loaned_qty = sum(loan.quantity_loaned for loan in active_loans)
+
+        gear_dict = {
+            "id": gear.id,
+            "type": gear.type,
+            "brand": gear.brand,
+            "model": gear.model,
+            "serial_number": gear.serial_number,
+            "quantity": gear.quantity,
+            "specs": gear.specs,
+            "default_settings": gear.default_settings,
+            "notes": gear.notes,
+            "created_at": gear.created_at,
+            "active_loans": active_loans,
+            "quantity_available": gear.quantity - loaned_qty
+        }
+        response.append(gear_dict)
+
+    return response
 
 
 @router.post("", response_model=GearResponse, status_code=status.HTTP_201_CREATED)
@@ -69,7 +140,12 @@ async def create_gear(
     db.add(gear)
     await db.commit()
     await db.refresh(gear)
-    return gear
+
+    return {
+        **gear.__dict__,
+        "active_loans": [],
+        "quantity_available": gear.quantity
+    }
 
 
 @router.get("/{gear_id}", response_model=GearResponse)
@@ -78,9 +154,11 @@ async def get_gear_item(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    """Get a specific gear item"""
+    """Get a specific gear item with loans"""
     result = await db.execute(
-        select(Gear).where(
+        select(Gear)
+        .options(selectinload(Gear.loans))
+        .where(
             Gear.id == gear_id,
             Gear.user_id == current_user.id
         )
@@ -93,7 +171,14 @@ async def get_gear_item(
             detail="Gear not found"
         )
 
-    return gear
+    active_loans = [loan for loan in gear.loans if not loan.is_returned]
+    loaned_qty = sum(loan.quantity_loaned for loan in active_loans)
+
+    return {
+        **gear.__dict__,
+        "active_loans": active_loans,
+        "quantity_available": gear.quantity - loaned_qty
+    }
 
 
 @router.put("/{gear_id}", response_model=GearResponse)
@@ -105,7 +190,9 @@ async def update_gear(
 ):
     """Update a gear item"""
     result = await db.execute(
-        select(Gear).where(
+        select(Gear)
+        .options(selectinload(Gear.loans))
+        .where(
             Gear.id == gear_id,
             Gear.user_id == current_user.id
         )
@@ -124,7 +211,15 @@ async def update_gear(
 
     await db.commit()
     await db.refresh(gear)
-    return gear
+
+    active_loans = [loan for loan in gear.loans if not loan.is_returned]
+    loaned_qty = sum(loan.quantity_loaned for loan in active_loans)
+
+    return {
+        **gear.__dict__,
+        "active_loans": active_loans,
+        "quantity_available": gear.quantity - loaned_qty
+    }
 
 
 @router.delete("/{gear_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -150,3 +245,147 @@ async def delete_gear(
 
     await db.delete(gear)
     await db.commit()
+
+
+# ============== Loan Endpoints ==============
+
+@router.post("/{gear_id}/loans", response_model=GearLoanResponse, status_code=status.HTTP_201_CREATED)
+async def create_loan(
+    gear_id: UUID,
+    loan_data: LoanCreate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Loan out gear to someone"""
+    # Get gear with loans
+    result = await db.execute(
+        select(Gear)
+        .options(selectinload(Gear.loans))
+        .where(
+            Gear.id == gear_id,
+            Gear.user_id == current_user.id
+        )
+    )
+    gear = result.scalar_one_or_none()
+
+    if not gear:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Gear not found"
+        )
+
+    # Check available quantity
+    active_loans = [loan for loan in gear.loans if not loan.is_returned]
+    loaned_qty = sum(loan.quantity_loaned for loan in active_loans)
+    available = gear.quantity - loaned_qty
+
+    if loan_data.quantity_loaned > available:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Not enough available. Have {available}, trying to loan {loan_data.quantity_loaned}"
+        )
+
+    loan = GearLoan(
+        gear_id=gear_id,
+        user_id=current_user.id,
+        **loan_data.model_dump()
+    )
+    db.add(loan)
+    await db.commit()
+    await db.refresh(loan)
+
+    return loan
+
+
+@router.get("/{gear_id}/loans", response_model=List[GearLoanResponse])
+async def get_gear_loans(
+    gear_id: UUID,
+    include_returned: bool = False,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Get all loans for a gear item"""
+    # Verify gear ownership
+    result = await db.execute(
+        select(Gear).where(
+            Gear.id == gear_id,
+            Gear.user_id == current_user.id
+        )
+    )
+    gear = result.scalar_one_or_none()
+
+    if not gear:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Gear not found"
+        )
+
+    # Get loans
+    query = select(GearLoan).where(GearLoan.gear_id == gear_id)
+    if not include_returned:
+        query = query.where(GearLoan.is_returned == False)
+    query = query.order_by(GearLoan.loan_date.desc())
+
+    result = await db.execute(query)
+    loans = result.scalars().all()
+
+    return loans
+
+
+@router.post("/{gear_id}/loans/{loan_id}/return", response_model=GearLoanResponse)
+async def return_loan(
+    gear_id: UUID,
+    loan_id: UUID,
+    return_data: LoanReturn,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Mark a loan as returned"""
+    result = await db.execute(
+        select(GearLoan).where(
+            GearLoan.id == loan_id,
+            GearLoan.gear_id == gear_id,
+            GearLoan.user_id == current_user.id
+        )
+    )
+    loan = result.scalar_one_or_none()
+
+    if not loan:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Loan not found"
+        )
+
+    if loan.is_returned:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Loan already returned"
+        )
+
+    loan.is_returned = True
+    loan.actual_return_date = datetime.utcnow()
+    loan.return_notes = return_data.return_notes
+
+    await db.commit()
+    await db.refresh(loan)
+
+    return loan
+
+
+@router.get("/loans/outstanding", response_model=List[GearLoanResponse])
+async def get_all_outstanding_loans(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Get all outstanding (not returned) loans across all gear"""
+    result = await db.execute(
+        select(GearLoan)
+        .where(
+            GearLoan.user_id == current_user.id,
+            GearLoan.is_returned == False
+        )
+        .order_by(GearLoan.loan_date.desc())
+    )
+    loans = result.scalars().all()
+
+    return loans
