@@ -226,6 +226,15 @@ async def run_migrations():
         except Exception as e:
             errors.append(f"update existing users: {str(e)}")
 
+        # Set the first user (oldest) as admin
+        try:
+            await conn.execute(text(
+                "UPDATE users SET is_admin = TRUE WHERE id = (SELECT id FROM users ORDER BY created_at ASC LIMIT 1)"
+            ))
+            migrations.append("first user set as admin")
+        except Exception as e:
+            errors.append(f"set first user as admin: {str(e)}")
+
     return {
         "status": "success" if not errors else "partial",
         "migrations_applied": migrations,
