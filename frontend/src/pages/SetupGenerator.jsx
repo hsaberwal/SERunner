@@ -40,6 +40,7 @@ function SetupGenerator() {
   const navigate = useNavigate()
   const [locationList, setLocationList] = useState([])
   const [loading, setLoading] = useState(false)
+  const [loadingMessage, setLoadingMessage] = useState('')
   const [showNewLocation, setShowNewLocation] = useState(false)
   const [creatingLocation, setCreatingLocation] = useState(false)
   const [formData, setFormData] = useState({
@@ -210,14 +211,40 @@ function SetupGenerator() {
     }
 
     setLoading(true)
+    setLoadingMessage('Preparing your setup request...')
 
     try {
+      // Update loading messages to show progress
+      const messageTimer = setTimeout(() => {
+        setLoadingMessage('Analyzing performer lineup and venue details...')
+      }, 2000)
+
+      const messageTimer2 = setTimeout(() => {
+        setLoadingMessage('Claude is generating your QuPac configuration...')
+      }, 5000)
+
+      const messageTimer3 = setTimeout(() => {
+        setLoadingMessage('Almost there... building detailed instructions...')
+      }, 15000)
+
+      const messageTimer4 = setTimeout(() => {
+        setLoadingMessage('Still working... complex setups take a bit longer...')
+      }, 30000)
+
       const response = await setups.generate(formData)
+
+      // Clear all timers
+      clearTimeout(messageTimer)
+      clearTimeout(messageTimer2)
+      clearTimeout(messageTimer3)
+      clearTimeout(messageTimer4)
+
       navigate(`/setup/${response.data.id}`)
     } catch (error) {
       alert('Failed to generate setup: ' + (error.response?.data?.detail || error.message))
     } finally {
       setLoading(false)
+      setLoadingMessage('')
     }
   }
 
@@ -226,6 +253,17 @@ function SetupGenerator() {
       <Navigation />
       <div className="container">
         <h1 style={{ marginBottom: '2rem' }}>Generate QuPac Setup</h1>
+
+        {/* Loading Overlay */}
+        {loading && (
+          <div className="loading-overlay">
+            <div className="loading-content">
+              <div className="loading-spinner"></div>
+              <p className="loading-message">{loadingMessage}</p>
+              <p className="loading-tip">This typically takes 15-45 seconds</p>
+            </div>
+          </div>
+        )}
 
         <div className="card">
           <form onSubmit={handleSubmit}>
@@ -736,6 +774,58 @@ function SetupGenerator() {
           .performer-row > * {
             width: 100% !important;
           }
+        }
+
+        /* Loading Overlay Styles */
+        .loading-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(0, 0, 0, 0.75);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 1000;
+        }
+
+        .loading-content {
+          background: var(--bg-primary);
+          padding: 2rem 3rem;
+          border-radius: 1rem;
+          text-align: center;
+          max-width: 90%;
+          box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .loading-spinner {
+          width: 60px;
+          height: 60px;
+          border: 4px solid var(--border-color);
+          border-top-color: var(--primary-color, #3b82f6);
+          border-radius: 50%;
+          animation: spin 1s linear infinite;
+          margin: 0 auto 1.5rem;
+        }
+
+        @keyframes spin {
+          to {
+            transform: rotate(360deg);
+          }
+        }
+
+        .loading-message {
+          font-size: 1.1rem;
+          color: var(--text-primary);
+          margin-bottom: 0.5rem;
+          min-height: 1.5em;
+        }
+
+        .loading-tip {
+          font-size: 0.85rem;
+          color: var(--text-secondary);
+          margin: 0;
         }
       `}</style>
     </>
