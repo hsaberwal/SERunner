@@ -20,6 +20,7 @@ router = APIRouter()
 class PerformerInput(BaseModel):
     type: str  # vocal, guitar, tabla, flute, etc.
     count: int = 1
+    input_source: Optional[str] = None  # beta_58a, beta_57a, c1000s, di_piezo, direct
     notes: Optional[str] = None
 
 

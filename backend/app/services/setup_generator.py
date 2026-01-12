@@ -311,16 +311,26 @@ Keep response under 4000 tokens. Be concise but systematic!"""
         if location.room_notes:
             prompt += f"\n**Room Acoustics Notes**: {location.room_notes}\n"
 
+        # Map input source codes to readable names
+        input_source_names = {
+            'beta_58a': 'Shure Beta 58A',
+            'beta_57a': 'Shure Beta 57A',
+            'c1000s': 'AKG C1000S',
+            'di_piezo': 'DI Box (Piezo)',
+            'direct': 'Direct/Line'
+        }
+
         prompt += "\n## Performer Lineup\n"
         for i, performer in enumerate(performers, 1):
             performer_type = performer.get('type', 'Unknown')
             count = performer.get('count', 1)
             input_source = performer.get('input_source', '')
+            input_name = input_source_names.get(input_source, input_source)
             notes = performer.get('notes', '')
 
             prompt += f"{i}. **{performer_type}** (count: {count})"
-            if input_source:
-                prompt += f" - Input: {input_source}"
+            if input_name:
+                prompt += f" - Using: {input_name}"
             if notes:
                 prompt += f" - {notes}"
             prompt += "\n"
