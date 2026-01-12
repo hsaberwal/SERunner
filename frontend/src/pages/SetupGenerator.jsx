@@ -162,7 +162,7 @@ function SetupGenerator() {
     const piezoTypes = ['acoustic_guitar', 'rabab', 'dilruba', 'taus', 'violin', 'sarangi']
     const vocalTypes = ['vocal_female', 'vocal_male']
     const speechTypes = ['podium', 'ardas', 'palki']
-    const directTypes = ['keyboard', 'harmonium']
+    const directTypes = ['keyboard']
 
     if (piezoTypes.includes(performerType)) return 'di_piezo'
     if (vocalTypes.includes(performerType)) return 'beta_58a'
@@ -170,6 +170,7 @@ function SetupGenerator() {
     if (directTypes.includes(performerType)) return 'direct'
     if (performerType === 'tabla') return 'beta_57a'
     if (performerType === 'flute') return 'beta_57a'
+    if (performerType === 'harmonium') return 'beta_57a'
     return ''
   }
 
