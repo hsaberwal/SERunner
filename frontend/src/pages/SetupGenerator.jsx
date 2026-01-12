@@ -138,10 +138,12 @@ function SetupGenerator() {
   const getDefaultInputSource = (performerType) => {
     const piezoTypes = ['acoustic_guitar', 'rabab', 'dilruba', 'taus', 'violin', 'sarangi']
     const vocalTypes = ['vocal_female', 'vocal_male']
+    const speechTypes = ['podium', 'ardas', 'palki']
     const directTypes = ['keyboard', 'harmonium']
 
     if (piezoTypes.includes(performerType)) return 'di_piezo'
     if (vocalTypes.includes(performerType)) return 'beta_58a'
+    if (speechTypes.includes(performerType)) return 'beta_58a'
     if (directTypes.includes(performerType)) return 'direct'
     if (performerType === 'tabla') return 'beta_57a'
     if (performerType === 'flute') return 'beta_57a'
@@ -569,6 +571,11 @@ function SetupGenerator() {
                     <optgroup label="Vocals">
                       <option value="vocal_female">Female Vocal</option>
                       <option value="vocal_male">Male Vocal</option>
+                    </optgroup>
+                    <optgroup label="Speech / Recitation">
+                      <option value="podium">Podium / Speech</option>
+                      <option value="ardas">Ardas</option>
+                      <option value="palki">Palki / Scripture Reading</option>
                     </optgroup>
                     <optgroup label="Percussion">
                       <option value="tabla">Tabla</option>

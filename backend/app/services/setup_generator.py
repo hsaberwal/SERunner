@@ -196,6 +196,37 @@ Width descriptions:
 - Compression: 2:1, -12dB threshold, 20ms attack, 150ms release, soft knee, +1dB gain, Manual RMS
 - Reverb: Depends on patch - often OFF if patch has built-in reverb
 
+### Podium / Speech Mic (Beta 58A)
+Purpose: Clear speech delivery - intelligibility is critical, minimal reverb
+- HPF: 120 Hz (remove all rumble, speech doesn't need lows)
+- Band 1: 200 Hz, -2 dB, MEDIUM width (affects ~135-300Hz) - reduce boom
+- Band 2: 500 Hz, -2 dB, MEDIUM width (affects ~335-750Hz) - reduce muddiness
+- Band 3: 3.5 kHz, +5 dB, MEDIUM width (affects ~2.3-5.2kHz) - CRITICAL: speech clarity
+- Band 4: 8 kHz, +2 dB, WIDE width (affects ~5.3-12kHz) - articulation, consonants
+- Compression: 4:1, -10dB threshold, 10ms attack, 100ms release, soft knee, +3dB gain, Manual RMS
+- Reverb: OFF or very minimal (-25dB send) - clarity over ambience
+
+### Ardas Mic (Beta 58A)
+Purpose: Sikh prayer recitation - voice should linger with gentle reverb, warm and reverent
+- HPF: 90 Hz
+- Band 1: 250 Hz, +2 dB, MEDIUM width (affects ~170-375Hz) - warmth
+- Band 2: 500 Hz, -2 dB, MEDIUM width (affects ~335-750Hz) - reduce boxiness
+- Band 3: 3 kHz, +3 dB, MEDIUM width (affects ~2-4.5kHz) - clarity
+- Band 4: 8 kHz, +2 dB, WIDE width (affects ~5.3-12kHz) - gentle presence
+- Compression: 3:1, -10dB threshold, 15ms attack, 100ms release, soft knee, +2dB gain, Manual RMS
+- Reverb: Hall Medium @ -8 dB send (noticeable reverb, voice lingers respectfully)
+
+### Palki / Guru Granth Sahib Reading (Beta 58A)
+Purpose: Sacred scripture reading - requires significant reverb for divine atmosphere
+- HPF: 85 Hz
+- Band 1: 220 Hz, +3 dB, MEDIUM width (affects ~150-330Hz) - rich warmth
+- Band 2: 450 Hz, -2 dB, MEDIUM width (affects ~300-680Hz) - reduce mud
+- Band 3: 2.5 kHz, +3 dB, MEDIUM width (affects ~1.7-3.7kHz) - presence without harshness
+- Band 4: 7 kHz, +2 dB, WIDE width (affects ~4.6-10.5kHz) - subtle air
+- Compression: 3:1, -12dB threshold, 20ms attack, 150ms release, soft knee, +2dB gain, Manual RMS
+- Reverb: Arena @ -5 dB send (HIGH reverb - creates sacred, ethereal atmosphere)
+- Note: The high reverb is intentional - scripture reading should fill the space reverently
+
 ## Key Principles
 
 1. **Don't Double-Reverb**: Keep instruments in separate reverb spaces. If a vocal is in both FX1 and FX2, it sounds washy.
