@@ -13,6 +13,28 @@ const emptySpeakerSetup = {
 // Common GEQ frequencies for ring-out
 const geqFrequencies = ['63Hz', '125Hz', '250Hz', '500Hz', '1kHz', '2kHz', '4kHz', '8kHz', '16kHz']
 
+// Known speakers and amps (same as SetupGenerator)
+const knownSpeakers = [
+  { value: '', label: 'Select or type custom...' },
+  { value: 'Martin Audio CDD-10', label: 'Martin Audio CDD-10' },
+  { value: 'EV ZLX-12P', label: 'Electro-Voice ZLX-12P' },
+  { value: 'EV ZX1-90', label: 'Electro-Voice ZX1-90' },
+  { value: 'EV Evolve 50', label: 'Electro-Voice Evolve 50' },
+  { value: 'custom', label: 'Other (type below)' }
+]
+
+const knownAmps = [
+  { value: '', label: 'Select or type custom...' },
+  { value: 'Crown XTi 1002', label: 'Crown XTi 1002' },
+  { value: 'Crown XTi 2002', label: 'Crown XTi 2002' },
+  { value: 'Crown XTi 4002', label: 'Crown XTi 4002' },
+  { value: 'Crown XLS 1002', label: 'Crown XLS 1002' },
+  { value: 'Crown XLS 1502', label: 'Crown XLS 1502' },
+  { value: 'Crown XLS 2002', label: 'Crown XLS 2002' },
+  { value: 'Crown CDi 1000', label: 'Crown CDi 1000 (70V)' },
+  { value: 'custom', label: 'Other (type below)' }
+]
+
 function Locations() {
   const [locationList, setLocationList] = useState([])
   const [loading, setLoading] = useState(true)
@@ -247,21 +269,26 @@ function Locations() {
                 {/* LR Mains */}
                 <div style={{ marginBottom: '1rem' }}>
                   <h4 style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>LR Mains</h4>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '0.5rem' }}>
-                    <input
-                      type="text"
-                      className="form-input"
-                      placeholder="Brand (e.g., EV)"
-                      value={formData.speaker_setup.lr_mains?.brand || ''}
-                      onChange={(e) => updateSpeakerField('lr_mains', 'brand', e.target.value)}
-                    />
-                    <input
-                      type="text"
-                      className="form-input"
-                      placeholder="Model (e.g., ZLX-12P)"
-                      value={formData.speaker_setup.lr_mains?.model || ''}
-                      onChange={(e) => updateSpeakerField('lr_mains', 'model', e.target.value)}
-                    />
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: '0.5rem', alignItems: 'center' }}>
+                    <select
+                      className="form-select"
+                      value={knownSpeakers.find(s => s.value === formData.speaker_setup.lr_mains?.model)?.value ||
+                             (formData.speaker_setup.lr_mains?.model ? 'custom' : '')}
+                      onChange={(e) => {
+                        if (e.target.value && e.target.value !== 'custom') {
+                          const parts = e.target.value.split(' ')
+                          updateSpeakerField('lr_mains', 'brand', parts[0])
+                          updateSpeakerField('lr_mains', 'model', e.target.value)
+                        } else if (e.target.value === 'custom') {
+                          updateSpeakerField('lr_mains', 'brand', '')
+                          updateSpeakerField('lr_mains', 'model', '')
+                        }
+                      }}
+                    >
+                      {knownSpeakers.map(s => (
+                        <option key={s.value} value={s.value}>{s.label}</option>
+                      ))}
+                    </select>
                     <input
                       type="number"
                       className="form-input"
@@ -269,9 +296,9 @@ function Locations() {
                       min="0"
                       value={formData.speaker_setup.lr_mains?.quantity || ''}
                       onChange={(e) => updateSpeakerField('lr_mains', 'quantity', parseInt(e.target.value) || 0)}
-                      style={{ maxWidth: '80px' }}
+                      style={{ width: '70px' }}
                     />
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.875rem' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.875rem', whiteSpace: 'nowrap' }}>
                       <input
                         type="checkbox"
                         checked={formData.speaker_setup.lr_mains?.powered ?? true}
@@ -280,23 +307,26 @@ function Locations() {
                       Powered
                     </label>
                   </div>
+                  {(!knownSpeakers.find(s => s.value === formData.speaker_setup.lr_mains?.model) && formData.speaker_setup.lr_mains?.model) && (
+                    <input
+                      type="text"
+                      className="form-input"
+                      placeholder="Custom speaker (Brand Model)"
+                      value={formData.speaker_setup.lr_mains?.model || ''}
+                      onChange={(e) => updateSpeakerField('lr_mains', 'model', e.target.value)}
+                      style={{ marginTop: '0.5rem' }}
+                    />
+                  )}
                 </div>
 
                 {/* Sub */}
                 <div style={{ marginBottom: '1rem' }}>
                   <h4 style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Subwoofer</h4>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '0.5rem' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: '0.5rem', alignItems: 'center' }}>
                     <input
                       type="text"
                       className="form-input"
-                      placeholder="Brand"
-                      value={formData.speaker_setup.sub?.brand || ''}
-                      onChange={(e) => updateSpeakerField('sub', 'brand', e.target.value)}
-                    />
-                    <input
-                      type="text"
-                      className="form-input"
-                      placeholder="Model"
+                      placeholder="Brand Model (e.g., EV ELX118P)"
                       value={formData.speaker_setup.sub?.model || ''}
                       onChange={(e) => updateSpeakerField('sub', 'model', e.target.value)}
                     />
@@ -307,9 +337,9 @@ function Locations() {
                       min="0"
                       value={formData.speaker_setup.sub?.quantity || ''}
                       onChange={(e) => updateSpeakerField('sub', 'quantity', parseInt(e.target.value) || 0)}
-                      style={{ maxWidth: '80px' }}
+                      style={{ width: '70px' }}
                     />
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.875rem' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.875rem', whiteSpace: 'nowrap' }}>
                       <input
                         type="checkbox"
                         checked={formData.speaker_setup.sub?.powered ?? true}
@@ -323,21 +353,26 @@ function Locations() {
                 {/* Monitors */}
                 <div style={{ marginBottom: '1rem' }}>
                   <h4 style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Monitors</h4>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '0.5rem' }}>
-                    <input
-                      type="text"
-                      className="form-input"
-                      placeholder="Brand"
-                      value={formData.speaker_setup.monitors?.brand || ''}
-                      onChange={(e) => updateSpeakerField('monitors', 'brand', e.target.value)}
-                    />
-                    <input
-                      type="text"
-                      className="form-input"
-                      placeholder="Model"
-                      value={formData.speaker_setup.monitors?.model || ''}
-                      onChange={(e) => updateSpeakerField('monitors', 'model', e.target.value)}
-                    />
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: '0.5rem', alignItems: 'center' }}>
+                    <select
+                      className="form-select"
+                      value={knownSpeakers.find(s => s.value === formData.speaker_setup.monitors?.model)?.value ||
+                             (formData.speaker_setup.monitors?.model ? 'custom' : '')}
+                      onChange={(e) => {
+                        if (e.target.value && e.target.value !== 'custom') {
+                          const parts = e.target.value.split(' ')
+                          updateSpeakerField('monitors', 'brand', parts[0])
+                          updateSpeakerField('monitors', 'model', e.target.value)
+                        } else if (e.target.value === 'custom') {
+                          updateSpeakerField('monitors', 'brand', '')
+                          updateSpeakerField('monitors', 'model', '')
+                        }
+                      }}
+                    >
+                      {knownSpeakers.map(s => (
+                        <option key={s.value} value={s.value}>{s.label}</option>
+                      ))}
+                    </select>
                     <input
                       type="number"
                       className="form-input"
@@ -345,9 +380,9 @@ function Locations() {
                       min="0"
                       value={formData.speaker_setup.monitors?.quantity || ''}
                       onChange={(e) => updateSpeakerField('monitors', 'quantity', parseInt(e.target.value) || 0)}
-                      style={{ maxWidth: '80px' }}
+                      style={{ width: '70px' }}
                     />
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.875rem' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.875rem', whiteSpace: 'nowrap' }}>
                       <input
                         type="checkbox"
                         checked={formData.speaker_setup.monitors?.powered ?? true}
@@ -356,6 +391,16 @@ function Locations() {
                       Powered
                     </label>
                   </div>
+                  {(!knownSpeakers.find(s => s.value === formData.speaker_setup.monitors?.model) && formData.speaker_setup.monitors?.model) && (
+                    <input
+                      type="text"
+                      className="form-input"
+                      placeholder="Custom speaker (Brand Model)"
+                      value={formData.speaker_setup.monitors?.model || ''}
+                      onChange={(e) => updateSpeakerField('monitors', 'model', e.target.value)}
+                      style={{ marginTop: '0.5rem' }}
+                    />
+                  )}
                 </div>
 
                 {/* Amp (for passive speakers) */}
@@ -363,29 +408,44 @@ function Locations() {
                   <h4 style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
                     Amplifier <span style={{ fontWeight: 'normal' }}>(if using passive speakers)</span>
                   </h4>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '0.5rem' }}>
-                    <input
-                      type="text"
-                      className="form-input"
-                      placeholder="Brand (e.g., Crown)"
-                      value={formData.speaker_setup.amp?.brand || ''}
-                      onChange={(e) => updateSpeakerField('amp', 'brand', e.target.value)}
-                    />
-                    <input
-                      type="text"
-                      className="form-input"
-                      placeholder="Model (e.g., XLS 1502)"
-                      value={formData.speaker_setup.amp?.model || ''}
-                      onChange={(e) => updateSpeakerField('amp', 'model', e.target.value)}
-                    />
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '0.5rem', alignItems: 'center' }}>
+                    <select
+                      className="form-select"
+                      value={knownAmps.find(a => a.value === formData.speaker_setup.amp?.model)?.value ||
+                             (formData.speaker_setup.amp?.model ? 'custom' : '')}
+                      onChange={(e) => {
+                        if (e.target.value && e.target.value !== 'custom') {
+                          updateSpeakerField('amp', 'brand', 'Crown')
+                          updateSpeakerField('amp', 'model', e.target.value)
+                        } else if (e.target.value === 'custom') {
+                          updateSpeakerField('amp', 'brand', '')
+                          updateSpeakerField('amp', 'model', '')
+                        }
+                      }}
+                    >
+                      {knownAmps.map(a => (
+                        <option key={a.value} value={a.value}>{a.label}</option>
+                      ))}
+                    </select>
                     <input
                       type="text"
                       className="form-input"
                       placeholder="Watts"
                       value={formData.speaker_setup.amp?.watts || ''}
                       onChange={(e) => updateSpeakerField('amp', 'watts', e.target.value)}
+                      style={{ width: '100px' }}
                     />
                   </div>
+                  {(!knownAmps.find(a => a.value === formData.speaker_setup.amp?.model) && formData.speaker_setup.amp?.model) && (
+                    <input
+                      type="text"
+                      className="form-input"
+                      placeholder="Custom amp (Brand Model)"
+                      value={formData.speaker_setup.amp?.model || ''}
+                      onChange={(e) => updateSpeakerField('amp', 'model', e.target.value)}
+                      style={{ marginTop: '0.5rem' }}
+                    />
+                  )}
                 </div>
               </div>
 
