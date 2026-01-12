@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import get_settings
 from app.routers import auth, locations, setups, gear
 from app.database import engine, Base
-from app.models import User, Location, Setup, Gear, KnowledgeBase
+from app.models import User, Location, Setup, Gear, GearLoan, KnowledgeBase
 
 # Configure logging to stdout for Railway
 logging.basicConfig(
@@ -126,3 +126,85 @@ async def init_db():
             "status": "error",
             "error": str(e)
         }
+
+
+@app.post("/admin/migrate")
+async def run_migrations():
+    """Add new columns to existing tables (for schema updates)."""
+    from sqlalchemy import text
+    migrations = []
+    errors = []
+
+    async with engine.begin() as conn:
+        # Add new columns to locations table
+        location_columns = [
+            ("lr_geq_cuts", "JSONB"),
+            ("monitor_geq_cuts", "JSONB"),
+            ("room_notes", "TEXT"),
+        ]
+        for col_name, col_type in location_columns:
+            try:
+                await conn.execute(text(
+                    f"ALTER TABLE locations ADD COLUMN IF NOT EXISTS {col_name} {col_type}"
+                ))
+                migrations.append(f"locations.{col_name}")
+            except Exception as e:
+                errors.append(f"locations.{col_name}: {str(e)}")
+
+        # Add new columns to gear table
+        gear_columns = [
+            ("serial_number", "VARCHAR"),
+            ("quantity", "INTEGER DEFAULT 1"),
+            ("notes", "TEXT"),
+        ]
+        for col_name, col_type in gear_columns:
+            try:
+                await conn.execute(text(
+                    f"ALTER TABLE gear ADD COLUMN IF NOT EXISTS {col_name} {col_type}"
+                ))
+                migrations.append(f"gear.{col_name}")
+            except Exception as e:
+                errors.append(f"gear.{col_name}: {str(e)}")
+
+        # Create gear_loans table if it doesn't exist
+        try:
+            await conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS gear_loans (
+                    id UUID PRIMARY KEY,
+                    gear_id UUID NOT NULL REFERENCES gear(id) ON DELETE CASCADE,
+                    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                    borrower_name VARCHAR NOT NULL,
+                    borrower_contact VARCHAR,
+                    quantity_loaned INTEGER DEFAULT 1,
+                    loan_date TIMESTAMP NOT NULL DEFAULT NOW(),
+                    expected_return_date TIMESTAMP,
+                    actual_return_date TIMESTAMP,
+                    is_returned BOOLEAN DEFAULT FALSE,
+                    notes TEXT,
+                    return_notes TEXT
+                )
+            """))
+            migrations.append("gear_loans table")
+        except Exception as e:
+            errors.append(f"gear_loans table: {str(e)}")
+
+        # Create indexes for gear_loans
+        indexes = [
+            ("ix_gear_loans_gear_id", "gear_loans", "gear_id"),
+            ("ix_gear_loans_user_id", "gear_loans", "user_id"),
+            ("ix_gear_loans_is_returned", "gear_loans", "is_returned"),
+        ]
+        for idx_name, table, column in indexes:
+            try:
+                await conn.execute(text(
+                    f"CREATE INDEX IF NOT EXISTS {idx_name} ON {table}({column})"
+                ))
+                migrations.append(f"index {idx_name}")
+            except Exception as e:
+                errors.append(f"index {idx_name}: {str(e)}")
+
+    return {
+        "status": "success" if not errors else "partial",
+        "migrations_applied": migrations,
+        "errors": errors
+    }
