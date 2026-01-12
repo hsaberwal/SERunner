@@ -272,7 +272,27 @@ Keep response under 4000 tokens. Be concise but systematic!"""
 """
 
         if location.speaker_setup:
-            prompt += f"\n**Speaker Setup**: {json.dumps(location.speaker_setup, indent=2)}\n"
+            prompt += "\n**Speaker Setup**:\n"
+            setup = location.speaker_setup
+            if setup.get('lr_mains', {}).get('brand'):
+                mains = setup['lr_mains']
+                prompt += f"- LR Mains: {mains.get('quantity', 2)}x {mains['brand']} {mains.get('model', '')}"
+                prompt += f" ({'Powered' if mains.get('powered', True) else 'Passive'})\n"
+            if setup.get('sub', {}).get('brand') and setup.get('sub', {}).get('quantity', 0) > 0:
+                sub = setup['sub']
+                prompt += f"- Subwoofer: {sub['quantity']}x {sub['brand']} {sub.get('model', '')}"
+                prompt += f" ({'Powered' if sub.get('powered', True) else 'Passive'})\n"
+            if setup.get('monitors', {}).get('brand') and setup.get('monitors', {}).get('quantity', 0) > 0:
+                mon = setup['monitors']
+                prompt += f"- Monitors: {mon['quantity']}x {mon['brand']} {mon.get('model', '')}"
+                prompt += f" ({'Powered' if mon.get('powered', True) else 'Passive'})\n"
+            if setup.get('amp', {}).get('brand'):
+                amp = setup['amp']
+                prompt += f"- Amplifier: {amp['brand']} {amp.get('model', '')}"
+                if amp.get('watts'):
+                    prompt += f" ({amp['watts']}W)"
+                prompt += "\n"
+            prompt += "\n"
 
         # Include GEQ cuts from previous ring-outs at this venue
         if location.lr_geq_cuts:

@@ -2,15 +2,32 @@ import { useState, useEffect } from 'react'
 import { locations } from '../services/api'
 import Navigation from '../components/Navigation'
 
+// Default empty speaker setup structure
+const emptySpeakerSetup = {
+  lr_mains: { brand: '', model: '', powered: true, quantity: 2, watts: '', notes: '' },
+  sub: { brand: '', model: '', powered: true, quantity: 0, watts: '', notes: '' },
+  monitors: { brand: '', model: '', powered: true, quantity: 0, watts: '', notes: '' },
+  amp: { brand: '', model: '', watts: '', channels: '', notes: '' }
+}
+
+// Common GEQ frequencies for ring-out
+const geqFrequencies = ['63Hz', '125Hz', '250Hz', '500Hz', '1kHz', '2kHz', '4kHz', '8kHz', '16kHz']
+
 function Locations() {
   const [locationList, setLocationList] = useState([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
+  const [editingId, setEditingId] = useState(null)
+  const [expandedId, setExpandedId] = useState(null)
   const [formData, setFormData] = useState({
     name: '',
     venue_type: '',
     notes: '',
-    is_temporary: false
+    is_temporary: false,
+    speaker_setup: { ...emptySpeakerSetup },
+    lr_geq_cuts: {},
+    monitor_geq_cuts: {},
+    room_notes: ''
   })
 
   useEffect(() => {
@@ -28,27 +45,128 @@ function Locations() {
     }
   }
 
+  const resetForm = () => {
+    setFormData({
+      name: '',
+      venue_type: '',
+      notes: '',
+      is_temporary: false,
+      speaker_setup: { ...emptySpeakerSetup },
+      lr_geq_cuts: {},
+      monitor_geq_cuts: {},
+      room_notes: ''
+    })
+    setEditingId(null)
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     try {
-      await locations.create(formData)
+      // Clean up empty speaker setup values
+      const cleanedData = {
+        ...formData,
+        speaker_setup: cleanSpeakerSetup(formData.speaker_setup),
+        lr_geq_cuts: Object.keys(formData.lr_geq_cuts).length > 0 ? formData.lr_geq_cuts : null,
+        monitor_geq_cuts: Object.keys(formData.monitor_geq_cuts).length > 0 ? formData.monitor_geq_cuts : null,
+        room_notes: formData.room_notes || null
+      }
+
+      if (editingId) {
+        await locations.update(editingId, cleanedData)
+      } else {
+        await locations.create(cleanedData)
+      }
       setShowForm(false)
-      setFormData({ name: '', venue_type: '', notes: '', is_temporary: false })
+      resetForm()
       loadLocations()
     } catch (error) {
-      console.error('Failed to create location:', error)
+      alert('Failed to save location: ' + (error.response?.data?.detail || error.message))
     }
   }
 
+  const cleanSpeakerSetup = (setup) => {
+    if (!setup) return null
+    const cleaned = {}
+    for (const [key, value] of Object.entries(setup)) {
+      if (value && (value.brand || value.model || value.quantity > 0)) {
+        cleaned[key] = value
+      }
+    }
+    return Object.keys(cleaned).length > 0 ? cleaned : null
+  }
+
+  const handleEdit = (loc) => {
+    setFormData({
+      name: loc.name,
+      venue_type: loc.venue_type || '',
+      notes: loc.notes || '',
+      is_temporary: loc.is_temporary,
+      speaker_setup: loc.speaker_setup || { ...emptySpeakerSetup },
+      lr_geq_cuts: loc.lr_geq_cuts || {},
+      monitor_geq_cuts: loc.monitor_geq_cuts || {},
+      room_notes: loc.room_notes || ''
+    })
+    setEditingId(loc.id)
+    setShowForm(true)
+    setExpandedId(null)
+  }
+
   const handleDelete = async (id) => {
-    if (confirm('Delete this location?')) {
+    if (confirm('Delete this location? This will also delete all setups for this location.')) {
       try {
         await locations.delete(id)
         loadLocations()
       } catch (error) {
-        console.error('Failed to delete location:', error)
+        alert('Failed to delete location: ' + (error.response?.data?.detail || error.message))
       }
     }
+  }
+
+  const updateSpeakerField = (category, field, value) => {
+    setFormData({
+      ...formData,
+      speaker_setup: {
+        ...formData.speaker_setup,
+        [category]: {
+          ...formData.speaker_setup[category],
+          [field]: value
+        }
+      }
+    })
+  }
+
+  const updateGEQ = (type, freq, value) => {
+    const key = type === 'lr' ? 'lr_geq_cuts' : 'monitor_geq_cuts'
+    const newCuts = { ...formData[key] }
+    if (value === '' || value === 0) {
+      delete newCuts[freq]
+    } else {
+      newCuts[freq] = parseInt(value)
+    }
+    setFormData({ ...formData, [key]: newCuts })
+  }
+
+  const formatSpeakerInfo = (setup) => {
+    if (!setup) return null
+    const parts = []
+    if (setup.lr_mains?.brand) {
+      parts.push(`LR: ${setup.lr_mains.quantity}x ${setup.lr_mains.brand} ${setup.lr_mains.model}${setup.lr_mains.powered ? ' (powered)' : ''}`)
+    }
+    if (setup.sub?.brand && setup.sub.quantity > 0) {
+      parts.push(`Sub: ${setup.sub.quantity}x ${setup.sub.brand} ${setup.sub.model}`)
+    }
+    if (setup.monitors?.brand && setup.monitors.quantity > 0) {
+      parts.push(`Mon: ${setup.monitors.quantity}x ${setup.monitors.brand} ${setup.monitors.model}`)
+    }
+    if (setup.amp?.brand) {
+      parts.push(`Amp: ${setup.amp.brand} ${setup.amp.model}`)
+    }
+    return parts.length > 0 ? parts : null
+  }
+
+  const formatGEQCuts = (cuts) => {
+    if (!cuts || Object.keys(cuts).length === 0) return null
+    return Object.entries(cuts).map(([freq, db]) => `${freq}: ${db}dB`).join(', ')
   }
 
   if (loading) {
@@ -61,50 +179,54 @@ function Locations() {
       <div className="container">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
           <h1>Locations</h1>
-          <button className="btn btn-primary" onClick={() => setShowForm(!showForm)}>
+          <button className="btn btn-primary" onClick={() => {
+            if (showForm) {
+              setShowForm(false)
+              resetForm()
+            } else {
+              setShowForm(true)
+            }
+          }}>
             {showForm ? 'Cancel' : 'Add Location'}
           </button>
         </div>
 
         {showForm && (
           <div className="card" style={{ marginBottom: '2rem' }}>
-            <h2 className="card-header">New Location</h2>
+            <h2 className="card-header">{editingId ? 'Edit Location' : 'New Location'}</h2>
             <form onSubmit={handleSubmit}>
-              <div className="form-group">
-                <label className="form-label">Name *</label>
-                <input
-                  type="text"
-                  className="form-input"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  required
-                />
-              </div>
+              {/* Basic Info */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div className="form-group">
+                  <label className="form-label">Name *</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    placeholder="e.g., St. Mary's Church"
+                    required
+                  />
+                </div>
 
-              <div className="form-group">
-                <label className="form-label">Venue Type</label>
-                <select
-                  className="form-select"
-                  value={formData.venue_type}
-                  onChange={(e) => setFormData({ ...formData, venue_type: e.target.value })}
-                >
-                  <option value="">Select type...</option>
-                  <option value="church">Church</option>
-                  <option value="hall">Hall</option>
-                  <option value="outdoor">Outdoor</option>
-                  <option value="school">School</option>
-                  <option value="other">Other</option>
-                </select>
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Notes</label>
-                <textarea
-                  className="form-textarea"
-                  value={formData.notes}
-                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                  placeholder="Speaker placement, acoustic notes, etc."
-                />
+                <div className="form-group">
+                  <label className="form-label">Venue Type</label>
+                  <select
+                    className="form-select"
+                    value={formData.venue_type}
+                    onChange={(e) => setFormData({ ...formData, venue_type: e.target.value })}
+                  >
+                    <option value="">Select type...</option>
+                    <option value="gurdwara">Gurdwara</option>
+                    <option value="church">Church</option>
+                    <option value="temple">Temple</option>
+                    <option value="hall">Hall</option>
+                    <option value="cafe">Cafe</option>
+                    <option value="outdoor">Outdoor</option>
+                    <option value="school">School</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
               </div>
 
               <div className="form-group">
@@ -114,11 +236,248 @@ function Locations() {
                     checked={formData.is_temporary}
                     onChange={(e) => setFormData({ ...formData, is_temporary: e.target.checked })}
                   />
-                  Temporary location
+                  Temporary location (one-time event)
                 </label>
               </div>
 
-              <button type="submit" className="btn btn-primary">Create Location</button>
+              {/* Speaker Setup Section */}
+              <div style={{ background: 'var(--bg-secondary)', padding: '1rem', borderRadius: '0.5rem', marginBottom: '1rem' }}>
+                <h3 style={{ fontSize: '1rem', marginBottom: '1rem' }}>Speaker Setup</h3>
+
+                {/* LR Mains */}
+                <div style={{ marginBottom: '1rem' }}>
+                  <h4 style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>LR Mains</h4>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '0.5rem' }}>
+                    <input
+                      type="text"
+                      className="form-input"
+                      placeholder="Brand (e.g., EV)"
+                      value={formData.speaker_setup.lr_mains?.brand || ''}
+                      onChange={(e) => updateSpeakerField('lr_mains', 'brand', e.target.value)}
+                    />
+                    <input
+                      type="text"
+                      className="form-input"
+                      placeholder="Model (e.g., ZLX-12P)"
+                      value={formData.speaker_setup.lr_mains?.model || ''}
+                      onChange={(e) => updateSpeakerField('lr_mains', 'model', e.target.value)}
+                    />
+                    <input
+                      type="number"
+                      className="form-input"
+                      placeholder="Qty"
+                      min="0"
+                      value={formData.speaker_setup.lr_mains?.quantity || ''}
+                      onChange={(e) => updateSpeakerField('lr_mains', 'quantity', parseInt(e.target.value) || 0)}
+                      style={{ maxWidth: '80px' }}
+                    />
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.875rem' }}>
+                      <input
+                        type="checkbox"
+                        checked={formData.speaker_setup.lr_mains?.powered ?? true}
+                        onChange={(e) => updateSpeakerField('lr_mains', 'powered', e.target.checked)}
+                      />
+                      Powered
+                    </label>
+                  </div>
+                </div>
+
+                {/* Sub */}
+                <div style={{ marginBottom: '1rem' }}>
+                  <h4 style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Subwoofer</h4>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '0.5rem' }}>
+                    <input
+                      type="text"
+                      className="form-input"
+                      placeholder="Brand"
+                      value={formData.speaker_setup.sub?.brand || ''}
+                      onChange={(e) => updateSpeakerField('sub', 'brand', e.target.value)}
+                    />
+                    <input
+                      type="text"
+                      className="form-input"
+                      placeholder="Model"
+                      value={formData.speaker_setup.sub?.model || ''}
+                      onChange={(e) => updateSpeakerField('sub', 'model', e.target.value)}
+                    />
+                    <input
+                      type="number"
+                      className="form-input"
+                      placeholder="Qty"
+                      min="0"
+                      value={formData.speaker_setup.sub?.quantity || ''}
+                      onChange={(e) => updateSpeakerField('sub', 'quantity', parseInt(e.target.value) || 0)}
+                      style={{ maxWidth: '80px' }}
+                    />
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.875rem' }}>
+                      <input
+                        type="checkbox"
+                        checked={formData.speaker_setup.sub?.powered ?? true}
+                        onChange={(e) => updateSpeakerField('sub', 'powered', e.target.checked)}
+                      />
+                      Powered
+                    </label>
+                  </div>
+                </div>
+
+                {/* Monitors */}
+                <div style={{ marginBottom: '1rem' }}>
+                  <h4 style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Monitors</h4>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '0.5rem' }}>
+                    <input
+                      type="text"
+                      className="form-input"
+                      placeholder="Brand"
+                      value={formData.speaker_setup.monitors?.brand || ''}
+                      onChange={(e) => updateSpeakerField('monitors', 'brand', e.target.value)}
+                    />
+                    <input
+                      type="text"
+                      className="form-input"
+                      placeholder="Model"
+                      value={formData.speaker_setup.monitors?.model || ''}
+                      onChange={(e) => updateSpeakerField('monitors', 'model', e.target.value)}
+                    />
+                    <input
+                      type="number"
+                      className="form-input"
+                      placeholder="Qty"
+                      min="0"
+                      value={formData.speaker_setup.monitors?.quantity || ''}
+                      onChange={(e) => updateSpeakerField('monitors', 'quantity', parseInt(e.target.value) || 0)}
+                      style={{ maxWidth: '80px' }}
+                    />
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.875rem' }}>
+                      <input
+                        type="checkbox"
+                        checked={formData.speaker_setup.monitors?.powered ?? true}
+                        onChange={(e) => updateSpeakerField('monitors', 'powered', e.target.checked)}
+                      />
+                      Powered
+                    </label>
+                  </div>
+                </div>
+
+                {/* Amp (for passive speakers) */}
+                <div>
+                  <h4 style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
+                    Amplifier <span style={{ fontWeight: 'normal' }}>(if using passive speakers)</span>
+                  </h4>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '0.5rem' }}>
+                    <input
+                      type="text"
+                      className="form-input"
+                      placeholder="Brand (e.g., Crown)"
+                      value={formData.speaker_setup.amp?.brand || ''}
+                      onChange={(e) => updateSpeakerField('amp', 'brand', e.target.value)}
+                    />
+                    <input
+                      type="text"
+                      className="form-input"
+                      placeholder="Model (e.g., XLS 1502)"
+                      value={formData.speaker_setup.amp?.model || ''}
+                      onChange={(e) => updateSpeakerField('amp', 'model', e.target.value)}
+                    />
+                    <input
+                      type="text"
+                      className="form-input"
+                      placeholder="Watts"
+                      value={formData.speaker_setup.amp?.watts || ''}
+                      onChange={(e) => updateSpeakerField('amp', 'watts', e.target.value)}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* GEQ Cuts Section */}
+              <div style={{ background: 'var(--bg-secondary)', padding: '1rem', borderRadius: '0.5rem', marginBottom: '1rem' }}>
+                <h3 style={{ fontSize: '1rem', marginBottom: '0.5rem' }}>GEQ Cuts from Ring-Out</h3>
+                <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
+                  Record problem frequencies found during ring-out. These will be highlighted in future setups.
+                </p>
+
+                {/* LR GEQ */}
+                <div style={{ marginBottom: '1rem' }}>
+                  <h4 style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>LR Main GEQ</h4>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                    {geqFrequencies.map(freq => (
+                      <div key={`lr-${freq}`} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                        <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{freq}</label>
+                        <input
+                          type="number"
+                          className="form-input"
+                          value={formData.lr_geq_cuts[freq] || ''}
+                          onChange={(e) => updateGEQ('lr', freq, e.target.value)}
+                          placeholder="0"
+                          min="-12"
+                          max="0"
+                          style={{ width: '50px', textAlign: 'center', padding: '0.25rem' }}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Monitor GEQ */}
+                <div>
+                  <h4 style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Monitor GEQ</h4>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                    {geqFrequencies.map(freq => (
+                      <div key={`mon-${freq}`} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                        <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{freq}</label>
+                        <input
+                          type="number"
+                          className="form-input"
+                          value={formData.monitor_geq_cuts[freq] || ''}
+                          onChange={(e) => updateGEQ('monitor', freq, e.target.value)}
+                          placeholder="0"
+                          min="-12"
+                          max="0"
+                          style={{ width: '50px', textAlign: 'center', padding: '0.25rem' }}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Room Notes */}
+              <div className="form-group">
+                <label className="form-label">Room Acoustics Notes</label>
+                <textarea
+                  className="form-textarea"
+                  value={formData.room_notes}
+                  onChange={(e) => setFormData({ ...formData, room_notes: e.target.value })}
+                  placeholder="Dead spots, reflections, problem areas, best speaker positions..."
+                  rows={2}
+                />
+              </div>
+
+              {/* General Notes */}
+              <div className="form-group">
+                <label className="form-label">General Notes</label>
+                <textarea
+                  className="form-textarea"
+                  value={formData.notes}
+                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                  placeholder="Contact info, access instructions, power locations..."
+                  rows={2}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <button type="submit" className="btn btn-primary">
+                  {editingId ? 'Save Changes' : 'Create Location'}
+                </button>
+                {editingId && (
+                  <button type="button" className="btn btn-secondary" onClick={() => {
+                    setShowForm(false)
+                    resetForm()
+                  }}>
+                    Cancel
+                  </button>
+                )}
+              </div>
             </form>
           </div>
         )}
@@ -130,33 +489,112 @@ function Locations() {
             </p>
           ) : (
             locationList.map((loc) => (
-              <div key={loc.id} className="card">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
-                  <div>
+              <div key={loc.id} className="card" style={{ marginBottom: '1rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <div style={{ flex: 1 }}>
                     <h3 style={{ fontSize: '1.25rem', marginBottom: '0.5rem' }}>
                       {loc.name}
                       {loc.is_temporary && <span style={{ fontSize: '0.875rem', color: 'var(--warning)', marginLeft: '0.5rem' }}>(Temporary)</span>}
                     </h3>
                     {loc.venue_type && (
-                      <p style={{ color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
-                        Type: {loc.venue_type}
+                      <p style={{ color: 'var(--text-secondary)', marginBottom: '0.5rem', fontSize: '0.875rem' }}>
+                        {loc.venue_type.charAt(0).toUpperCase() + loc.venue_type.slice(1)}
                       </p>
                     )}
-                    {loc.notes && <p style={{ color: 'var(--text-secondary)' }}>{loc.notes}</p>}
+
+                    {/* Speaker Summary */}
+                    {formatSpeakerInfo(loc.speaker_setup) && (
+                      <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
+                        {formatSpeakerInfo(loc.speaker_setup).map((line, i) => (
+                          <div key={i}>{line}</div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Expand/Collapse for details */}
+                    {(loc.lr_geq_cuts || loc.monitor_geq_cuts || loc.room_notes || loc.notes) && (
+                      <button
+                        type="button"
+                        onClick={() => setExpandedId(expandedId === loc.id ? null : loc.id)}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: 'var(--primary)',
+                          cursor: 'pointer',
+                          padding: 0,
+                          fontSize: '0.875rem',
+                          marginTop: '0.5rem'
+                        }}
+                      >
+                        {expandedId === loc.id ? 'Hide details' : 'Show details'}
+                      </button>
+                    )}
+
+                    {/* Expanded Details */}
+                    {expandedId === loc.id && (
+                      <div style={{ marginTop: '1rem', padding: '1rem', background: 'var(--bg-secondary)', borderRadius: '0.5rem' }}>
+                        {loc.lr_geq_cuts && Object.keys(loc.lr_geq_cuts).length > 0 && (
+                          <div style={{ marginBottom: '0.75rem' }}>
+                            <strong style={{ fontSize: '0.875rem' }}>LR GEQ Cuts:</strong>
+                            <span style={{ fontSize: '0.875rem', marginLeft: '0.5rem' }}>{formatGEQCuts(loc.lr_geq_cuts)}</span>
+                          </div>
+                        )}
+                        {loc.monitor_geq_cuts && Object.keys(loc.monitor_geq_cuts).length > 0 && (
+                          <div style={{ marginBottom: '0.75rem' }}>
+                            <strong style={{ fontSize: '0.875rem' }}>Monitor GEQ Cuts:</strong>
+                            <span style={{ fontSize: '0.875rem', marginLeft: '0.5rem' }}>{formatGEQCuts(loc.monitor_geq_cuts)}</span>
+                          </div>
+                        )}
+                        {loc.room_notes && (
+                          <div style={{ marginBottom: '0.75rem' }}>
+                            <strong style={{ fontSize: '0.875rem' }}>Room Acoustics:</strong>
+                            <p style={{ fontSize: '0.875rem', margin: '0.25rem 0 0' }}>{loc.room_notes}</p>
+                          </div>
+                        )}
+                        {loc.notes && (
+                          <div>
+                            <strong style={{ fontSize: '0.875rem' }}>Notes:</strong>
+                            <p style={{ fontSize: '0.875rem', margin: '0.25rem 0 0' }}>{loc.notes}</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
-                  <button
-                    className="btn btn-danger"
-                    onClick={() => handleDelete(loc.id)}
-                    style={{ padding: '0.5rem 1rem' }}
-                  >
-                    Delete
-                  </button>
+
+                  <div style={{ display: 'flex', gap: '0.5rem', marginLeft: '1rem' }}>
+                    <button
+                      className="btn btn-secondary"
+                      onClick={() => handleEdit(loc)}
+                      style={{ padding: '0.5rem 1rem' }}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      className="btn btn-danger"
+                      onClick={() => handleDelete(loc.id)}
+                      style={{ padding: '0.5rem 1rem' }}
+                    >
+                      Delete
+                    </button>
+                  </div>
                 </div>
               </div>
             ))
           )}
         </div>
       </div>
+
+      <style>{`
+        @media (max-width: 600px) {
+          .card > div:first-child {
+            flex-direction: column;
+          }
+          .card > div:first-child > div:last-child {
+            margin-left: 0 !important;
+            margin-top: 1rem;
+          }
+        }
+      `}</style>
     </>
   )
 }
