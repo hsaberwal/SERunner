@@ -784,27 +784,30 @@ function SetupGenerator() {
           left: 0;
           right: 0;
           bottom: 0;
-          background: rgba(0, 0, 0, 0.75);
+          background: rgba(0, 0, 0, 0.5);
           display: flex;
           align-items: center;
           justify-content: center;
           z-index: 1000;
+          backdrop-filter: blur(4px);
         }
 
         .loading-content {
-          background: var(--bg-primary);
-          padding: 2rem 3rem;
+          background: #ffffff;
+          padding: 2.5rem 3rem;
           border-radius: 1rem;
           text-align: center;
           max-width: 90%;
-          box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+          min-width: 320px;
+          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+          border: 1px solid #e5e7eb;
         }
 
         .loading-spinner {
           width: 60px;
           height: 60px;
-          border: 4px solid var(--border-color);
-          border-top-color: var(--primary-color, #3b82f6);
+          border: 4px solid #e5e7eb;
+          border-top-color: #3b82f6;
           border-radius: 50%;
           animation: spin 1s linear infinite;
           margin: 0 auto 1.5rem;
@@ -818,14 +821,15 @@ function SetupGenerator() {
 
         .loading-message {
           font-size: 1.1rem;
-          color: var(--text-primary);
-          margin-bottom: 0.5rem;
+          color: #1f2937;
+          margin-bottom: 0.75rem;
           min-height: 1.5em;
+          font-weight: 500;
         }
 
         .loading-tip {
           font-size: 0.85rem;
-          color: var(--text-secondary);
+          color: #6b7280;
           margin: 0;
         }
       `}</style>
