@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, DateTime
+from sqlalchemy import Column, String, DateTime, Boolean
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from datetime import datetime
@@ -14,6 +14,8 @@ class User(Base):
     email = Column(String, unique=True, nullable=False, index=True)
     password_hash = Column(String, nullable=False)
     role = Column(String, default="operator")  # operator, admin
+    is_approved = Column(Boolean, default=False)  # Must be approved by admin to use app
+    is_admin = Column(Boolean, default=False)  # Can approve other users
     api_key = Column(String, nullable=True)  # optional personal Claude API key
     created_at = Column(DateTime, default=datetime.utcnow)
 

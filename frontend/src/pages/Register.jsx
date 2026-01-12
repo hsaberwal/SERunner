@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 
 function Register() {
@@ -7,13 +7,14 @@ function Register() {
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
   const [loading, setLoading] = useState(false)
-  const navigate = useNavigate()
   const { register } = useAuth()
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
+    setSuccess('')
 
     if (password !== confirmPassword) {
       setError('Passwords do not match')
@@ -28,8 +29,12 @@ function Register() {
     setLoading(true)
 
     try {
-      await register(email, password)
-      navigate('/')
+      const result = await register(email, password)
+      setSuccess(result.message)
+      // Clear form
+      setEmail('')
+      setPassword('')
+      setConfirmPassword('')
     } catch (err) {
       setError(err.response?.data?.detail || 'Registration failed')
     } finally {
@@ -49,45 +54,56 @@ function Register() {
           </div>
         )}
 
-        <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label className="form-label">Email</label>
-            <input
-              type="email"
-              className="form-input"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              autoFocus
-            />
+        {success && (
+          <div style={{ padding: '1rem', background: '#dcfce7', color: '#166534', borderRadius: '0.5rem', marginBottom: '1rem' }}>
+            {success}
+            <p style={{ marginTop: '0.5rem', fontSize: '0.875rem' }}>
+              <Link to="/login">Go to login page</Link>
+            </p>
           </div>
+        )}
 
-          <div className="form-group">
-            <label className="form-label">Password</label>
-            <input
-              type="password"
-              className="form-input"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-          </div>
+        {!success && (
+          <form onSubmit={handleSubmit}>
+            <div className="form-group">
+              <label className="form-label">Email</label>
+              <input
+                type="email"
+                className="form-input"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                autoFocus
+              />
+            </div>
 
-          <div className="form-group">
-            <label className="form-label">Confirm Password</label>
-            <input
-              type="password"
-              className="form-input"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              required
-            />
-          </div>
+            <div className="form-group">
+              <label className="form-label">Password</label>
+              <input
+                type="password"
+                className="form-input"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+            </div>
 
-          <button type="submit" className="btn btn-primary" disabled={loading}>
-            {loading ? 'Creating account...' : 'Register'}
-          </button>
-        </form>
+            <div className="form-group">
+              <label className="form-label">Confirm Password</label>
+              <input
+                type="password"
+                className="form-input"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+              />
+            </div>
+
+            <button type="submit" className="btn btn-primary" disabled={loading}>
+              {loading ? 'Creating account...' : 'Register'}
+            </button>
+          </form>
+        )}
 
         <p style={{ marginTop: '1.5rem', textAlign: 'center' }}>
           Already have an account? <Link to="/login">Login</Link>

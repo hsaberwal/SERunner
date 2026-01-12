@@ -203,6 +203,29 @@ async def run_migrations():
             except Exception as e:
                 errors.append(f"index {idx_name}: {str(e)}")
 
+        # Add user approval fields
+        user_columns = [
+            ("is_approved", "BOOLEAN DEFAULT FALSE"),
+            ("is_admin", "BOOLEAN DEFAULT FALSE"),
+        ]
+        for col_name, col_type in user_columns:
+            try:
+                await conn.execute(text(
+                    f"ALTER TABLE users ADD COLUMN IF NOT EXISTS {col_name} {col_type}"
+                ))
+                migrations.append(f"users.{col_name}")
+            except Exception as e:
+                errors.append(f"users.{col_name}: {str(e)}")
+
+        # Set existing users as approved (so current users don't get locked out)
+        try:
+            await conn.execute(text(
+                "UPDATE users SET is_approved = TRUE WHERE is_approved IS NULL OR is_approved = FALSE"
+            ))
+            migrations.append("existing users marked as approved")
+        except Exception as e:
+            errors.append(f"update existing users: {str(e)}")
+
     return {
         "status": "success" if not errors else "partial",
         "migrations_applied": migrations,

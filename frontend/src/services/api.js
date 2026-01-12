@@ -76,7 +76,15 @@ export const gear = {
 export const admin = {
   dbStatus: () => api.get('/admin/db-status'),
   initDb: () => api.post('/admin/init-db'),
+  migrate: () => api.post('/admin/migrate'),
   health: () => api.get('/health'),
+  // User management
+  getUsers: () => api.get('/auth/admin/users'),
+  getPendingUsers: () => api.get('/auth/admin/users/pending'),
+  approveUser: (userId) => api.put(`/auth/admin/users/${userId}/approve`),
+  rejectUser: (userId) => api.put(`/auth/admin/users/${userId}/reject`),
+  revokeUser: (userId) => api.put(`/auth/admin/users/${userId}/revoke`),
+  toggleAdmin: (userId) => api.put(`/auth/admin/users/${userId}/toggle-admin`),
 }
 
 export default api

@@ -9,6 +9,7 @@ import SetupHistory from './pages/SetupHistory'
 import SetupDetail from './pages/SetupDetail'
 import Gear from './pages/Gear'
 import Setup from './pages/Setup'
+import AdminUsers from './pages/AdminUsers'
 import './App.css'
 
 function PrivateRoute({ children }) {
@@ -75,6 +76,14 @@ function App() {
               element={
                 <PrivateRoute>
                   <Gear />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/admin/users"
+              element={
+                <PrivateRoute>
+                  <AdminUsers />
                 </PrivateRoute>
               }
             />

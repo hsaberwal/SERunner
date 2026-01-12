@@ -26,27 +26,29 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     const response = await auth.login({ email, password })
-    const { access_token } = response.data
+    const { access_token, is_admin } = response.data
     localStorage.setItem('token', access_token)
+    localStorage.setItem('is_admin', is_admin ? 'true' : 'false')
     const userResponse = await auth.me()
     setUser(userResponse.data)
   }
 
   const register = async (email, password) => {
     const response = await auth.register({ email, password })
-    const { access_token } = response.data
-    localStorage.setItem('token', access_token)
-    const userResponse = await auth.me()
-    setUser(userResponse.data)
+    // New users need approval - don't log them in automatically
+    return response.data  // Returns { message, pending_approval }
   }
 
   const logout = () => {
     localStorage.removeItem('token')
+    localStorage.removeItem('is_admin')
     setUser(null)
   }
 
+  const isAdmin = user?.is_admin || false
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, register, logout, isAdmin }}>
       {children}
     </AuthContext.Provider>
   )

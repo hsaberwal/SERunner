@@ -2,7 +2,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 
 function Navigation() {
-  const { logout } = useAuth()
+  const { logout, isAdmin } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -43,6 +43,13 @@ function Navigation() {
               Gear
             </Link>
           </li>
+          {isAdmin && (
+            <li>
+              <Link to="/admin/users" className={`nav-link ${isActive('/admin/users') ? 'active' : ''}`}>
+                Users
+              </Link>
+            </li>
+          )}
           <li>
             <button onClick={handleLogout} className="nav-link" style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1rem' }}>
               Logout
