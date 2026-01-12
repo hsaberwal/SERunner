@@ -20,11 +20,82 @@ settings = get_settings()
 logger.info(f"Starting {settings.app_name} with CLAUDE_MODEL={settings.claude_model}")
 
 
+async def run_startup_migrations():
+    """Run schema migrations on startup."""
+    from sqlalchemy import text
+
+    async with engine.begin() as conn:
+        # Add columns to locations table
+        for col_name, col_type in [("lr_geq_cuts", "JSONB"), ("monitor_geq_cuts", "JSONB"), ("room_notes", "TEXT")]:
+            try:
+                await conn.execute(text(f"ALTER TABLE locations ADD COLUMN IF NOT EXISTS {col_name} {col_type}"))
+            except Exception:
+                pass
+
+        # Add columns to gear table
+        for col_name, col_type in [("serial_number", "VARCHAR"), ("quantity", "INTEGER DEFAULT 1"), ("notes", "TEXT")]:
+            try:
+                await conn.execute(text(f"ALTER TABLE gear ADD COLUMN IF NOT EXISTS {col_name} {col_type}"))
+            except Exception:
+                pass
+
+        # Create gear_loans table
+        try:
+            await conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS gear_loans (
+                    id UUID PRIMARY KEY,
+                    gear_id UUID NOT NULL REFERENCES gear(id) ON DELETE CASCADE,
+                    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                    borrower_name VARCHAR NOT NULL,
+                    borrower_contact VARCHAR,
+                    quantity_loaned INTEGER DEFAULT 1,
+                    loan_date TIMESTAMP NOT NULL DEFAULT NOW(),
+                    expected_return_date TIMESTAMP,
+                    actual_return_date TIMESTAMP,
+                    is_returned BOOLEAN DEFAULT FALSE,
+                    notes TEXT,
+                    return_notes TEXT
+                )
+            """))
+        except Exception:
+            pass
+
+        # Create indexes for gear_loans
+        for idx_name, table, column in [("ix_gear_loans_gear_id", "gear_loans", "gear_id"), ("ix_gear_loans_user_id", "gear_loans", "user_id"), ("ix_gear_loans_is_returned", "gear_loans", "is_returned")]:
+            try:
+                await conn.execute(text(f"CREATE INDEX IF NOT EXISTS {idx_name} ON {table}({column})"))
+            except Exception:
+                pass
+
+        # Add user approval fields
+        for col_name, col_type in [("is_approved", "BOOLEAN DEFAULT FALSE"), ("is_admin", "BOOLEAN DEFAULT FALSE")]:
+            try:
+                await conn.execute(text(f"ALTER TABLE users ADD COLUMN IF NOT EXISTS {col_name} {col_type}"))
+            except Exception:
+                pass
+
+        # Set existing users as approved
+        try:
+            await conn.execute(text("UPDATE users SET is_approved = TRUE WHERE is_approved IS NULL OR is_approved = FALSE"))
+        except Exception:
+            pass
+
+        # Set first user as admin
+        try:
+            await conn.execute(text("UPDATE users SET is_admin = TRUE WHERE id = (SELECT id FROM users ORDER BY created_at ASC LIMIT 1)"))
+        except Exception:
+            pass
+
+    logger.info("Startup migrations completed")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Create database tables on startup if they don't exist."""
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+    # Run migrations after tables exist
+    await run_startup_migrations()
     yield
     # Cleanup on shutdown (optional)
     await engine.dispose()
