@@ -3,6 +3,17 @@ import { useNavigate } from 'react-router-dom'
 import { locations, setups } from '../services/api'
 import Navigation from '../components/Navigation'
 
+// Default empty speaker setup structure
+const emptySpeakerSetup = {
+  lr_mains: { brand: '', model: '', powered: true, quantity: 2, notes: '' },
+  sub: { brand: '', model: '', powered: true, quantity: 0, notes: '' },
+  monitors: { brand: '', model: '', powered: true, quantity: 0, notes: '' },
+  amp: { brand: '', model: '', watts: '', notes: '' }
+}
+
+// Common GEQ frequencies for ring-out
+const geqFrequencies = ['63Hz', '125Hz', '250Hz', '500Hz', '1kHz', '2kHz', '4kHz', '8kHz', '16kHz']
+
 function SetupGenerator() {
   const navigate = useNavigate()
   const [locationList, setLocationList] = useState([])
@@ -19,7 +30,11 @@ function SetupGenerator() {
     name: '',
     venue_type: '',
     notes: '',
-    is_temporary: false
+    is_temporary: false,
+    speaker_setup: { ...emptySpeakerSetup },
+    lr_geq_cuts: {},
+    monitor_geq_cuts: {},
+    room_notes: ''
   })
 
   useEffect(() => {
@@ -35,6 +50,17 @@ function SetupGenerator() {
     }
   }
 
+  const cleanSpeakerSetup = (setup) => {
+    if (!setup) return null
+    const cleaned = {}
+    for (const [key, value] of Object.entries(setup)) {
+      if (value && (value.brand || value.model || value.quantity > 0)) {
+        cleaned[key] = value
+      }
+    }
+    return Object.keys(cleaned).length > 0 ? cleaned : null
+  }
+
   const handleCreateLocation = async () => {
     if (!newLocation.name.trim()) {
       alert('Please enter a location name')
@@ -43,11 +69,29 @@ function SetupGenerator() {
 
     setCreatingLocation(true)
     try {
-      const response = await locations.create(newLocation)
+      // Clean up the data before sending
+      const cleanedData = {
+        ...newLocation,
+        speaker_setup: cleanSpeakerSetup(newLocation.speaker_setup),
+        lr_geq_cuts: Object.keys(newLocation.lr_geq_cuts).length > 0 ? newLocation.lr_geq_cuts : null,
+        monitor_geq_cuts: Object.keys(newLocation.monitor_geq_cuts).length > 0 ? newLocation.monitor_geq_cuts : null,
+        room_notes: newLocation.room_notes || null
+      }
+
+      const response = await locations.create(cleanedData)
       await loadLocations()
       setFormData({ ...formData, location_id: response.data.id })
       setShowNewLocation(false)
-      setNewLocation({ name: '', venue_type: '', notes: '', is_temporary: false })
+      setNewLocation({
+        name: '',
+        venue_type: '',
+        notes: '',
+        is_temporary: false,
+        speaker_setup: { ...emptySpeakerSetup },
+        lr_geq_cuts: {},
+        monitor_geq_cuts: {},
+        room_notes: ''
+      })
     } catch (error) {
       alert('Failed to create location: ' + (error.response?.data?.detail || error.message))
     } finally {
@@ -64,6 +108,30 @@ function SetupGenerator() {
       setShowNewLocation(false)
       setFormData({ ...formData, location_id: value })
     }
+  }
+
+  const updateSpeakerField = (category, field, value) => {
+    setNewLocation({
+      ...newLocation,
+      speaker_setup: {
+        ...newLocation.speaker_setup,
+        [category]: {
+          ...newLocation.speaker_setup[category],
+          [field]: value
+        }
+      }
+    })
+  }
+
+  const updateGEQ = (type, freq, value) => {
+    const key = type === 'lr' ? 'lr_geq_cuts' : 'monitor_geq_cuts'
+    const newCuts = { ...newLocation[key] }
+    if (value === '' || value === 0) {
+      delete newCuts[freq]
+    } else {
+      newCuts[freq] = parseInt(value)
+    }
+    setNewLocation({ ...newLocation, [key]: newCuts })
   }
 
   // Get default input source based on performer type
@@ -165,45 +233,37 @@ function SetupGenerator() {
               }}>
                 <h3 style={{ marginBottom: '1rem', fontSize: '1rem' }}>New Location</h3>
 
-                <div className="form-group">
-                  <label className="form-label">Location Name *</label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    value={newLocation.name}
-                    onChange={(e) => setNewLocation({ ...newLocation, name: e.target.value })}
-                    placeholder="e.g., St. Mary's Church"
-                  />
-                </div>
+                {/* Basic Info */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                  <div className="form-group">
+                    <label className="form-label">Location Name *</label>
+                    <input
+                      type="text"
+                      className="form-input"
+                      value={newLocation.name}
+                      onChange={(e) => setNewLocation({ ...newLocation, name: e.target.value })}
+                      placeholder="e.g., St. Mary's Church"
+                    />
+                  </div>
 
-                <div className="form-group">
-                  <label className="form-label">Venue Type</label>
-                  <select
-                    className="form-select"
-                    value={newLocation.venue_type}
-                    onChange={(e) => setNewLocation({ ...newLocation, venue_type: e.target.value })}
-                  >
-                    <option value="">Select type...</option>
-                    <option value="gurdwara">Gurdwara</option>
-                    <option value="church">Church</option>
-                    <option value="temple">Temple</option>
-                    <option value="hall">Hall</option>
-                    <option value="cafe">Cafe</option>
-                    <option value="outdoor">Outdoor</option>
-                    <option value="school">School</option>
-                    <option value="other">Other</option>
-                  </select>
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label">Notes</label>
-                  <textarea
-                    className="form-textarea"
-                    value={newLocation.notes}
-                    onChange={(e) => setNewLocation({ ...newLocation, notes: e.target.value })}
-                    placeholder="Speaker placement, acoustic notes, etc."
-                    rows={2}
-                  />
+                  <div className="form-group">
+                    <label className="form-label">Venue Type</label>
+                    <select
+                      className="form-select"
+                      value={newLocation.venue_type}
+                      onChange={(e) => setNewLocation({ ...newLocation, venue_type: e.target.value })}
+                    >
+                      <option value="">Select type...</option>
+                      <option value="gurdwara">Gurdwara</option>
+                      <option value="church">Church</option>
+                      <option value="temple">Temple</option>
+                      <option value="hall">Hall</option>
+                      <option value="cafe">Cafe</option>
+                      <option value="outdoor">Outdoor</option>
+                      <option value="school">School</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </div>
                 </div>
 
                 <div className="form-group">
@@ -215,6 +275,231 @@ function SetupGenerator() {
                     />
                     Temporary location (one-time event)
                   </label>
+                </div>
+
+                {/* Speaker Setup Section */}
+                <div style={{ background: 'var(--bg-primary)', padding: '1rem', borderRadius: '0.5rem', marginBottom: '1rem', border: '1px solid var(--border-color)' }}>
+                  <h4 style={{ fontSize: '0.9rem', marginBottom: '1rem' }}>Speaker Setup</h4>
+
+                  {/* LR Mains */}
+                  <div style={{ marginBottom: '0.75rem' }}>
+                    <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.25rem', display: 'block' }}>LR Mains</label>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))', gap: '0.5rem' }}>
+                      <input
+                        type="text"
+                        className="form-input"
+                        placeholder="Brand"
+                        value={newLocation.speaker_setup.lr_mains?.brand || ''}
+                        onChange={(e) => updateSpeakerField('lr_mains', 'brand', e.target.value)}
+                      />
+                      <input
+                        type="text"
+                        className="form-input"
+                        placeholder="Model"
+                        value={newLocation.speaker_setup.lr_mains?.model || ''}
+                        onChange={(e) => updateSpeakerField('lr_mains', 'model', e.target.value)}
+                      />
+                      <input
+                        type="number"
+                        className="form-input"
+                        placeholder="Qty"
+                        min="0"
+                        value={newLocation.speaker_setup.lr_mains?.quantity || ''}
+                        onChange={(e) => updateSpeakerField('lr_mains', 'quantity', parseInt(e.target.value) || 0)}
+                        style={{ maxWidth: '70px' }}
+                      />
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.8rem' }}>
+                        <input
+                          type="checkbox"
+                          checked={newLocation.speaker_setup.lr_mains?.powered ?? true}
+                          onChange={(e) => updateSpeakerField('lr_mains', 'powered', e.target.checked)}
+                        />
+                        Powered
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Sub */}
+                  <div style={{ marginBottom: '0.75rem' }}>
+                    <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.25rem', display: 'block' }}>Subwoofer</label>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))', gap: '0.5rem' }}>
+                      <input
+                        type="text"
+                        className="form-input"
+                        placeholder="Brand"
+                        value={newLocation.speaker_setup.sub?.brand || ''}
+                        onChange={(e) => updateSpeakerField('sub', 'brand', e.target.value)}
+                      />
+                      <input
+                        type="text"
+                        className="form-input"
+                        placeholder="Model"
+                        value={newLocation.speaker_setup.sub?.model || ''}
+                        onChange={(e) => updateSpeakerField('sub', 'model', e.target.value)}
+                      />
+                      <input
+                        type="number"
+                        className="form-input"
+                        placeholder="Qty"
+                        min="0"
+                        value={newLocation.speaker_setup.sub?.quantity || ''}
+                        onChange={(e) => updateSpeakerField('sub', 'quantity', parseInt(e.target.value) || 0)}
+                        style={{ maxWidth: '70px' }}
+                      />
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.8rem' }}>
+                        <input
+                          type="checkbox"
+                          checked={newLocation.speaker_setup.sub?.powered ?? true}
+                          onChange={(e) => updateSpeakerField('sub', 'powered', e.target.checked)}
+                        />
+                        Powered
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Monitors */}
+                  <div style={{ marginBottom: '0.75rem' }}>
+                    <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.25rem', display: 'block' }}>Monitors</label>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))', gap: '0.5rem' }}>
+                      <input
+                        type="text"
+                        className="form-input"
+                        placeholder="Brand"
+                        value={newLocation.speaker_setup.monitors?.brand || ''}
+                        onChange={(e) => updateSpeakerField('monitors', 'brand', e.target.value)}
+                      />
+                      <input
+                        type="text"
+                        className="form-input"
+                        placeholder="Model"
+                        value={newLocation.speaker_setup.monitors?.model || ''}
+                        onChange={(e) => updateSpeakerField('monitors', 'model', e.target.value)}
+                      />
+                      <input
+                        type="number"
+                        className="form-input"
+                        placeholder="Qty"
+                        min="0"
+                        value={newLocation.speaker_setup.monitors?.quantity || ''}
+                        onChange={(e) => updateSpeakerField('monitors', 'quantity', parseInt(e.target.value) || 0)}
+                        style={{ maxWidth: '70px' }}
+                      />
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.8rem' }}>
+                        <input
+                          type="checkbox"
+                          checked={newLocation.speaker_setup.monitors?.powered ?? true}
+                          onChange={(e) => updateSpeakerField('monitors', 'powered', e.target.checked)}
+                        />
+                        Powered
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Amp */}
+                  <div>
+                    <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.25rem', display: 'block' }}>
+                      Amplifier <span style={{ fontWeight: 'normal' }}>(if passive speakers)</span>
+                    </label>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))', gap: '0.5rem' }}>
+                      <input
+                        type="text"
+                        className="form-input"
+                        placeholder="Brand"
+                        value={newLocation.speaker_setup.amp?.brand || ''}
+                        onChange={(e) => updateSpeakerField('amp', 'brand', e.target.value)}
+                      />
+                      <input
+                        type="text"
+                        className="form-input"
+                        placeholder="Model"
+                        value={newLocation.speaker_setup.amp?.model || ''}
+                        onChange={(e) => updateSpeakerField('amp', 'model', e.target.value)}
+                      />
+                      <input
+                        type="text"
+                        className="form-input"
+                        placeholder="Watts"
+                        value={newLocation.speaker_setup.amp?.watts || ''}
+                        onChange={(e) => updateSpeakerField('amp', 'watts', e.target.value)}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* GEQ Cuts Section */}
+                <div style={{ background: 'var(--bg-primary)', padding: '1rem', borderRadius: '0.5rem', marginBottom: '1rem', border: '1px solid var(--border-color)' }}>
+                  <h4 style={{ fontSize: '0.9rem', marginBottom: '0.5rem' }}>GEQ Cuts from Ring-Out</h4>
+                  <p style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginBottom: '0.75rem' }}>
+                    Record problem frequencies found during ring-out (negative dB values).
+                  </p>
+
+                  {/* LR GEQ */}
+                  <div style={{ marginBottom: '0.75rem' }}>
+                    <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.25rem', display: 'block' }}>LR Main GEQ</label>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+                      {geqFrequencies.map(freq => (
+                        <div key={`lr-${freq}`} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                          <label style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>{freq}</label>
+                          <input
+                            type="number"
+                            className="form-input"
+                            value={newLocation.lr_geq_cuts[freq] || ''}
+                            onChange={(e) => updateGEQ('lr', freq, e.target.value)}
+                            placeholder="0"
+                            min="-12"
+                            max="0"
+                            style={{ width: '42px', textAlign: 'center', padding: '0.2rem', fontSize: '0.8rem' }}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Monitor GEQ */}
+                  <div>
+                    <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.25rem', display: 'block' }}>Monitor GEQ</label>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+                      {geqFrequencies.map(freq => (
+                        <div key={`mon-${freq}`} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                          <label style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>{freq}</label>
+                          <input
+                            type="number"
+                            className="form-input"
+                            value={newLocation.monitor_geq_cuts[freq] || ''}
+                            onChange={(e) => updateGEQ('monitor', freq, e.target.value)}
+                            placeholder="0"
+                            min="-12"
+                            max="0"
+                            style={{ width: '42px', textAlign: 'center', padding: '0.2rem', fontSize: '0.8rem' }}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Room Notes */}
+                <div className="form-group">
+                  <label className="form-label">Room Acoustics Notes</label>
+                  <textarea
+                    className="form-textarea"
+                    value={newLocation.room_notes}
+                    onChange={(e) => setNewLocation({ ...newLocation, room_notes: e.target.value })}
+                    placeholder="Dead spots, reflections, problem areas..."
+                    rows={2}
+                  />
+                </div>
+
+                {/* General Notes */}
+                <div className="form-group">
+                  <label className="form-label">General Notes</label>
+                  <textarea
+                    className="form-textarea"
+                    value={newLocation.notes}
+                    onChange={(e) => setNewLocation({ ...newLocation, notes: e.target.value })}
+                    placeholder="Contact info, access instructions, power locations..."
+                    rows={2}
+                  />
                 </div>
 
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -231,7 +516,16 @@ function SetupGenerator() {
                     className="btn btn-secondary"
                     onClick={() => {
                       setShowNewLocation(false)
-                      setNewLocation({ name: '', venue_type: '', notes: '', is_temporary: false })
+                      setNewLocation({
+                        name: '',
+                        venue_type: '',
+                        notes: '',
+                        is_temporary: false,
+                        speaker_setup: { ...emptySpeakerSetup },
+                        lr_geq_cuts: {},
+                        monitor_geq_cuts: {},
+                        room_notes: ''
+                      })
                     }}
                   >
                     Cancel
