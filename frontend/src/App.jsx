@@ -10,6 +10,7 @@ import SetupDetail from './pages/SetupDetail'
 import Gear from './pages/Gear'
 import Setup from './pages/Setup'
 import AdminUsers from './pages/AdminUsers'
+import EventWizard from './pages/EventWizard'
 import './App.css'
 
 function PrivateRoute({ children }) {
@@ -84,6 +85,14 @@ function App() {
               element={
                 <PrivateRoute>
                   <AdminUsers />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/event"
+              element={
+                <PrivateRoute>
+                  <EventWizard />
                 </PrivateRoute>
               }
             />

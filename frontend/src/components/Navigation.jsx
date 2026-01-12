@@ -24,8 +24,13 @@ function Navigation() {
             </Link>
           </li>
           <li>
+            <Link to="/event" className={`nav-link ${isActive('/event') ? 'active' : ''}`}>
+              Event
+            </Link>
+          </li>
+          <li>
             <Link to="/generate" className={`nav-link ${isActive('/generate') ? 'active' : ''}`}>
-              Generate
+              Quick
             </Link>
           </li>
           <li>
