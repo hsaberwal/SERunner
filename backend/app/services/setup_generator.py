@@ -5,6 +5,11 @@ from app.services.claude_service import ClaudeService
 from app.models.location import Location
 from app.models.setup import Setup
 from app.models.user import User
+from app.utils.knowledge_loader import (
+    load_sound_knowledge_base,
+    get_troubleshooting_guide,
+    get_learning_context_template
+)
 
 logger = logging.getLogger(__name__)
 
@@ -316,6 +321,38 @@ Purpose: Sacred scripture reading - requires significant reverb for divine atmos
 4. **Direct Acoustic Guitar**: ALWAYS cut 2-3 kHz to remove piezo quack.
 5. **Tabla Compression**: Fast attack (6ms) + soft knee OFF = preserves punch.
 
+## Troubleshooting Quick Reference
+
+### Vocal Issues
+- **Sounds muddy/boomy**: Reduce warmth boost (300-350Hz for female, 200-260Hz for male) to +2dB or less. Check HPF is engaged.
+- **Doesn't cut through**: Increase presence (4-5kHz for female, 2.5-3.5kHz for male). Lower competing instruments.
+- **Harsh/sibilant**: Cut 3-5kHz slightly.
+- **Feedback**: Check monitor position, reduce monitor send, cut problem frequency on channel EQ.
+
+### Flute Issues
+- **Sounds dull**: Boost 8-10kHz more (up to +5dB). Beta 57 lacks natural airiness.
+- **Sounds harsh**: Cut more at 2.5-3kHz.
+
+### Tabla Issues
+- **Sounds boomy**: Reduce 200-250Hz boost, consider engaging HPF at 40-50Hz.
+- **Lacks punch**: Increase attack definition boost at 2-3kHz, ensure fast compression attack (6ms).
+
+### Guitar/Piezo Issues
+- **Sounds harsh/plastic**: Cut more at 2.5-3kHz (the piezo quack) - this is CRITICAL.
+- **Sounds thin**: Boost 150-180Hz for body.
+
+### FX Issues
+- **Can't hear reverb**: Check BOTH FX Send AND Return in LR view are up.
+- **Reverb sounds washy**: Make sure instrument isn't being sent to multiple FX.
+
+## Learning from Past Setups
+
+When past setups are provided with ratings and notes:
+1. **High-rated setups (4-5 stars)**: Use their settings as starting points - they worked!
+2. **User notes are CRITICAL**: If notes say "too much reverb" - reduce it. If "guitar sounded great" - use those exact settings.
+3. **Same performer type**: If past setup had same instrument, COPY those settings.
+4. **Problems mentioned**: Explicitly address how to AVOID issues mentioned in notes.
+
 ## Your Task
 
 Generate a SYSTEMATIC mixer setup that goes CHANNEL BY CHANNEL.
@@ -447,14 +484,52 @@ Keep response under 4000 tokens. Be concise but systematic!"""
                 prompt += f" - {notes}"
             prompt += "\n"
 
-        # Add context from past setups
+        # Add context from past setups with enhanced learning
         if past_setups:
-            prompt += "\n## Past Successful Setups at This Venue\n"
-            for i, setup in enumerate(past_setups, 1):
-                prompt += f"\n### Setup {i} (Rating: {setup.rating}/5)\n"
-                prompt += f"- **Performers**: {json.dumps(setup.performers)}\n"
-                if setup.notes:
-                    prompt += f"- **Notes**: {setup.notes}\n"
+            prompt += "\n## Past Setups at This Venue (LEARN FROM THESE!)\n"
+            prompt += "**IMPORTANT**: Use these past experiences to improve this setup.\n\n"
+
+            # Separate high-rated and lower-rated setups
+            high_rated = [s for s in past_setups if s.rating and s.rating >= 4]
+            lower_rated = [s for s in past_setups if s.rating and s.rating < 4]
+
+            if high_rated:
+                prompt += "### Successful Setups (4-5 stars) - USE THESE SETTINGS\n"
+                for i, setup in enumerate(high_rated, 1):
+                    prompt += f"\n**Setup {i}** - Rating: {setup.rating}/5"
+                    if setup.event_name:
+                        prompt += f" ({setup.event_name})"
+                    prompt += "\n"
+                    prompt += f"- Performers: {json.dumps(setup.performers)}\n"
+
+                    # Include actual settings if available
+                    if setup.eq_settings:
+                        prompt += f"- **EQ Settings Used**: {json.dumps(setup.eq_settings)}\n"
+                    if setup.compression_settings:
+                        prompt += f"- **Compression Used**: {json.dumps(setup.compression_settings)}\n"
+                    if setup.fx_settings:
+                        prompt += f"- **FX Settings Used**: {json.dumps(setup.fx_settings)}\n"
+                    if setup.notes:
+                        prompt += f"- **What Worked**: {setup.notes}\n"
+                    prompt += "\n"
+
+            if lower_rated:
+                prompt += "### Setups That Needed Improvement (learn what to avoid)\n"
+                for i, setup in enumerate(lower_rated, 1):
+                    prompt += f"\n**Setup {i}** - Rating: {setup.rating}/5\n"
+                    prompt += f"- Performers: {json.dumps(setup.performers)}\n"
+                    if setup.notes:
+                        prompt += f"- **Issues/Notes**: {setup.notes}\n"
+                        prompt += "- **Action**: Address these issues in the new setup!\n"
+                    prompt += "\n"
+
+            # Find matching performer types from past setups
+            current_performer_types = set(p.get('type', '') for p in performers)
+            for setup in high_rated:
+                past_performer_types = set(p.get('type', '') for p in (setup.performers or []))
+                matching = current_performer_types & past_performer_types
+                if matching and setup.eq_settings:
+                    prompt += f"\n**Direct Match Found**: Past setup had {matching} - copy those exact channel settings!\n"
 
         prompt += "\n## Instructions\n"
         prompt += "Generate a complete QuPac mixer setup for this event. "

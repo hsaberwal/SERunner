@@ -93,13 +93,15 @@ async def generate_setup(
             )
 
         # Get past setups for this location (for learning)
+        # Include ALL rated setups - we learn from both successes AND problems
         past_setups_result = await db.execute(
             select(Setup).where(
                 Setup.location_id == request.location_id,
-                Setup.rating >= 4  # Only use highly-rated setups
-            ).order_by(Setup.created_at.desc()).limit(3)
+                Setup.rating.isnot(None)  # Only setups that have been rated
+            ).order_by(Setup.rating.desc(), Setup.created_at.desc()).limit(5)
         )
         past_setups = past_setups_result.scalars().all()
+        logger.info(f"Found {len(past_setups)} past rated setups for learning")
 
         # Generate setup using Claude API
         logger.info(f"Generating setup for location {location.name} with {len(request.performers)} performers")
