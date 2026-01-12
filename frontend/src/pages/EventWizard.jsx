@@ -2,9 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { locations, setups } from '../services/api'
 import Navigation from '../components/Navigation'
-
-// Common GEQ frequencies for ring-out
-const geqFrequencies = ['63Hz', '125Hz', '250Hz', '500Hz', '1kHz', '2kHz', '4kHz', '8kHz', '16kHz']
+import LocationForm, { getEmptyLocationData, geqFrequencies } from '../components/LocationForm'
 
 // Phase definitions
 const PHASES = [
@@ -24,6 +22,9 @@ function EventWizard() {
   const [loading, setLoading] = useState(false)
   const [loadingMessage, setLoadingMessage] = useState('')
   const [generatedSetupId, setGeneratedSetupId] = useState(null)
+  const [showNewLocation, setShowNewLocation] = useState(false)
+  const [creatingLocation, setCreatingLocation] = useState(false)
+  const [newLocation, setNewLocation] = useState(getEmptyLocationData())
 
   // Event data
   const [eventData, setEventData] = useState({
@@ -88,9 +89,33 @@ function EventWizard() {
   }
 
   const handleLocationSelect = (locationId) => {
-    const location = locationList.find(l => l.id === locationId)
-    setSelectedLocation(location)
-    setEventData({ ...eventData, location_id: locationId })
+    if (locationId === 'new') {
+      setShowNewLocation(true)
+      setSelectedLocation(null)
+      setEventData({ ...eventData, location_id: '' })
+    } else {
+      setShowNewLocation(false)
+      const location = locationList.find(l => l.id === locationId)
+      setSelectedLocation(location)
+      setEventData({ ...eventData, location_id: locationId })
+    }
+  }
+
+  const handleCreateLocation = async (cleanedData) => {
+    setCreatingLocation(true)
+    try {
+      const response = await locations.create(cleanedData)
+      await loadLocations()
+      // Select the newly created location
+      setEventData({ ...eventData, location_id: response.data.id })
+      setSelectedLocation(response.data)
+      setShowNewLocation(false)
+      setNewLocation(getEmptyLocationData())
+    } catch (error) {
+      alert('Failed to create location: ' + (error.response?.data?.detail || error.message))
+    } finally {
+      setCreatingLocation(false)
+    }
   }
 
   const updateGEQ = (type, freq, value) => {
@@ -257,7 +282,7 @@ function EventWizard() {
         <label className="form-label">Select Location *</label>
         <select
           className="form-select"
-          value={eventData.location_id}
+          value={showNewLocation ? 'new' : eventData.location_id}
           onChange={(e) => handleLocationSelect(e.target.value)}
         >
           <option value="">Select venue...</option>
@@ -266,8 +291,35 @@ function EventWizard() {
               {loc.name} {loc.is_temporary ? '(Temporary)' : ''}
             </option>
           ))}
+          <option value="new">+ Create New Location</option>
         </select>
       </div>
+
+      {showNewLocation && (
+        <div style={{
+          background: 'var(--bg-secondary)',
+          padding: '1rem',
+          borderRadius: '0.5rem',
+          marginBottom: '1rem',
+          border: '1px solid var(--border-color)'
+        }}>
+          <h3 style={{ marginBottom: '1rem', fontSize: '1rem' }}>New Location</h3>
+          <LocationForm
+            formData={newLocation}
+            onChange={setNewLocation}
+            onSubmit={handleCreateLocation}
+            onCancel={() => {
+              setShowNewLocation(false)
+              setNewLocation(getEmptyLocationData())
+            }}
+            submitLabel={creatingLocation ? 'Creating...' : 'Create Location'}
+            showCancel={true}
+            compact={true}
+            showGEQ={false}
+            disabled={creatingLocation}
+          />
+        </div>
+      )}
 
       {selectedLocation && (
         <>
@@ -339,7 +391,7 @@ function EventWizard() {
       <button
         className="btn btn-primary"
         onClick={() => completePhase(1)}
-        disabled={!eventData.location_id || !Object.values(phase1Checklist).every(v => v)}
+        disabled={!eventData.location_id || !Object.values(phase1Checklist).every(v => v) || showNewLocation}
       >
         Continue to System Check
       </button>
