@@ -49,6 +49,87 @@ class SetupGenerator:
 2. Ground lift to eliminate hum
 3. Balanced output to QuPac XLR input
 
+## Speaker & Amplifier Knowledge Base
+
+### Speakers
+
+**Martin Audio CDD-10**
+- Type: Compact coaxial differential dispersion
+- Frequency response: 65Hz - 20kHz
+- Characteristics: Very even coverage, clear mids, articulate highs
+- EQ tendency: Fairly neutral, may need slight 2-4kHz presence boost for speech
+- Best for: Small-medium rooms, speech/vocals, where clarity is priority
+- HPF recommendation: Can set channel HPFs slightly higher (~80-100Hz) as these don't need sub-bass content
+
+**Electro-Voice ZLX-12P**
+- Type: 12" powered 2-way
+- Frequency response: 48Hz - 20kHz
+- Power: 1000W Class D
+- Characteristics: Punchy low-mids, slightly bright top end
+- EQ tendency: May need slight high-frequency rolloff (-1 to -2dB at 10kHz) if harsh
+- Best for: Versatile - vocals, instruments, monitors
+- Note: Built-in DSP presets (Music, Speech, Club) - use "Music" for live performance
+
+**Electro-Voice ZX1-90**
+- Type: 8" passive 2-way, 90° x 50° dispersion
+- Frequency response: 70Hz - 20kHz
+- Characteristics: Compact, focused throw, good speech intelligibility
+- EQ tendency: Neutral to slightly mid-forward
+- Best for: Small venues, delays, fills, or where compact size needed
+- HPF recommendation: Set higher (~90-100Hz) as the 8" driver doesn't reproduce deep bass
+
+**Electro-Voice Evolve 50**
+- Type: Portable column array system with subwoofer
+- Frequency response: 39Hz - 20kHz (with sub)
+- Characteristics: Very wide horizontal dispersion (120°), controlled vertical, excellent speech intelligibility
+- EQ tendency: Designed for flat response, minimal room correction needed
+- Best for: Gurdwaras, halls with reflective surfaces - column reduces ceiling reflections
+- Special note: Built-in mixer/DSP - if using external mixer, set Evolve to "Flat" or "External"
+- Sub integration: Crossover handled internally, just send full-range signal
+
+### Amplifiers
+
+**Crown XTi Series (XTi 1002, XTi 2002, XTi 4002)**
+- Type: Powered amps with onboard DSP
+- Features: Built-in crossover, EQ, limiting, delay
+- Tips for QuPac integration:
+  - Use amp's HPF for sub/top crossover (typically 80-100Hz)
+  - Let QuPac handle channel EQ, use Crown DSP only for system tuning
+  - Limiters can protect speakers - set based on speaker specs
+- Common crossover: 80-100Hz for sub/top split
+
+**Crown XLS Series (XLS 1002, XLS 1502, XLS 2002)**
+- Type: Powered amps, simpler than XTi (less DSP)
+- Features: DriveCore technology, efficient
+- Tips: These need external crossover if doing sub/top split
+- Best practice: Use QuPac's output EQ or external crossover
+
+**Crown CDi 1000 (70V/100V line)**
+- Type: Commercial install amp for distributed audio
+- Features: 70V/100V line output for ceiling speakers
+- Important considerations:
+  - 70V systems have inherent high-frequency rolloff at distance
+  - Speech intelligibility focus - cut lows more aggressively (HPF 150-200Hz)
+  - Compression more important - 70V systems have less dynamic headroom
+  - Less reverb typically works better in distributed systems
+- Typical use: Background music, announcements, large hall coverage
+
+### Speaker-Specific Adjustments
+
+When generating setups, apply these adjustments based on speaker type:
+
+1. **Column Arrays (Evolve 50)**: Reduce reverb slightly - the even coverage means less need for ambience
+2. **70V Systems (CDi 1000)**: Higher HPF (150Hz+), more compression, less reverb
+3. **Compact Speakers (ZX1-90, CDD-10)**: Higher HPF (90-100Hz), can push mids more
+4. **Powered Speakers (ZLX-12P)**: Watch input levels - they have built-in limiting
+
+### Subwoofer Integration
+
+If subwoofer is present:
+- Set channel HPFs based on instrument (tabla/bass keep lows, vocals can cut higher)
+- On QuPac LR output, no HPF needed - sub crossover handles the split
+- If NO subwoofer: Be more conservative with low boosts, raise HPF on non-bass instruments
+
 ## Critical Knowledge: QuPac FX Routing
 
 **IMPORTANT**: In LR Mix view, you need BOTH FX Send AND FX Return to be UP to hear effects.
