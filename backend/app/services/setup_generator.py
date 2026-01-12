@@ -59,12 +59,18 @@ class SetupGenerator:
 
 ## Sound Engineering Best Practices from Live Sessions
 
-### Q (Width) Guide - QuPac PEQ Width Slider
-Q is the Width control on QuPac. Lower Q = wider, Higher Q = narrower.
-- Q 0.5-1.0 = Wide (width slider toward "wide") - gentle tone shaping
-- Q 1.5-2.5 = Medium (width slider middle) - typical EQ moves
-- Q 3.0-5.0 = Narrow (width slider toward "narrow") - surgical cuts
-- Q 6.0+ = Very narrow - problem frequency removal only
+### PEQ Width Guide for QuPac (NO Q NUMBERS!)
+On the QuPac, the Width slider controls how wide/narrow the EQ band is.
+ALWAYS describe width in TWO ways:
+1. **Visual description**: "very wide", "wide", "medium", "narrow", "very narrow"
+2. **Frequency range**: "affects roughly 200Hz to 500Hz" (shows the user what range to expect)
+
+Width descriptions:
+- **Very Wide** (slider far left): affects 2+ octaves, ~3x the center frequency range
+- **Wide** (slider left of center): affects ~1.5 octaves, ~2x the center frequency
+- **Medium** (slider at center): affects ~1 octave, ~1.5x the center frequency
+- **Narrow** (slider right of center): affects ~1/2 octave, focused cut/boost
+- **Very Narrow** (slider far right): surgical, pinpoint adjustment
 
 ### QuPac Compressor Limits
 - Attack: 0.3ms to 300ms
@@ -77,120 +83,118 @@ Q is the Width control on QuPac. Lower Q = wider, Higher Q = narrower.
 
 ### Female Vocal (Shure Beta 58A)
 - HPF: 95 Hz
-- Band 1: 325 Hz, +2.5 dB, Q 2.0 (warmth)
-- Band 2: 650 Hz, -4.5 dB, Q 2.5 (cut boxiness)
-- Band 3: 4.5 kHz, +4.5 dB, Q 2.0 (presence)
-- Band 4: 10 kHz, +2 dB, Q 1.5 (air)
+- Band 1: 325 Hz, +2.5 dB, MEDIUM width (affects ~220-480Hz) - warmth
+- Band 2: 650 Hz, -4.5 dB, MEDIUM width (affects ~430-980Hz) - cut boxiness
+- Band 3: 4.5 kHz, +4.5 dB, MEDIUM width (affects ~3-6.7kHz) - presence
+- Band 4: 10 kHz, +2 dB, WIDE width (affects ~6.5-15kHz) - air
 - Compression: 4:1, -8dB threshold, 15ms attack, 100ms release, soft knee, +3dB gain, Manual RMS
 - Reverb: Hall Small/Stage @ -10 dB send
 
 ### Male Vocal (Shure Beta 58A)
 - HPF: 75 Hz
-- Band 1: 230 Hz, +2.5 dB, Q 2.0 (chest warmth)
-- Band 2: 450 Hz, -4 dB, Q 2.5 (cut boxiness)
-- Band 3: 3 kHz, +4 dB, Q 2.0 (presence - lower than female)
-- Band 4: 9.5 kHz, +3 dB, Q 1.5 (air)
+- Band 1: 230 Hz, +2.5 dB, MEDIUM width (affects ~155-340Hz) - chest warmth
+- Band 2: 450 Hz, -4 dB, MEDIUM width (affects ~300-680Hz) - cut boxiness
+- Band 3: 3 kHz, +4 dB, MEDIUM width (affects ~2-4.5kHz) - presence
+- Band 4: 9.5 kHz, +3 dB, WIDE width (affects ~6-15kHz) - air
 - Compression: 4:1, -8dB threshold, 15ms attack, 100ms release, soft knee, +3dB gain, Manual RMS
 - Reverb: Hall Small/Stage @ -10 dB send
 
 ### Flute (Beta 57A)
 - HPF: 90 Hz
-- Band 1: 280 Hz, -3 dB, Q 2.0 (remove mud from Beta 57)
-- Band 2: 2.8 kHz, -3 dB, Q 2.5 (reduce harshness)
-- Band 3: 5 kHz, +2 dB, Q 1.5 (articulation)
-- Band 4: 9 kHz, +5 dB, Q 1.5 (CRITICAL: add air - Beta 57 lacks this)
+- Band 1: 280 Hz, -3 dB, MEDIUM width (affects ~190-420Hz) - remove mud
+- Band 2: 2.8 kHz, -3 dB, MEDIUM width (affects ~1.9-4.2kHz) - reduce harshness
+- Band 3: 5 kHz, +2 dB, WIDE width (affects ~3.3-7.5kHz) - articulation
+- Band 4: 9 kHz, +5 dB, WIDE width (affects ~6-14kHz) - CRITICAL: add air
 - Compression: 3:1, -9dB threshold, 17ms attack, 100ms release, soft knee, +2dB gain, Manual RMS
 - Reverb: Arena @ -5 dB send (flute likes space)
 
 ### Tabla (Beta 57A)
 - HPF: OFF (keep the lows!)
-- Band 1: 60 Hz, +2.5 dB, Q 1.5 (sub-bass for bayan)
-- Band 2: 220 Hz, +7 dB, Q 2.0 (body - KEY frequency, adjust +6 to +10)
-- Band 3: 2.5 kHz, +3 dB, Q 2.0 (attack definition)
-- Band 4: 8 kHz, +1.5 dB, Q 1.5 (harmonics)
+- Band 1: 60 Hz, +2.5 dB, WIDE width (affects ~40-90Hz) - sub-bass for bayan
+- Band 2: 220 Hz, +7 dB, MEDIUM width (affects ~150-330Hz) - body (KEY!)
+- Band 3: 2.5 kHz, +3 dB, MEDIUM width (affects ~1.7-3.7kHz) - attack definition
+- Band 4: 8 kHz, +1.5 dB, WIDE width (affects ~5.3-12kHz) - harmonics
 - Compression: 4:1, -9dB threshold, 6ms attack (FAST!), 100ms release, hard knee, +4dB gain, Manual Peak
 - Reverb: Hall Small/Stage @ -20 dB send (subtle)
 
 ### Acoustic Guitar (DI/Piezo)
 - HPF: 82 Hz
-- Band 1: 165 Hz, +3 dB, Q 2.0 (body)
-- Band 2: 2.7 kHz, -4 dB, Q 3.0 (CRITICAL: remove piezo quack - use narrow Q)
-- Band 3: 5 kHz, +2 dB, Q 1.5 (string definition)
-- Band 4: 9 kHz, +4.5 dB, Q 1.5 (shimmer)
+- Band 1: 165 Hz, +3 dB, MEDIUM width (affects ~110-250Hz) - body
+- Band 2: 2.7 kHz, -4 dB, NARROW width (affects ~2-3.6kHz) - CRITICAL: piezo quack
+- Band 3: 5 kHz, +2 dB, WIDE width (affects ~3.3-7.5kHz) - string definition
+- Band 4: 9 kHz, +4.5 dB, WIDE width (affects ~6-14kHz) - shimmer
 - Compression: 3:1, -11dB threshold, 13ms attack, 100ms release, soft knee, +2dB gain, Manual RMS
 - Reverb: Hall Small/Stage @ -15 dB send
 - DI Box: Radial PZ-DI or SB-4, Ground LIFT, Pad OFF
 
 ### Rabab / Rubab (DI/Piezo)
 - HPF: 65 Hz (keep low resonance of goat skin)
-- Band 1: 180 Hz, +4 dB, Q 2.0 (body warmth - skin resonance)
-- Band 2: 2.5 kHz, -5 dB, Q 3.0 (CRITICAL: piezo quack removal)
-- Band 3: 4 kHz, +3 dB, Q 2.0 (string attack, pluck definition)
-- Band 4: 8 kHz, +3 dB, Q 1.5 (sympathetic string shimmer)
+- Band 1: 180 Hz, +4 dB, MEDIUM width (affects ~120-270Hz) - body warmth
+- Band 2: 2.5 kHz, -5 dB, NARROW width (affects ~1.9-3.3kHz) - CRITICAL: piezo quack
+- Band 3: 4 kHz, +3 dB, MEDIUM width (affects ~2.7-6kHz) - pluck definition
+- Band 4: 8 kHz, +3 dB, WIDE width (affects ~5.3-12kHz) - sympathetic shimmer
 - Compression: 3:1, -10dB threshold, 12ms attack, 100ms release, soft knee, +2dB gain, Manual RMS
-- Reverb: Hall Small/Stage @ -12 dB send (medium - suits contemplative music)
+- Reverb: Hall Small/Stage @ -12 dB send
 - DI Box: Radial PZ-DI or SB-4, Ground LIFT, Pad OFF
 
 ### Dilruba / Esraj (DI/Piezo)
 - HPF: 70 Hz
-- Band 1: 200 Hz, +3 dB, Q 2.0 (body resonance)
-- Band 2: 800 Hz, -2 dB, Q 2.0 (reduce nasal quality if present)
-- Band 3: 2.5 kHz, -4 dB, Q 3.0 (piezo quack)
-- Band 4: 6 kHz, +4 dB, Q 1.5 (bowing articulation, harmonics)
+- Band 1: 200 Hz, +3 dB, MEDIUM width (affects ~135-300Hz) - body resonance
+- Band 2: 800 Hz, -2 dB, MEDIUM width (affects ~530-1.2kHz) - reduce nasal
+- Band 3: 2.5 kHz, -4 dB, NARROW width (affects ~1.9-3.3kHz) - piezo quack
+- Band 4: 6 kHz, +4 dB, WIDE width (affects ~4-9kHz) - bowing articulation
 - Compression: 2.5:1, -12dB threshold, 20ms attack, 150ms release, soft knee, +2dB gain, Manual RMS
 - Reverb: Arena @ -8 dB send (bowed strings love space)
 - DI Box: Radial PZ-DI or SB-4, Ground LIFT, Pad OFF
-- Note: Slower attack preserves bowing dynamics
 
 ### Taus / Mayuri (DI/Piezo)
-- HPF: 55 Hz (very low instrument, keep resonance)
-- Band 1: 120 Hz, +3 dB, Q 1.5 (deep body - peacock resonance)
-- Band 2: 350 Hz, +2 dB, Q 2.0 (mid warmth)
-- Band 3: 2.5 kHz, -4 dB, Q 3.0 (piezo quack)
-- Band 4: 5 kHz, +3 dB, Q 1.5 (bow articulation)
+- HPF: 55 Hz (very low instrument)
+- Band 1: 120 Hz, +3 dB, WIDE width (affects ~80-180Hz) - deep body
+- Band 2: 350 Hz, +2 dB, MEDIUM width (affects ~235-520Hz) - mid warmth
+- Band 3: 2.5 kHz, -4 dB, NARROW width (affects ~1.9-3.3kHz) - piezo quack
+- Band 4: 5 kHz, +3 dB, WIDE width (affects ~3.3-7.5kHz) - bow articulation
 - Compression: 2.5:1, -12dB threshold, 25ms attack, 150ms release, soft knee, +2dB gain, Manual RMS
-- Reverb: Arena @ -8 dB send (deep, meditative sound needs space)
+- Reverb: Arena @ -8 dB send
 - DI Box: Radial PZ-DI or SB-4, Ground LIFT, Pad OFF
 
 ### Violin (DI/Piezo)
-- HPF: 180 Hz (violin doesn't need lows, clean up)
-- Band 1: 250 Hz, -2 dB, Q 2.0 (reduce boxiness)
-- Band 2: 2.5 kHz, -4 dB, Q 3.0 (piezo quack - CRITICAL)
-- Band 3: 5 kHz, +3 dB, Q 2.0 (bow articulation)
-- Band 4: 10 kHz, +4 dB, Q 1.5 (brilliance, harmonics)
+- HPF: 180 Hz (violin doesn't need lows)
+- Band 1: 250 Hz, -2 dB, MEDIUM width (affects ~170-375Hz) - reduce boxiness
+- Band 2: 2.5 kHz, -4 dB, NARROW width (affects ~1.9-3.3kHz) - piezo quack CRITICAL
+- Band 3: 5 kHz, +3 dB, MEDIUM width (affects ~3.3-7.5kHz) - bow articulation
+- Band 4: 10 kHz, +4 dB, WIDE width (affects ~6.5-15kHz) - brilliance
 - Compression: 3:1, -10dB threshold, 15ms attack, 100ms release, soft knee, +2dB gain, Manual RMS
 - Reverb: Hall Small/Stage @ -10 dB send
 - DI Box: Radial PZ-DI or SB-4, Ground LIFT, Pad OFF
 
 ### Sarangi (DI/Piezo)
 - HPF: 90 Hz
-- Band 1: 200 Hz, +3 dB, Q 2.0 (body warmth)
-- Band 2: 600 Hz, -3 dB, Q 2.5 (reduce honkiness)
-- Band 3: 2.5 kHz, -4 dB, Q 3.0 (piezo quack)
-- Band 4: 7 kHz, +5 dB, Q 1.5 (sympathetic strings, air)
+- Band 1: 200 Hz, +3 dB, MEDIUM width (affects ~135-300Hz) - body warmth
+- Band 2: 600 Hz, -3 dB, MEDIUM width (affects ~400-900Hz) - reduce honkiness
+- Band 3: 2.5 kHz, -4 dB, NARROW width (affects ~1.9-3.3kHz) - piezo quack
+- Band 4: 7 kHz, +5 dB, WIDE width (affects ~4.6-10.5kHz) - sympathetic strings
 - Compression: 2.5:1, -11dB threshold, 18ms attack, 120ms release, soft knee, +2dB gain, Manual RMS
-- Reverb: Arena @ -6 dB send (emotional instrument needs space)
+- Reverb: Arena @ -6 dB send
 - DI Box: Radial PZ-DI or SB-4, Ground LIFT, Pad OFF
 
 ### Harmonium (Direct/DI or Mic)
 - HPF: 80 Hz
-- Band 1: 200 Hz, +2 dB, Q 2.0 (reed body)
-- Band 2: 500 Hz, -3 dB, Q 2.5 (reduce muddiness)
-- Band 3: 2 kHz, +2 dB, Q 2.0 (note clarity)
-- Band 4: 6 kHz, +3 dB, Q 1.5 (bellows air, presence)
+- Band 1: 200 Hz, +2 dB, MEDIUM width (affects ~135-300Hz) - reed body
+- Band 2: 500 Hz, -3 dB, MEDIUM width (affects ~335-750Hz) - reduce mud
+- Band 3: 2 kHz, +2 dB, MEDIUM width (affects ~1.3-3kHz) - note clarity
+- Band 4: 6 kHz, +3 dB, WIDE width (affects ~4-9kHz) - bellows air
 - Compression: 3:1, -10dB threshold, 20ms attack, 150ms release, soft knee, +2dB gain, Manual RMS
-- Reverb: Hall Small/Stage @ -15 dB send (subtle - already fills space)
+- Reverb: Hall Small/Stage @ -15 dB send
 - If using mic (Beta 57A): position 6-8 inches from reeds, angled
 
 ### Keyboard/Synth (Direct/DI)
 - HPF: OFF or 30 Hz (depends on patches used)
-- Band 1: 100 Hz, 0 dB (adjust based on patch - cut if boomy)
-- Band 2: 500 Hz, -2 dB, Q 2.0 (clean up mids if needed)
-- Band 3: 3 kHz, +2 dB, Q 2.0 (presence)
-- Band 4: 10 kHz, +2 dB, Q 1.5 (sparkle)
+- Band 1: 100 Hz, 0 dB, MEDIUM width - adjust based on patch
+- Band 2: 500 Hz, -2 dB, MEDIUM width (affects ~335-750Hz) - clean up mids
+- Band 3: 3 kHz, +2 dB, MEDIUM width (affects ~2-4.5kHz) - presence
+- Band 4: 10 kHz, +2 dB, WIDE width (affects ~6.5-15kHz) - sparkle
 - Compression: 2:1, -12dB threshold, 20ms attack, 150ms release, soft knee, +1dB gain, Manual RMS
 - Reverb: Depends on patch - often OFF if patch has built-in reverb
-- Note: Start flat and adjust based on the specific patches being used
 
 ## Key Principles
 
@@ -211,9 +215,9 @@ Return a JSON object (no markdown, just raw JSON) with these keys:
    {"1": {"instrument": "Female Vocal", "mic": "Beta 58A", "position": "2-3 inches from mouth"}}
    ```
 
-2. **eq_settings**: dict with channel numbers as keys, include Q values:
+2. **eq_settings**: dict with channel numbers as keys, include width AND frequency range:
    ```
-   {"1": {"hpf": "95Hz", "band1": "325Hz +2.5dB Q2.0", "band2": "650Hz -4dB Q2.5", "band3": "4.5kHz +4dB Q2.0", "band4": "10kHz +2dB Q1.5"}}
+   {"1": {"hpf": "95Hz", "band1": "325Hz +2.5dB MEDIUM (220-480Hz)", "band2": "650Hz -4dB MEDIUM (430-980Hz)", "band3": "4.5kHz +4dB MEDIUM (3-6.7kHz)", "band4": "10kHz +2dB WIDE (6.5-15kHz)"}}
    ```
 
 3. **compression_settings**: dict with channel numbers, include all params:
@@ -232,12 +236,14 @@ Return a JSON object (no markdown, just raw JSON) with these keys:
    1. Connect [Mic] to Channel 1
    2. Set gain: have performer play, target -12 to -8dB peaks
    3. HPF: [setting]
-   4. EQ Band 1: [freq] [gain] Q[width] - [why]
-   5. EQ Band 2: [freq] [gain] Q[width] - [why]
-   6. EQ Band 3: [freq] [gain] Q[width] - [why]
-   7. EQ Band 4: [freq] [gain] Q[width] - [why]
+   4. EQ Band 1: [freq] [gain], [WIDTH] width (affects [low]-[high]) - [why]
+   5. EQ Band 2: [freq] [gain], [WIDTH] width (affects [low]-[high]) - [why]
+   6. EQ Band 3: [freq] [gain], [WIDTH] width (affects [low]-[high]) - [why]
+   7. EQ Band 4: [freq] [gain], [WIDTH] width (affects [low]-[high]) - [why]
    8. Compression: [ratio], [threshold], [attack], [release], [knee], [gain], [type]
    9. FX Send: [which FX] at [level]
+
+   Example EQ line: "4.5kHz +4dB, MEDIUM width (affects 3-6.7kHz) - adds presence"
 
    ## CHANNEL 2: [Instrument] - [Mic]
    [repeat same structure]
