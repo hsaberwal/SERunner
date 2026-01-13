@@ -11,6 +11,8 @@ function SetupDetail() {
   const [rating, setRating] = useState(null)
   const [notes, setNotes] = useState('')
   const [saving, setSaving] = useState(false)
+  const [refreshing, setRefreshing] = useState(false)
+  const [refreshMessage, setRefreshMessage] = useState('')
 
   useEffect(() => {
     loadSetup()
@@ -53,6 +55,46 @@ function SetupDetail() {
     }
   }
 
+  const handleRefresh = async () => {
+    if (!confirm('Regenerate this setup with Claude using the latest knowledge base and learnings? This will overwrite the current instructions and settings.')) {
+      return
+    }
+
+    setRefreshing(true)
+    setRefreshMessage('Preparing to refresh...')
+
+    try {
+      // Update messages to show progress
+      const messageTimer1 = setTimeout(() => {
+        setRefreshMessage('Gathering latest learnings from your rated setups...')
+      }, 2000)
+
+      const messageTimer2 = setTimeout(() => {
+        setRefreshMessage('Claude is regenerating your setup...')
+      }, 5000)
+
+      const messageTimer3 = setTimeout(() => {
+        setRefreshMessage('Almost there... building updated instructions...')
+      }, 15000)
+
+      const response = await setups.refresh(id)
+
+      clearTimeout(messageTimer1)
+      clearTimeout(messageTimer2)
+      clearTimeout(messageTimer3)
+
+      setSetup(response.data)
+      setRating(response.data.rating)
+      setNotes(response.data.notes || '')
+      alert('Setup refreshed successfully with latest knowledge!')
+    } catch (error) {
+      alert('Failed to refresh setup: ' + (error.response?.data?.detail || error.message))
+    } finally {
+      setRefreshing(false)
+      setRefreshMessage('')
+    }
+  }
+
   if (loading) {
     return <div className="loading">Loading...</div>
   }
@@ -65,11 +107,27 @@ function SetupDetail() {
     <>
       <Navigation />
       <div className="container">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+        {/* Refresh Loading Overlay */}
+        {refreshing && (
+          <div className="loading-overlay">
+            <div className="loading-content">
+              <div className="loading-spinner"></div>
+              <p className="loading-message">{refreshMessage}</p>
+              <p className="loading-tip">This typically takes 15-45 seconds</p>
+            </div>
+          </div>
+        )}
+
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '0.5rem' }}>
           <h1>{setup.event_name || 'Unnamed Event'}</h1>
-          <button className="btn btn-danger" onClick={handleDelete}>
-            Delete
-          </button>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <button className="btn btn-info" onClick={handleRefresh} disabled={refreshing}>
+              Refresh with Claude
+            </button>
+            <button className="btn btn-danger" onClick={handleDelete}>
+              Delete
+            </button>
+          </div>
         </div>
 
         {setup.event_date && (
@@ -163,6 +221,77 @@ function SetupDetail() {
           </button>
         </div>
       </div>
+
+      <style>{`
+        .btn-info {
+          background: #3b82f6;
+          color: white;
+          border: none;
+        }
+        .btn-info:hover {
+          background: #2563eb;
+        }
+        .btn-info:disabled {
+          background: #93c5fd;
+          cursor: not-allowed;
+        }
+
+        /* Loading Overlay Styles */
+        .loading-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(0, 0, 0, 0.5);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 1000;
+          backdrop-filter: blur(4px);
+        }
+
+        .loading-content {
+          background: #ffffff;
+          padding: 2.5rem 3rem;
+          border-radius: 1rem;
+          text-align: center;
+          max-width: 90%;
+          min-width: 320px;
+          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+          border: 1px solid #e5e7eb;
+        }
+
+        .loading-spinner {
+          width: 60px;
+          height: 60px;
+          border: 4px solid #e5e7eb;
+          border-top-color: #3b82f6;
+          border-radius: 50%;
+          animation: spin 1s linear infinite;
+          margin: 0 auto 1.5rem;
+        }
+
+        @keyframes spin {
+          to {
+            transform: rotate(360deg);
+          }
+        }
+
+        .loading-message {
+          font-size: 1.1rem;
+          color: #1f2937;
+          margin-bottom: 0.75rem;
+          min-height: 1.5em;
+          font-weight: 500;
+        }
+
+        .loading-tip {
+          font-size: 0.85rem;
+          color: #6b7280;
+          margin: 0;
+        }
+      `}</style>
     </>
   )
 }

@@ -333,6 +333,95 @@ async def get_setup(
     return setup
 
 
+@router.post("/{setup_id}/refresh", response_model=SetupResponse)
+async def refresh_setup(
+    setup_id: UUID,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Refresh a setup by regenerating it with Claude using latest knowledge.
+
+    This keeps the same event details (location, performers, event name/date)
+    but regenerates the channel config, EQ, compression, FX, and instructions
+    using the latest knowledge base and any new learnings from rated setups.
+    """
+    import logging
+    logger = logging.getLogger(__name__)
+
+    # Get the existing setup
+    result = await db.execute(
+        select(Setup).where(
+            Setup.id == setup_id,
+            Setup.user_id == current_user.id
+        )
+    )
+    setup = result.scalar_one_or_none()
+
+    if not setup:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Setup not found"
+        )
+
+    # Get the location
+    result = await db.execute(
+        select(Location).where(
+            Location.id == setup.location_id,
+            Location.user_id == current_user.id
+        )
+    )
+    location = result.scalar_one_or_none()
+
+    if not location:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Location not found"
+        )
+
+    try:
+        # Get past setups for learning (excluding this one)
+        past_setups_result = await db.execute(
+            select(Setup).where(
+                Setup.location_id == setup.location_id,
+                Setup.rating.isnot(None),
+                Setup.id != setup_id  # Exclude current setup
+            ).order_by(Setup.rating.desc(), Setup.created_at.desc()).limit(5)
+        )
+        past_setups = past_setups_result.scalars().all()
+        logger.info(f"Refreshing setup {setup_id} with {len(past_setups)} past setups for learning")
+
+        # Regenerate using Claude API
+        generator = SetupGenerator()
+        setup_data = await generator.generate(
+            location=location,
+            performers=setup.performers or [],
+            past_setups=past_setups,
+            user=current_user
+        )
+        logger.info("Setup regenerated successfully from Claude API")
+
+        # Update the setup with new data
+        setup.channel_config = setup_data.get("channel_config")
+        setup.eq_settings = setup_data.get("eq_settings")
+        setup.compression_settings = setup_data.get("compression_settings")
+        setup.fx_settings = setup_data.get("fx_settings")
+        setup.instructions = f"[Refreshed on {datetime.now().strftime('%Y-%m-%d %H:%M')}]\n\n{setup_data.get('instructions', '')}"
+
+        await db.commit()
+        await db.refresh(setup)
+
+        return setup
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error refreshing setup: {type(e).__name__}: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error refreshing setup: {type(e).__name__}: {str(e)}"
+        )
+
+
 @router.put("/{setup_id}", response_model=SetupResponse)
 async def update_setup(
     setup_id: UUID,

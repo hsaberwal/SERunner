@@ -57,6 +57,8 @@ export const setups = {
   // Smart setup reuse
   checkMatch: (data) => api.post('/setups/check-match', data),
   reuse: (setupId, data) => api.post(`/setups/reuse/${setupId}`, data),
+  // Refresh setup with Claude (regenerate with latest knowledge)
+  refresh: (id) => api.post(`/setups/${id}/refresh`),
 }
 
 // Gear
