@@ -21,17 +21,22 @@ function SetupHistory() {
       const [userResponse, mySetupsResponse, sharedResponse] = await Promise.all([
         auth.me(),
         setups.getAll(),
-        setups.getShared()
+        setups.getShared().catch(() => ({ data: [] })) // Graceful fallback if shared endpoint fails
       ])
 
       setIsAdmin(userResponse.data.is_admin || false)
       setSetupList(mySetupsResponse.data)
       setSharedSetups(sharedResponse.data)
 
-      // If admin, also load all setups
+      // If admin, also load all setups (separate try-catch so it doesn't break the page)
       if (userResponse.data.is_admin) {
-        const allResponse = await setups.getAllAdmin()
-        setAllSetups(allResponse.data)
+        try {
+          const allResponse = await setups.getAllAdmin()
+          setAllSetups(allResponse.data)
+        } catch (adminError) {
+          console.error('Failed to load admin setups:', adminError)
+          // Still show admin tab but with empty list
+        }
       }
     } catch (error) {
       console.error('Failed to load data:', error)
