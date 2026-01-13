@@ -23,6 +23,17 @@ function Gear() {
     notes: '',
   })
 
+  // Hardware learning state
+  const [learningGearId, setLearningGearId] = useState(null)
+  const [learnedSettings, setLearnedSettings] = useState(null)
+  const [showLearnNewForm, setShowLearnNewForm] = useState(false)
+  const [newHardwareData, setNewHardwareData] = useState({
+    hardware_type: 'microphone',
+    brand: '',
+    model: '',
+    user_notes: '',
+  })
+
   useEffect(() => {
     loadGear()
   }, [])
@@ -86,6 +97,37 @@ function Gear() {
     }
   }
 
+  // Learn settings for existing gear
+  const handleLearnFromGear = async (gearId, userNotes = null) => {
+    setLearningGearId(gearId)
+    setLearnedSettings(null)
+    try {
+      const response = await gear.learnFromExisting(gearId, userNotes)
+      setLearnedSettings(response.data)
+      // Reload gear to get updated default_settings
+      loadGear()
+    } catch (error) {
+      alert('Failed to learn settings: ' + (error.response?.data?.detail || error.message))
+    } finally {
+      setLearningGearId(null)
+    }
+  }
+
+  // Learn settings for new (not-yet-added) hardware
+  const handleLearnNewHardware = async (e) => {
+    e.preventDefault()
+    setLearningGearId('new')
+    setLearnedSettings(null)
+    try {
+      const response = await gear.learn(newHardwareData)
+      setLearnedSettings(response.data)
+    } catch (error) {
+      alert('Failed to learn settings: ' + (error.response?.data?.detail || error.message))
+    } finally {
+      setLearningGearId(null)
+    }
+  }
+
   const groupedGear = gearList.reduce((acc, item) => {
     if (!acc[item.type]) {
       acc[item.type] = []
@@ -112,12 +154,132 @@ function Gear() {
     <>
       <Navigation />
       <div className="container">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '0.5rem' }}>
           <h1>Gear Inventory</h1>
-          <button className="btn btn-primary" onClick={() => setShowForm(!showForm)}>
-            {showForm ? 'Cancel' : 'Add Gear'}
-          </button>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <button className="btn btn-secondary" onClick={() => { setShowLearnNewForm(!showLearnNewForm); setShowForm(false); setLearnedSettings(null); }}>
+              {showLearnNewForm ? 'Cancel' : 'Learn New Hardware'}
+            </button>
+            <button className="btn btn-primary" onClick={() => { setShowForm(!showForm); setShowLearnNewForm(false); }}>
+              {showForm ? 'Cancel' : 'Add Gear'}
+            </button>
+          </div>
         </div>
+
+        {/* Learn New Hardware Form */}
+        {showLearnNewForm && (
+          <div className="card" style={{ marginBottom: '2rem' }}>
+            <h2 className="card-header">Learn New Hardware Settings</h2>
+            <p style={{ color: 'var(--text-secondary)', marginBottom: '1rem', fontSize: '0.9rem' }}>
+              Use Claude to generate recommended EQ/compression settings for hardware you're considering or just acquired.
+            </p>
+            <form onSubmit={handleLearnNewHardware}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div className="form-group">
+                  <label className="form-label">Hardware Type *</label>
+                  <select
+                    className="form-select"
+                    value={newHardwareData.hardware_type}
+                    onChange={(e) => setNewHardwareData({ ...newHardwareData, hardware_type: e.target.value })}
+                    required
+                  >
+                    <option value="microphone">Microphone</option>
+                    <option value="speaker">Speaker</option>
+                    <option value="amplifier">Amplifier</option>
+                    <option value="di_box">DI Box</option>
+                    <option value="mixer">Mixer</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Brand *</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={newHardwareData.brand}
+                    onChange={(e) => setNewHardwareData({ ...newHardwareData, brand: e.target.value })}
+                    placeholder="e.g., Shure, Sennheiser"
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Model *</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={newHardwareData.model}
+                    onChange={(e) => setNewHardwareData({ ...newHardwareData, model: e.target.value })}
+                    placeholder="e.g., SM58, e835"
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Notes (optional)</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={newHardwareData.user_notes}
+                    onChange={(e) => setNewHardwareData({ ...newHardwareData, user_notes: e.target.value })}
+                    placeholder="Any specific use cases or concerns"
+                  />
+                </div>
+              </div>
+              <button type="submit" className="btn btn-primary" disabled={learningGearId === 'new'}>
+                {learningGearId === 'new' ? 'Learning...' : 'Generate Settings with Claude'}
+              </button>
+            </form>
+
+            {/* Display learned settings */}
+            {learnedSettings && !learnedSettings.error && (
+              <div className="learned-settings" style={{ marginTop: '1.5rem', padding: '1rem', background: 'var(--bg-secondary)', borderRadius: '0.5rem' }}>
+                <h3 style={{ marginBottom: '1rem' }}>Learned Settings: {learnedSettings.brand} {learnedSettings.model}</h3>
+
+                {learnedSettings.characteristics && (
+                  <div style={{ marginBottom: '1rem' }}>
+                    <strong>Characteristics:</strong>
+                    <p style={{ margin: '0.25rem 0', fontSize: '0.9rem' }}>{learnedSettings.characteristics}</p>
+                  </div>
+                )}
+
+                {learnedSettings.best_for && (
+                  <div style={{ marginBottom: '1rem' }}>
+                    <strong>Best For:</strong>
+                    <p style={{ margin: '0.25rem 0', fontSize: '0.9rem' }}>{learnedSettings.best_for}</p>
+                  </div>
+                )}
+
+                {learnedSettings.settings_by_source && Object.keys(learnedSettings.settings_by_source).length > 0 && (
+                  <div style={{ marginBottom: '1rem' }}>
+                    <strong>Recommended Settings by Source:</strong>
+                    <div style={{ marginTop: '0.5rem', maxHeight: '200px', overflow: 'auto', background: '#1f2937', color: '#e5e7eb', padding: '0.75rem', borderRadius: '0.25rem', fontSize: '0.8rem', fontFamily: 'monospace' }}>
+                      <pre style={{ margin: 0 }}>{JSON.stringify(learnedSettings.settings_by_source, null, 2)}</pre>
+                    </div>
+                  </div>
+                )}
+
+                {learnedSettings.knowledge_base_entry && (
+                  <div>
+                    <strong>Knowledge Base Entry:</strong>
+                    <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
+                      Copy this to your sound-knowledge-base.md file:
+                    </p>
+                    <textarea
+                      readOnly
+                      value={learnedSettings.knowledge_base_entry}
+                      style={{ width: '100%', minHeight: '150px', fontFamily: 'monospace', fontSize: '0.8rem', padding: '0.5rem' }}
+                      onClick={(e) => e.target.select()}
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+
+            {learnedSettings?.error && (
+              <div style={{ marginTop: '1rem', padding: '1rem', background: '#fef2f2', border: '1px solid #ef4444', borderRadius: '0.5rem' }}>
+                <strong style={{ color: '#dc2626' }}>Error:</strong> {learnedSettings.error}
+              </div>
+            )}
+          </div>
+        )}
 
         {showForm && (
           <div className="card" style={{ marginBottom: '2rem' }}>
@@ -239,6 +401,16 @@ function Gear() {
                         </p>
                       )}
 
+                      {/* Default Settings (if learned) */}
+                      {item.default_settings && Object.keys(item.default_settings).length > 0 && (
+                        <div style={{ marginTop: '0.75rem', padding: '0.5rem', background: '#ecfdf5', border: '1px solid #10b981', borderRadius: '0.375rem' }}>
+                          <strong style={{ fontSize: '0.8rem', color: '#059669' }}>Learned Settings Available</strong>
+                          <p style={{ fontSize: '0.75rem', color: '#047857', margin: '0.25rem 0 0' }}>
+                            Settings for {Object.keys(item.default_settings).length} source type(s)
+                          </p>
+                        </div>
+                      )}
+
                       {/* Active Loans */}
                       {item.active_loans && item.active_loans.length > 0 && (
                         <div style={{ marginTop: '1rem', padding: '0.75rem', background: 'var(--bg-secondary)', borderRadius: '0.5rem' }}>
@@ -268,7 +440,19 @@ function Gear() {
                       )}
                     </div>
 
-                    <div style={{ display: 'flex', gap: '0.5rem', marginLeft: '1rem' }}>
+                    <div style={{ display: 'flex', gap: '0.5rem', marginLeft: '1rem', flexWrap: 'wrap' }}>
+                      {/* Learn settings for microphones and speakers */}
+                      {['mic', 'speaker', 'di_box'].includes(item.type) && (
+                        <button
+                          className="btn btn-info"
+                          onClick={() => handleLearnFromGear(item.id)}
+                          disabled={learningGearId === item.id}
+                          style={{ padding: '0.5rem 1rem' }}
+                          title="Use Claude to generate/update recommended settings"
+                        >
+                          {learningGearId === item.id ? 'Learning...' : 'Learn'}
+                        </button>
+                      )}
                       {item.quantity_available > 0 && (
                         <button
                           className="btn btn-secondary"
@@ -360,6 +544,18 @@ function Gear() {
       </div>
 
       <style>{`
+        .btn-info {
+          background: #3b82f6;
+          color: white;
+          border: none;
+        }
+        .btn-info:hover {
+          background: #2563eb;
+        }
+        .btn-info:disabled {
+          background: #93c5fd;
+          cursor: not-allowed;
+        }
         @media (max-width: 600px) {
           .card > div:first-child {
             flex-direction: column;

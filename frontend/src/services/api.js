@@ -54,6 +54,9 @@ export const setups = {
   generate: (data) => api.post('/setups/generate', data),
   update: (id, data) => api.put(`/setups/${id}`, data),
   delete: (id) => api.delete(`/setups/${id}`),
+  // Smart setup reuse
+  checkMatch: (data) => api.post('/setups/check-match', data),
+  reuse: (setupId, data) => api.post(`/setups/reuse/${setupId}`, data),
 }
 
 // Gear
@@ -70,6 +73,10 @@ export const gear = {
   returnLoan: (gearId, loanId, data = {}) =>
     api.post(`/gear/${gearId}/loans/${loanId}/return`, data),
   getOutstandingLoans: () => api.get('/gear/loans/outstanding'),
+  // Hardware learning - generates settings for new gear using Claude
+  learn: (data) => api.post('/gear/learn', data),
+  learnFromExisting: (gearId, userNotes = null) =>
+    api.post(`/gear/${gearId}/learn`, null, { params: userNotes ? { user_notes: userNotes } : {} }),
 }
 
 // Admin

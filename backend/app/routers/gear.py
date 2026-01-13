@@ -12,6 +12,7 @@ from app.models.user import User
 from app.models.gear import Gear, GearLoan
 from app.utils.auth import get_current_user
 from app.schemas import BaseResponse
+from app.services.hardware_learner import HardwareLearner
 
 router = APIRouter()
 
@@ -38,6 +39,27 @@ class GearUpdate(BaseModel):
     specs: Optional[dict] = None
     default_settings: Optional[dict] = None
     notes: Optional[str] = None
+
+
+class HardwareLearnRequest(BaseModel):
+    """Request to learn settings for new hardware"""
+    hardware_type: str  # microphone, speaker, amplifier
+    brand: str
+    model: str
+    specs: Optional[dict] = None  # polar_pattern, frequency_response, etc.
+    user_notes: Optional[str] = None  # Any observations the user has
+
+
+class HardwareLearnResponse(BaseModel):
+    """Response with learned settings for new hardware"""
+    hardware_type: str
+    brand: str
+    model: str
+    characteristics: Optional[str] = None
+    best_for: Optional[str] = None
+    settings_by_source: Optional[dict] = None
+    knowledge_base_entry: Optional[str] = None
+    error: Optional[str] = None
 
 
 class GearLoanResponse(BaseResponse):
@@ -245,6 +267,125 @@ async def delete_gear(
 
     await db.delete(gear)
     await db.commit()
+
+
+# ============== Hardware Learning Endpoint ==============
+
+@router.post("/learn", response_model=HardwareLearnResponse)
+async def learn_hardware_settings(
+    request: HardwareLearnRequest,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Use Claude to generate recommended settings for new hardware.
+
+    Returns settings that can be:
+    1. Saved to the gear item's default_settings
+    2. Added to the knowledge base file
+
+    This is useful when introducing a new mic, speaker, or amp
+    that isn't in the knowledge base yet.
+    """
+    import logging
+    logger = logging.getLogger(__name__)
+
+    try:
+        # Use user's API key if available
+        api_key = current_user.api_key if current_user.api_key else None
+        learner = HardwareLearner(api_key=api_key)
+
+        result = await learner.learn_hardware(
+            hardware_type=request.hardware_type,
+            brand=request.brand,
+            model=request.model,
+            specs=request.specs,
+            user_notes=request.user_notes
+        )
+
+        return HardwareLearnResponse(
+            hardware_type=result.get("hardware_type", request.hardware_type),
+            brand=result.get("brand", request.brand),
+            model=result.get("model", request.model),
+            characteristics=result.get("characteristics"),
+            best_for=result.get("best_for"),
+            settings_by_source=result.get("settings_by_source"),
+            knowledge_base_entry=result.get("knowledge_base_entry"),
+            error=result.get("error")
+        )
+    except Exception as e:
+        logger.error(f"Hardware learning failed: {type(e).__name__}: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to learn hardware settings: {str(e)}"
+        )
+
+
+@router.post("/{gear_id}/learn", response_model=HardwareLearnResponse)
+async def learn_from_existing_gear(
+    gear_id: UUID,
+    user_notes: Optional[str] = None,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Learn settings for an existing gear item.
+
+    Uses the gear's type, brand, model, and specs to generate
+    recommended settings via Claude.
+    """
+    import logging
+    logger = logging.getLogger(__name__)
+
+    # Get the gear item
+    result = await db.execute(
+        select(Gear).where(
+            Gear.id == gear_id,
+            Gear.user_id == current_user.id
+        )
+    )
+    gear = result.scalar_one_or_none()
+
+    if not gear:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Gear not found"
+        )
+
+    try:
+        api_key = current_user.api_key if current_user.api_key else None
+        learner = HardwareLearner(api_key=api_key)
+
+        result = await learner.learn_hardware(
+            hardware_type=gear.type,
+            brand=gear.brand or "Unknown",
+            model=gear.model or "Unknown",
+            specs=gear.specs,
+            user_notes=user_notes or gear.notes
+        )
+
+        # Optionally update the gear's default_settings
+        if result.get("settings_by_source") and not result.get("error"):
+            gear.default_settings = result.get("settings_by_source")
+            await db.commit()
+            await db.refresh(gear)
+            logger.info(f"Updated default_settings for gear {gear_id}")
+
+        return HardwareLearnResponse(
+            hardware_type=result.get("hardware_type", gear.type),
+            brand=result.get("brand", gear.brand),
+            model=result.get("model", gear.model),
+            characteristics=result.get("characteristics"),
+            best_for=result.get("best_for"),
+            settings_by_source=result.get("settings_by_source"),
+            knowledge_base_entry=result.get("knowledge_base_entry"),
+            error=result.get("error")
+        )
+    except Exception as e:
+        logger.error(f"Hardware learning failed for gear {gear_id}: {type(e).__name__}: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to learn hardware settings: {str(e)}"
+        )
 
 
 # ============== Loan Endpoints ==============

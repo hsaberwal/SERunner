@@ -29,6 +29,15 @@ class SetupGenerateRequest(BaseModel):
     event_name: Optional[str] = None
     event_date: Optional[date] = None
     performers: List[PerformerInput]
+    force_generate: bool = False  # If True, skip matching and always use Claude
+
+
+class MatchingSetupResponse(BaseModel):
+    """Response when checking for matching past setups"""
+    has_match: bool
+    match_quality: Optional[str] = None  # "exact", "similar", "partial"
+    matching_setup: Optional[dict] = None
+    match_details: Optional[str] = None
 
 
 class SetupCreate(BaseModel):
@@ -64,6 +73,145 @@ class SetupResponse(BaseResponseWithLocation):
     notes: Optional[str]
     rating: Optional[int]
     created_at: datetime
+
+
+def calculate_performer_match(request_performers: List[dict], past_performers: List[dict]) -> tuple[str, float]:
+    """Calculate how well performers match between request and past setup.
+    Returns (match_quality, match_score) where score is 0-1."""
+    if not past_performers:
+        return ("none", 0.0)
+
+    request_types = {}
+    for p in request_performers:
+        ptype = p.get('type', '')
+        count = p.get('count', 1)
+        request_types[ptype] = request_types.get(ptype, 0) + count
+
+    past_types = {}
+    for p in past_performers:
+        ptype = p.get('type', '')
+        count = p.get('count', 1)
+        past_types[ptype] = past_types.get(ptype, 0) + count
+
+    # Check for exact match (same types and counts)
+    if request_types == past_types:
+        return ("exact", 1.0)
+
+    # Check for similar match (same types, different counts)
+    if set(request_types.keys()) == set(past_types.keys()):
+        return ("similar", 0.8)
+
+    # Check for partial match (overlapping types)
+    common_types = set(request_types.keys()) & set(past_types.keys())
+    if common_types:
+        overlap_ratio = len(common_types) / max(len(request_types), len(past_types))
+        if overlap_ratio >= 0.5:
+            return ("partial", overlap_ratio * 0.6)
+
+    return ("none", 0.0)
+
+
+@router.post("/check-match", response_model=MatchingSetupResponse)
+async def check_matching_setup(
+    request: SetupGenerateRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Check if there's a matching past setup that can be reused"""
+    # Get highly-rated past setups for this location
+    past_setups_result = await db.execute(
+        select(Setup).where(
+            Setup.location_id == request.location_id,
+            Setup.user_id == current_user.id,
+            Setup.rating >= 4  # Only consider successful setups
+        ).order_by(Setup.rating.desc(), Setup.created_at.desc()).limit(10)
+    )
+    past_setups = past_setups_result.scalars().all()
+
+    if not past_setups:
+        return MatchingSetupResponse(has_match=False)
+
+    # Find the best matching setup
+    best_match = None
+    best_quality = "none"
+    best_score = 0.0
+
+    request_performers = [p.model_dump() for p in request.performers]
+
+    for setup in past_setups:
+        quality, score = calculate_performer_match(request_performers, setup.performers or [])
+        # Boost score for higher ratings
+        adjusted_score = score * (0.8 + (setup.rating or 3) * 0.04)
+
+        if adjusted_score > best_score:
+            best_score = adjusted_score
+            best_quality = quality
+            best_match = setup
+
+    if best_match and best_quality in ("exact", "similar"):
+        return MatchingSetupResponse(
+            has_match=True,
+            match_quality=best_quality,
+            matching_setup={
+                "id": str(best_match.id),
+                "event_name": best_match.event_name,
+                "event_date": str(best_match.event_date) if best_match.event_date else None,
+                "performers": best_match.performers,
+                "rating": best_match.rating,
+                "notes": best_match.notes,
+                "channel_config": best_match.channel_config,
+                "eq_settings": best_match.eq_settings,
+                "compression_settings": best_match.compression_settings,
+                "fx_settings": best_match.fx_settings,
+                "instructions": best_match.instructions
+            },
+            match_details=f"Found {best_quality} match from {best_match.event_name or 'previous event'} (rated {best_match.rating}/5)"
+        )
+
+    return MatchingSetupResponse(has_match=False)
+
+
+@router.post("/reuse/{setup_id}", response_model=SetupResponse, status_code=status.HTTP_201_CREATED)
+async def reuse_setup(
+    setup_id: UUID,
+    request: SetupGenerateRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Reuse settings from a past setup without calling Claude"""
+    # Get the past setup to reuse
+    result = await db.execute(
+        select(Setup).where(
+            Setup.id == setup_id,
+            Setup.user_id == current_user.id
+        )
+    )
+    past_setup = result.scalar_one_or_none()
+
+    if not past_setup:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Past setup not found"
+        )
+
+    # Create new setup by copying settings from past setup
+    new_setup = Setup(
+        location_id=request.location_id,
+        user_id=current_user.id,
+        event_name=request.event_name,
+        event_date=request.event_date,
+        performers=[p.model_dump() for p in request.performers],
+        channel_config=past_setup.channel_config,
+        eq_settings=past_setup.eq_settings,
+        compression_settings=past_setup.compression_settings,
+        fx_settings=past_setup.fx_settings,
+        instructions=f"[Reused from: {past_setup.event_name or 'previous setup'}]\n\n{past_setup.instructions or ''}"
+    )
+    db.add(new_setup)
+    await db.commit()
+    await db.refresh(new_setup)
+
+    return new_setup
 
 
 @router.post("/generate", response_model=SetupResponse, status_code=status.HTTP_201_CREATED)

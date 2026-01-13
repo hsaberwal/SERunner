@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { locations, setups } from '../services/api'
 import Navigation from '../components/Navigation'
@@ -65,6 +65,11 @@ function EventWizard() {
     monitor_geq_cuts: {}
   })
 
+  // Smart matching state
+  const [matchingSetup, setMatchingSetup] = useState(null)
+  const [checkingMatch, setCheckingMatch] = useState(false)
+  const [reusingSetup, setReusingSetup] = useState(false)
+
   useEffect(() => {
     loadLocations()
   }, [])
@@ -78,6 +83,41 @@ function EventWizard() {
       })
     }
   }, [selectedLocation])
+
+  // Check for matching setups when location or performers change (Phase 5)
+  const checkForMatchingSetup = useCallback(async () => {
+    // Only check if we have a location and at least one valid performer
+    const validPerformers = eventData.performers.filter(p => p.type)
+    if (!eventData.location_id || validPerformers.length === 0) {
+      setMatchingSetup(null)
+      return
+    }
+
+    setCheckingMatch(true)
+    try {
+      const response = await setups.checkMatch({
+        location_id: eventData.location_id,
+        performers: validPerformers
+      })
+      setMatchingSetup(response.data)
+    } catch (error) {
+      console.error('Failed to check for matching setup:', error)
+      setMatchingSetup(null)
+    } finally {
+      setCheckingMatch(false)
+    }
+  }, [eventData.location_id, eventData.performers])
+
+  // Debounce the match check
+  useEffect(() => {
+    // Only check when in Phase 5 (Soundcheck)
+    if (currentPhase !== 5) return
+
+    const timer = setTimeout(() => {
+      checkForMatchingSetup()
+    }, 500)
+    return () => clearTimeout(timer)
+  }, [checkForMatchingSetup, currentPhase])
 
   const loadLocations = async () => {
     try {
@@ -190,6 +230,28 @@ function EventWizard() {
     }
 
     setEventData({ ...eventData, performers: newPerformers })
+  }
+
+  // Reuse a matching setup instead of generating new
+  const handleReuseSetup = async () => {
+    if (!matchingSetup?.matching_setup?.id) return
+
+    setReusingSetup(true)
+    try {
+      const response = await setups.reuse(matchingSetup.matching_setup.id, {
+        location_id: eventData.location_id,
+        event_name: eventData.event_name,
+        event_date: eventData.event_date,
+        performers: eventData.performers.filter(p => p.type)
+      })
+      setGeneratedSetupId(response.data.id)
+      setPhaseCompleted({ ...phaseCompleted, 5: true })
+      setCurrentPhase(6)
+    } catch (error) {
+      alert('Failed to reuse setup: ' + (error.response?.data?.detail || error.message))
+    } finally {
+      setReusingSetup(false)
+    }
   }
 
   const generateSetup = async () => {
@@ -751,13 +813,68 @@ function EventWizard() {
         <p style={{ marginTop: '0.5rem', fontSize: '0.9rem' }}>Work with whoever is ready first. Ideally process each channel in isolation.</p>
       </div>
 
-      <button
-        className="btn btn-primary btn-large"
-        onClick={generateSetup}
-        disabled={loading || eventData.performers.filter(p => p.type).length === 0}
-      >
-        {loading ? 'Generating...' : 'Generate QuPac Setup Instructions'}
-      </button>
+      {/* Matching Setup Suggestion */}
+      {matchingSetup?.has_match && matchingSetup?.matching_setup && (
+        <div className="matching-setup-banner">
+          <div className="match-header">
+            <span className="match-icon">&#10003;</span>
+            <strong>Similar Setup Found!</strong>
+            <span className={`match-quality match-${matchingSetup.match_quality}`}>
+              {matchingSetup.match_quality === 'exact' ? 'Exact Match' :
+               matchingSetup.match_quality === 'similar' ? 'Similar Match' : 'Partial Match'}
+            </span>
+          </div>
+          <p className="match-details">
+            <strong>{matchingSetup.matching_setup.event_name || 'Previous Setup'}</strong>
+            {matchingSetup.matching_setup.event_date && (
+              <span> from {new Date(matchingSetup.matching_setup.event_date).toLocaleDateString()}</span>
+            )}
+            {matchingSetup.matching_setup.rating && (
+              <span className="match-rating">
+                {' '}&bull; Rated {matchingSetup.matching_setup.rating}/5
+              </span>
+            )}
+          </p>
+          <p className="match-suggestion">{matchingSetup.suggestion}</p>
+          <div className="match-actions">
+            <button
+              type="button"
+              className="btn btn-success"
+              onClick={handleReuseSetup}
+              disabled={reusingSetup}
+            >
+              {reusingSetup ? 'Reusing...' : 'Use This Setup (Fast)'}
+            </button>
+            <span className="match-or">or</span>
+            <button
+              className="btn btn-secondary"
+              onClick={generateSetup}
+              disabled={loading || eventData.performers.filter(p => p.type).length === 0}
+            >
+              Generate New with Claude
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Show checking indicator */}
+      {checkingMatch && (
+        <div className="checking-match">
+          <span className="checking-spinner"></span>
+          Checking for matching setups...
+        </div>
+      )}
+
+      {/* Only show generate button if no match found */}
+      {!matchingSetup?.has_match && (
+        <button
+          className="btn btn-primary btn-large"
+          onClick={generateSetup}
+          disabled={loading || checkingMatch || eventData.performers.filter(p => p.type).length === 0}
+        >
+          {loading ? 'Generating...' : 'Generate QuPac Setup Instructions'}
+        </button>
+      )}
     </div>
   )
 
@@ -1119,6 +1236,122 @@ function EventWizard() {
           font-size: 0.85rem;
           color: #6b7280;
           margin: 0;
+        }
+
+        /* Matching Setup Banner Styles */
+        .matching-setup-banner {
+          background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+          border: 2px solid #10b981;
+          border-radius: 0.75rem;
+          padding: 1.25rem;
+          margin-bottom: 1.5rem;
+        }
+
+        .match-header {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          margin-bottom: 0.75rem;
+          flex-wrap: wrap;
+        }
+
+        .match-icon {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 24px;
+          height: 24px;
+          background: #10b981;
+          color: white;
+          border-radius: 50%;
+          font-size: 14px;
+          font-weight: bold;
+        }
+
+        .match-quality {
+          font-size: 0.75rem;
+          padding: 0.25rem 0.5rem;
+          border-radius: 9999px;
+          font-weight: 500;
+        }
+
+        .match-exact {
+          background: #10b981;
+          color: white;
+        }
+
+        .match-similar {
+          background: #3b82f6;
+          color: white;
+        }
+
+        .match-partial {
+          background: #f59e0b;
+          color: white;
+        }
+
+        .match-details {
+          margin: 0 0 0.5rem 0;
+          color: #1f2937;
+          font-size: 0.95rem;
+        }
+
+        .match-rating {
+          color: #059669;
+          font-weight: 500;
+        }
+
+        .match-suggestion {
+          margin: 0 0 1rem 0;
+          color: #065f46;
+          font-size: 0.9rem;
+          font-style: italic;
+        }
+
+        .match-actions {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          flex-wrap: wrap;
+        }
+
+        .match-or {
+          color: #6b7280;
+          font-size: 0.85rem;
+        }
+
+        .btn-success {
+          background: #10b981;
+          color: white;
+          border: none;
+        }
+
+        .btn-success:hover {
+          background: #059669;
+        }
+
+        .btn-success:disabled {
+          background: #6ee7b7;
+          cursor: not-allowed;
+        }
+
+        /* Checking indicator */
+        .checking-match {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          color: #6b7280;
+          font-size: 0.9rem;
+          margin-bottom: 1rem;
+        }
+
+        .checking-spinner {
+          width: 16px;
+          height: 16px;
+          border: 2px solid #e5e7eb;
+          border-top-color: #3b82f6;
+          border-radius: 50%;
+          animation: spin 1s linear infinite;
         }
 
         @media (max-width: 600px) {
