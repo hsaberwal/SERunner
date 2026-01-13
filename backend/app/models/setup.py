@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Text, Integer, Date, DateTime, ForeignKey
+from sqlalchemy import Column, String, Text, Integer, Date, DateTime, ForeignKey, Boolean
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import relationship
 from datetime import datetime
@@ -24,6 +24,9 @@ class Setup(Base):
     notes = Column(Text)  # user notes, what worked/didn't
     rating = Column(Integer)  # 1-5, how well it worked
     created_at = Column(DateTime, default=datetime.utcnow)
+    # Sharing settings
+    is_shared = Column(Boolean, default=False)  # visible to other users
+    shared_full_access = Column(Boolean, default=False)  # others can edit if True, read-only if False
 
     # Relationships
     location = relationship("Location", back_populates="setups")

@@ -59,6 +59,10 @@ export const setups = {
   reuse: (setupId, data) => api.post(`/setups/reuse/${setupId}`, data),
   // Refresh setup with Claude (regenerate with latest knowledge)
   refresh: (id) => api.post(`/setups/${id}/refresh`),
+  // Shared setups
+  getShared: () => api.get('/setups/shared/all'),
+  // Admin: get all setups from all users
+  getAllAdmin: () => api.get('/setups/admin/all'),
 }
 
 // Gear

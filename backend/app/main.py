@@ -86,6 +86,19 @@ async def run_startup_migrations():
         except Exception:
             pass
 
+        # Add sharing columns to setups table
+        for col_name, col_type in [("is_shared", "BOOLEAN DEFAULT FALSE"), ("shared_full_access", "BOOLEAN DEFAULT FALSE")]:
+            try:
+                await conn.execute(text(f"ALTER TABLE setups ADD COLUMN IF NOT EXISTS {col_name} {col_type}"))
+            except Exception:
+                pass
+
+        # Create index for shared setups
+        try:
+            await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_setups_is_shared ON setups(is_shared)"))
+        except Exception:
+            pass
+
     logger.info("Startup migrations completed")
 
 
@@ -305,6 +318,29 @@ async def run_migrations():
             migrations.append("first user set as admin")
         except Exception as e:
             errors.append(f"set first user as admin: {str(e)}")
+
+        # Add sharing columns to setups table
+        setup_columns = [
+            ("is_shared", "BOOLEAN DEFAULT FALSE"),
+            ("shared_full_access", "BOOLEAN DEFAULT FALSE"),
+        ]
+        for col_name, col_type in setup_columns:
+            try:
+                await conn.execute(text(
+                    f"ALTER TABLE setups ADD COLUMN IF NOT EXISTS {col_name} {col_type}"
+                ))
+                migrations.append(f"setups.{col_name}")
+            except Exception as e:
+                errors.append(f"setups.{col_name}: {str(e)}")
+
+        # Create index for shared setups
+        try:
+            await conn.execute(text(
+                "CREATE INDEX IF NOT EXISTS ix_setups_is_shared ON setups(is_shared)"
+            ))
+            migrations.append("index ix_setups_is_shared")
+        except Exception as e:
+            errors.append(f"index ix_setups_is_shared: {str(e)}")
 
     return {
         "status": "success" if not errors else "partial",

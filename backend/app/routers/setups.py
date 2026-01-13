@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, or_
 from pydantic import BaseModel
 from typing import Optional, List
 from uuid import UUID
@@ -56,12 +56,15 @@ class SetupCreate(BaseModel):
 class SetupUpdate(BaseModel):
     notes: Optional[str] = None
     rating: Optional[int] = None
+    is_shared: Optional[bool] = None
+    shared_full_access: Optional[bool] = None
 
 
 class SetupResponse(BaseResponseWithLocation):
     """Setup response with automatic UUID/datetime serialization."""
     id: UUID
     location_id: UUID
+    user_id: Optional[UUID] = None  # Include for shared setups
     event_name: Optional[str]
     event_date: Optional[date]
     performers: List[dict]
@@ -73,6 +76,9 @@ class SetupResponse(BaseResponseWithLocation):
     notes: Optional[str]
     rating: Optional[int]
     created_at: datetime
+    is_shared: Optional[bool] = False
+    shared_full_access: Optional[bool] = False
+    owner_name: Optional[str] = None  # For shared setups, show who owns it
 
 
 def calculate_performer_match(request_performers: List[dict], past_performers: List[dict]) -> tuple[str, float]:
@@ -309,28 +315,94 @@ async def get_setups(
     return setups
 
 
+@router.get("/shared/all", response_model=List[SetupResponse])
+async def get_shared_setups(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Get all shared setups from other users"""
+    result = await db.execute(
+        select(Setup, User).join(User, Setup.user_id == User.id).where(
+            Setup.is_shared == True,
+            Setup.user_id != current_user.id  # Exclude own setups
+        ).order_by(Setup.created_at.desc())
+    )
+    rows = result.all()
+
+    setups_with_owner = []
+    for setup, owner in rows:
+        response = SetupResponse.model_validate(setup)
+        response.owner_name = owner.name or owner.email
+        setups_with_owner.append(response)
+
+    return setups_with_owner
+
+
+@router.get("/admin/all", response_model=List[SetupResponse])
+async def get_all_setups_admin(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Get all setups from all users (admin only)"""
+    if not current_user.is_admin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin access required"
+        )
+
+    result = await db.execute(
+        select(Setup, User).join(User, Setup.user_id == User.id)
+        .order_by(Setup.created_at.desc())
+    )
+    rows = result.all()
+
+    setups_with_owner = []
+    for setup, owner in rows:
+        response = SetupResponse.model_validate(setup)
+        response.owner_name = owner.name or owner.email
+        setups_with_owner.append(response)
+
+    return setups_with_owner
+
+
 @router.get("/{setup_id}", response_model=SetupResponse)
 async def get_setup(
     setup_id: UUID,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    """Get a specific setup"""
-    result = await db.execute(
-        select(Setup).where(
-            Setup.id == setup_id,
-            Setup.user_id == current_user.id
+    """Get a specific setup (own, shared, or any if admin)"""
+    # Build query - admins can see all, others can see own or shared
+    if current_user.is_admin:
+        result = await db.execute(
+            select(Setup, User).join(User, Setup.user_id == User.id).where(
+                Setup.id == setup_id
+            )
         )
-    )
-    setup = result.scalar_one_or_none()
+    else:
+        result = await db.execute(
+            select(Setup, User).join(User, Setup.user_id == User.id).where(
+                Setup.id == setup_id,
+                or_(
+                    Setup.user_id == current_user.id,
+                    Setup.is_shared == True
+                )
+            )
+        )
+    row = result.first()
 
-    if not setup:
+    if not row:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Setup not found"
         )
 
-    return setup
+    setup, owner = row
+    # Add owner name for setups not owned by current user
+    response = SetupResponse.model_validate(setup)
+    if setup.user_id != current_user.id:
+        response.owner_name = owner.name or owner.email
+    return response
 
 
 @router.post("/{setup_id}/refresh", response_model=SetupResponse)
@@ -429,12 +501,10 @@ async def update_setup(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    """Update a setup (notes and rating)"""
+    """Update a setup (notes, rating, sharing settings)"""
+    # First check if user owns it
     result = await db.execute(
-        select(Setup).where(
-            Setup.id == setup_id,
-            Setup.user_id == current_user.id
-        )
+        select(Setup).where(Setup.id == setup_id)
     )
     setup = result.scalar_one_or_none()
 
@@ -443,6 +513,25 @@ async def update_setup(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Setup not found"
         )
+
+    is_owner = setup.user_id == current_user.id
+    is_admin = current_user.is_admin
+    has_full_access = setup.is_shared and setup.shared_full_access
+
+    # Check permissions - admins can edit anything
+    if not is_owner and not is_admin and not has_full_access:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You don't have permission to edit this setup"
+        )
+
+    # Only owner or admin can change sharing settings
+    if not is_owner and not is_admin:
+        if setup_data.is_shared is not None or setup_data.shared_full_access is not None:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Only the owner can change sharing settings"
+            )
 
     # Validate rating
     if setup_data.rating is not None and (setup_data.rating < 1 or setup_data.rating > 5):

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { setups } from '../services/api'
+import { setups, auth } from '../services/api'
 import Navigation from '../components/Navigation'
 
 function SetupDetail() {
@@ -13,10 +13,23 @@ function SetupDetail() {
   const [saving, setSaving] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
   const [refreshMessage, setRefreshMessage] = useState('')
+  const [currentUserId, setCurrentUserId] = useState(null)
+  const [isShared, setIsShared] = useState(false)
+  const [sharedFullAccess, setSharedFullAccess] = useState(false)
 
   useEffect(() => {
     loadSetup()
+    loadCurrentUser()
   }, [id])
+
+  const loadCurrentUser = async () => {
+    try {
+      const response = await auth.me()
+      setCurrentUserId(response.data.id)
+    } catch (error) {
+      console.error('Failed to load current user:', error)
+    }
+  }
 
   const loadSetup = async () => {
     try {
@@ -24,6 +37,8 @@ function SetupDetail() {
       setSetup(response.data)
       setRating(response.data.rating)
       setNotes(response.data.notes || '')
+      setIsShared(response.data.is_shared || false)
+      setSharedFullAccess(response.data.shared_full_access || false)
     } catch (error) {
       console.error('Failed to load setup:', error)
     } finally {
@@ -31,14 +46,25 @@ function SetupDetail() {
     }
   }
 
+  // Determine if current user is the owner
+  const isOwner = currentUserId && setup && setup.user_id === currentUserId
+  // Can edit if owner OR if shared with full access
+  const canEdit = isOwner || (setup?.is_shared && setup?.shared_full_access)
+
   const handleSave = async () => {
     setSaving(true)
     try {
-      await setups.update(id, { rating, notes })
+      const updateData = { rating, notes }
+      // Only include sharing settings if owner
+      if (isOwner) {
+        updateData.is_shared = isShared
+        updateData.shared_full_access = sharedFullAccess
+      }
+      await setups.update(id, updateData)
       alert('Setup updated successfully')
       loadSetup()
     } catch (error) {
-      alert('Failed to update setup')
+      alert('Failed to update setup: ' + (error.response?.data?.detail || error.message))
     } finally {
       setSaving(false)
     }
@@ -119,16 +145,35 @@ function SetupDetail() {
         )}
 
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-          <h1>{setup.event_name || 'Unnamed Event'}</h1>
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
-            <button className="btn btn-info" onClick={handleRefresh} disabled={refreshing}>
-              Refresh with Claude
-            </button>
-            <button className="btn btn-danger" onClick={handleDelete}>
-              Delete
-            </button>
+          <div>
+            <h1>{setup.event_name || 'Unnamed Event'}</h1>
+            {setup.owner_name && (
+              <p style={{ color: 'var(--text-secondary)', margin: '0.25rem 0 0' }}>
+                Shared by: {setup.owner_name}
+              </p>
+            )}
           </div>
+          {isOwner && (
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <button className="btn btn-info" onClick={handleRefresh} disabled={refreshing}>
+                Refresh with Claude
+              </button>
+              <button className="btn btn-danger" onClick={handleDelete}>
+                Delete
+              </button>
+            </div>
+          )}
         </div>
+
+        {/* Shared setup banner for non-owners */}
+        {!isOwner && setup.owner_name && (
+          <div className="shared-banner">
+            <span className="shared-icon">&#128279;</span>
+            <span>
+              This is a shared setup. {setup.shared_full_access ? 'You can edit it.' : 'View only.'}
+            </span>
+          </div>
+        )}
 
         {setup.event_date && (
           <p style={{ color: 'var(--text-secondary)', marginBottom: '1rem' }}>
@@ -191,12 +236,13 @@ function SetupDetail() {
                 <button
                   key={star}
                   type="button"
-                  onClick={() => setRating(star)}
+                  onClick={() => canEdit && setRating(star)}
+                  disabled={!canEdit}
                   style={{
                     fontSize: '2rem',
                     background: 'none',
                     border: 'none',
-                    cursor: 'pointer',
+                    cursor: canEdit ? 'pointer' : 'default',
                     opacity: rating && star <= rating ? 1 : 0.3
                   }}
                 >
@@ -213,13 +259,57 @@ function SetupDetail() {
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="What worked well? What didn't? Any adjustments you made?"
+              disabled={!canEdit}
             />
           </div>
 
-          <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
-            {saving ? 'Saving...' : 'Save Rating & Notes'}
-          </button>
+          {canEdit && (
+            <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
+              {saving ? 'Saving...' : 'Save Rating & Notes'}
+            </button>
+          )}
         </div>
+
+        {/* Sharing Settings - Only for owners */}
+        {isOwner && (
+          <div className="card">
+            <h2 className="card-header">Sharing Settings</h2>
+
+            <div className="form-group">
+              <label className="checkbox-label">
+                <input
+                  type="checkbox"
+                  checked={isShared}
+                  onChange={(e) => setIsShared(e.target.checked)}
+                />
+                <span>Share this setup with other users</span>
+              </label>
+              <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: '0.25rem 0 0 1.5rem' }}>
+                When enabled, other users can view this setup
+              </p>
+            </div>
+
+            {isShared && (
+              <div className="form-group" style={{ marginLeft: '1.5rem' }}>
+                <label className="checkbox-label">
+                  <input
+                    type="checkbox"
+                    checked={sharedFullAccess}
+                    onChange={(e) => setSharedFullAccess(e.target.checked)}
+                  />
+                  <span>Allow full access (edit)</span>
+                </label>
+                <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: '0.25rem 0 0 1.5rem' }}>
+                  If unchecked, others can only view (read-only)
+                </p>
+              </div>
+            )}
+
+            <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
+              {saving ? 'Saving...' : 'Save Sharing Settings'}
+            </button>
+          </div>
+        )}
       </div>
 
       <style>{`
@@ -290,6 +380,39 @@ function SetupDetail() {
           font-size: 0.85rem;
           color: #6b7280;
           margin: 0;
+        }
+
+        /* Shared banner styles */
+        .shared-banner {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          padding: 0.75rem 1rem;
+          background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+          border: 1px solid #3b82f6;
+          border-radius: 0.5rem;
+          margin-bottom: 1rem;
+          color: #1e40af;
+          font-size: 0.9rem;
+        }
+
+        .shared-icon {
+          font-size: 1.1rem;
+        }
+
+        /* Checkbox label styles */
+        .checkbox-label {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          cursor: pointer;
+          font-weight: 500;
+        }
+
+        .checkbox-label input[type="checkbox"] {
+          width: 1.1rem;
+          height: 1.1rem;
+          cursor: pointer;
         }
       `}</style>
     </>
