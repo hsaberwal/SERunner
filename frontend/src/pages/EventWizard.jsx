@@ -65,6 +65,9 @@ function EventWizard() {
     monitor_geq_cuts: {}
   })
 
+  // External RTA verification state
+  const [showExternalRTA, setShowExternalRTA] = useState(false)
+
   // Smart matching state
   const [matchingSetup, setMatchingSetup] = useState(null)
   const [checkingMatch, setCheckingMatch] = useState(false)
@@ -471,7 +474,7 @@ function EventWizard() {
       <div className="instruction-box">
         <h4>How to Send Pink Noise</h4>
         <ol>
-          <li>On QuPac, go to <strong>UTILITY &gt; Signal Generator</strong></li>
+          <li>On QuPac, go to <strong>Setup &gt; Audio &gt; SigGen</strong></li>
           <li>Select <strong>Pink Noise</strong></li>
           <li>Route to <strong>LR Main</strong> output</li>
           <li>Start at <strong>-20dB</strong>, gradually increase</li>
@@ -536,17 +539,35 @@ function EventWizard() {
       </p>
 
       <div className="instruction-box">
-        <h4>Ring Out Procedure</h4>
+        <h4>Setup for Ring Out</h4>
         <ol>
           <li>Connect <strong>PreSonus PRM1</strong> measurement mic to a spare channel</li>
           <li>Enable <strong>48V phantom power</strong> for that channel</li>
           <li>Position PRM1 at typical audience/performer position</li>
-          <li>On QuPac, open <strong>RTA</strong> (Real-Time Analyzer)</li>
-          <li>Slowly raise the PRM1 channel gain until you hear ringing</li>
-          <li>Watch RTA for sustained peaks - these are feedback frequencies</li>
-          <li>Cut those frequencies on <strong>LR GEQ</strong> (Graphic EQ on LR output)</li>
-          <li>Repeat until you have 6-10 dB headroom above performance level</li>
+          <li>On Qu-Pad app, select <strong>LR</strong> on the right-hand side (Mix selection)</li>
+          <li>Tap <strong>Processing</strong> tab at top, then <strong>GEQ</strong> on left sidebar</li>
+          <li>Press <strong>PAFL</strong> button for LR Master - this feeds the RTA display</li>
         </ol>
+      </div>
+
+      <div className="instruction-box">
+        <h4>Ring Out Procedure (QuPac RTA + GEQ)</h4>
+        <ol>
+          <li><strong>Slowly increase</strong> the PRM1 channel fader until the system just begins to ring</li>
+          <li><strong>Watch the RTA</strong> display above the GEQ faders - the feedback frequency will show as a significant peak (red/highlighted bar)</li>
+          <li><strong>Cut the frequency</strong>: Find the GEQ fader matching the peak, pull it down <strong>3-6 dB</strong></li>
+          <li><strong>Repeat</strong>: Continue raising volume to find the next ringing frequency, then cut it</li>
+          <li><strong>Stop</strong> when you have 3-5 stable frequency cuts, or have reached desired volume + headroom</li>
+        </ol>
+      </div>
+
+      <div className="info-box" style={{ background: '#fef3c7', borderColor: '#f59e0b' }}>
+        <h4>Pro Tips</h4>
+        <ul style={{ marginTop: '0.5rem', paddingLeft: '1.25rem' }}>
+          <li><strong>Pinch technique:</strong> Touch above the fader icons for precise control without obscuring the view</li>
+          <li><strong>Narrow feedback:</strong> For very persistent/narrow spikes, use <strong>PEQ</strong> tab instead - set a high Q value to "notch out" the specific frequency</li>
+          <li><strong>Save your work:</strong> Save settings as a User Preset in Library to recall for future events at this venue</li>
+        </ul>
       </div>
 
       <div className="info-box">
@@ -614,21 +635,34 @@ function EventWizard() {
       </p>
 
       <div className="instruction-box">
-        <h4>Monitor Ring Out Procedure</h4>
+        <h4>Setup for Monitor Ring Out</h4>
         <ol>
           <li>Keep <strong>PRM1</strong> connected from Phase 3</li>
-          <li>Turn on <strong>ALL performance mics</strong> at their stage positions</li>
-          <li>Route QuPac signal generator (pink noise) to <strong>Monitor output</strong></li>
-          <li>Gradually increase monitor level</li>
-          <li>Watch RTA for sustained peaks</li>
-          <li>Cut those frequencies on <strong>Monitor GEQ</strong></li>
-          <li>Repeat until clean at performance level + headroom</li>
+          <li>Position PRM1 near the monitor wedge, facing it (where a performer would stand)</li>
+          <li>On Qu-Pad, select the <strong>Mix (Aux)</strong> button for your monitor output (e.g., Mix 1)</li>
+          <li>Tap <strong>Processing</strong> tab at top, then <strong>GEQ</strong> on left sidebar</li>
+          <li>Press <strong>PAFL</strong> button for that Mix Master - this feeds the RTA display</li>
+        </ol>
+      </div>
+
+      <div className="instruction-box">
+        <h4>Ring Out Procedure (Same as Mains)</h4>
+        <ol>
+          <li><strong>Slowly increase</strong> the Mix Master fader (or PRM1's send-to-mix fader) until the system begins to ring</li>
+          <li><strong>Watch the RTA</strong> display above GEQ faders - feedback shows as a significant peak</li>
+          <li><strong>Cut the frequency</strong>: Pull the matching GEQ fader down <strong>3-6 dB</strong></li>
+          <li><strong>Repeat</strong> until you have 3-5 stable cuts or have reached desired volume</li>
         </ol>
       </div>
 
       <div className="info-box">
-        <h4>Why Both PRM1 and Performance Mics?</h4>
-        <p>Using PRM1 alongside the performance mics ensures you catch all problem frequencies - both what the room does AND what the performer mics will pick up from the monitors.</p>
+        <h4>Why Use PRM1 for Monitors?</h4>
+        <p>The PRM1's omnidirectional pattern captures the true behavior of sound reflecting between the monitor and the performer's position. Performance mics (like Beta 58A) are supercardioid and may miss off-axis room resonances.</p>
+      </div>
+
+      <div className="info-box" style={{ background: '#fef3c7', borderColor: '#f59e0b' }}>
+        <h4>Multiple Monitor Mixes?</h4>
+        <p>If you have separate monitor mixes (e.g., Mix 1 for vocalist, Mix 2 for guitarist), repeat this process for <strong>each mix</strong>. Select the appropriate Mix, enable its PAFL, and ring out its GEQ individually.</p>
       </div>
 
       {selectedLocation?.monitor_geq_cuts && Object.keys(selectedLocation.monitor_geq_cuts).length > 0 && (
@@ -662,6 +696,94 @@ function EventWizard() {
             </div>
           ))}
         </div>
+      </div>
+
+      {/* External RTA Verification - Collapsible */}
+      <div className="external-rta-section" style={{ marginTop: '1.5rem' }}>
+        <button
+          type="button"
+          className="collapsible-header"
+          onClick={() => setShowExternalRTA(!showExternalRTA)}
+          style={{
+            width: '100%',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            padding: '1rem',
+            background: 'linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%)',
+            border: '2px solid #3b82f6',
+            borderRadius: '0.5rem',
+            cursor: 'pointer',
+            fontSize: '1rem',
+            fontWeight: '600',
+            color: '#1e40af'
+          }}
+        >
+          <span>Optional: Verify with External RTA (AudioBox GO + Smaart)</span>
+          <span style={{ fontSize: '1.25rem' }}>{showExternalRTA ? '−' : '+'}</span>
+        </button>
+
+        {showExternalRTA && (
+          <div style={{ padding: '1rem', border: '2px solid #3b82f6', borderTop: 'none', borderRadius: '0 0 0.5rem 0.5rem', background: '#f8fafc' }}>
+            <p style={{ marginBottom: '1rem', color: '#475569' }}>
+              Use your iPhone/iPad with the PreSonus AudioBox GO and Smaart RTA Pro app to verify the QuPac's built-in RTA was accurate.
+            </p>
+
+            <div className="instruction-box" style={{ background: '#fff' }}>
+              <h4>Equipment Setup</h4>
+              <ol>
+                <li><strong>Connect AudioBox GO</strong> to your iPad/iPhone via USB-C cable</li>
+                <li>If direct connection has issues, use a USB-C hub with power delivery</li>
+                <li>Connect your <strong>PreSonus PRM1</strong> measurement mic to AudioBox GO's XLR input</li>
+                <li>Enable <strong>48V phantom power</strong> on the AudioBox GO</li>
+                <li>Open <strong>Smaart RTA Pro</strong> app on your device</li>
+              </ol>
+            </div>
+
+            <div className="instruction-box" style={{ marginTop: '1rem', background: '#fff' }}>
+              <h4>Smaart RTA Pro Setup</h4>
+              <ol>
+                <li>In Smaart, go to <strong>Settings &gt; Audio Input</strong></li>
+                <li>Select <strong>AudioBox GO</strong> as input device</li>
+                <li>Set input to <strong>Channel 1</strong> (or whichever the PRM1 is connected to)</li>
+                <li>Set display to <strong>1/3 Octave</strong> mode for easier comparison to GEQ</li>
+                <li>Enable <strong>Peak Hold</strong> to catch transient feedback frequencies</li>
+              </ol>
+            </div>
+
+            <div className="instruction-box" style={{ marginTop: '1rem', background: '#fff' }}>
+              <h4>Verification Procedure</h4>
+              <ol>
+                <li>Position PRM1 where you had it during QuPac ring-out</li>
+                <li>Play <strong>pink noise</strong> through LR mains at ring-out level</li>
+                <li>Compare Smaart display to your GEQ cuts above</li>
+                <li>If Smaart shows peaks at frequencies you didn't cut, add those cuts</li>
+                <li>Gradually increase level and watch for new peaks</li>
+                <li>Repeat for <strong>Monitor output</strong></li>
+              </ol>
+            </div>
+
+            <div className="info-box" style={{ marginTop: '1rem', background: '#ecfdf5', borderColor: '#10b981' }}>
+              <h4>Why Verify with External RTA?</h4>
+              <ul style={{ marginTop: '0.5rem', paddingLeft: '1.25rem' }}>
+                <li>Smaart has higher frequency resolution than QuPac's built-in RTA</li>
+                <li>Second opinion catches frequencies you might have missed</li>
+                <li>Better peak detection and hold features</li>
+                <li>You can move around the room while monitoring on your phone</li>
+              </ul>
+            </div>
+
+            <div className="info-box" style={{ marginTop: '1rem', background: '#fef3c7', borderColor: '#f59e0b' }}>
+              <h4>Troubleshooting AudioBox GO Connection</h4>
+              <ul style={{ marginTop: '0.5rem', paddingLeft: '1.25rem' }}>
+                <li><strong>Not recognized?</strong> First connect to computer and update firmware via Universal Control</li>
+                <li><strong>Audio dropouts?</strong> Use a USB-C hub with power delivery passthrough</li>
+                <li><strong>No signal?</strong> Check 48V phantom power is ON for condenser mics</li>
+                <li><strong>Clipping?</strong> Reduce gain on AudioBox GO (green LED = good, red = too hot)</li>
+              </ul>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="info-box" style={{ marginTop: '1rem', background: '#fef3c7', borderColor: '#f59e0b' }}>
