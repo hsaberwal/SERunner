@@ -417,8 +417,20 @@ function Gear() {
                             {item.default_settings.amplifier_class && (
                               <p style={{ margin: '0.15rem 0' }}>🔧 Class: {item.default_settings.amplifier_class}</p>
                             )}
+                            {item.default_settings.frequency_response && (
+                              <p style={{ margin: '0.15rem 0' }}>📈 Frequency: {item.default_settings.frequency_response}</p>
+                            )}
+                            {item.default_settings.response_character && (
+                              <p style={{ margin: '0.15rem 0' }}>🎚️ Character: {item.default_settings.response_character}</p>
+                            )}
+                            {item.default_settings.damping_factor && (
+                              <p style={{ margin: '0.15rem 0' }}>🎛️ Damping: {item.default_settings.damping_factor}</p>
+                            )}
                             {item.default_settings.features && item.default_settings.features.length > 0 && (
                               <p style={{ margin: '0.15rem 0' }}>✨ Features: {item.default_settings.features.join(', ')}</p>
+                            )}
+                            {item.default_settings.eq_compensation && (
+                              <p style={{ margin: '0.15rem 0', fontStyle: 'italic' }}>💡 EQ Tip: {item.default_settings.eq_compensation}</p>
                             )}
                           </div>
                         </div>

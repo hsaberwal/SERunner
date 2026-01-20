@@ -62,8 +62,12 @@ Return a JSON object with:
 For amplifiers, ALSO include these fields:
 8. **watts_per_channel**: Power output string (e.g., "500W x2 @ 4Ω" or "1200W x4 @ 4Ω")
 9. **channels**: Number of output channels as string (e.g., "2" or "4")
-10. **amplifier_class**: The amplifier class (e.g., "Class D", "Class AB")
-11. **features**: List of features (e.g., ["DSP", "Limiters", "Crossover"])
+10. **amplifier_class**: The amplifier class (e.g., "Class D", "Class AB", "Class H")
+11. **frequency_response**: Operating frequency range (e.g., "20Hz - 20kHz ±1dB")
+12. **response_character**: Tonal character - one of: "flat/neutral", "warm (low bias)", "bright (high bias)", "punchy (mid-forward)", or describe if mixed
+13. **damping_factor**: Damping factor if known (e.g., ">500" or "200-400") - affects bass tightness
+14. **features**: List of features (e.g., ["DSP", "Limiters", "Crossover", "Bridge Mode"])
+15. **eq_compensation**: If amp has tonal bias, suggest mixer EQ adjustments to compensate
 
 For microphones, include settings for relevant sources:
 - EQ (HPF, 4 bands with frequency, gain, width description, frequency range affected)
@@ -78,12 +82,16 @@ For speakers, include:
 For amplifiers, include:
 - **watts_per_channel**: Power output per channel at 4Ω (e.g., "500W x2 @ 4Ω")
 - **channels**: Number of channels (e.g., "2" or "4")
-- **amplifier_class**: Class D, Class AB, etc.
+- **amplifier_class**: Class D, Class AB, Class H, etc.
+- **frequency_response**: Operating frequency range (e.g., "20Hz - 20kHz")
+- **response_character**: Tonal character - "flat/neutral", "warm (low bias)", "bright (high bias)", "punchy (mid-forward)", etc.
+- **damping_factor**: If known, the damping factor (higher = tighter bass control)
 - **features**: DSP, limiters, crossover, etc.
 - Crossover recommendations
 - DSP tips if applicable
 - Integration with QuPac
 - Best speaker pairings
+- EQ compensation tips (if the amp has a tonal bias, suggest how to compensate on the mixer)
 
 Keep response focused and practical. Real-world tested settings preferred over theoretical."""
 

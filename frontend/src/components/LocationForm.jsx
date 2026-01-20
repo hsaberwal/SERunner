@@ -463,11 +463,29 @@ function LocationForm({
               <option value="custom">Other (type below)</option>
             </select>
             
-            {/* Show watts/channels for selected amp */}
-            {formData.speaker_setup?.amp?.watts && (
+            {/* Show specs for selected amp */}
+            {formData.speaker_setup?.amp?.model && (
               <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', padding: '0.25rem 0' }}>
-                <strong>Output:</strong> {formData.speaker_setup?.amp?.watts}
-                {formData.speaker_setup?.amp?.channels && ` • ${formData.speaker_setup?.amp?.channels} channels`}
+                {formData.speaker_setup?.amp?.watts && (
+                  <span><strong>Output:</strong> {formData.speaker_setup?.amp?.watts}</span>
+                )}
+                {formData.speaker_setup?.amp?.channels && (
+                  <span> • {formData.speaker_setup?.amp?.channels} ch</span>
+                )}
+                {(() => {
+                  // Show additional specs from user's gear inventory
+                  const userAmp = userAmps.find(a => getAmpDisplayName(a) === formData.speaker_setup?.amp?.model)
+                  if (userAmp?.default_settings) {
+                    const ds = userAmp.default_settings
+                    return (
+                      <>
+                        {ds.frequency_response && <span> • {ds.frequency_response}</span>}
+                        {ds.response_character && <span> • <em>{ds.response_character}</em></span>}
+                      </>
+                    )
+                  }
+                  return null
+                })()}
               </div>
             )}
           </div>

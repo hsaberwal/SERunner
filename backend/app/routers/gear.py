@@ -371,7 +371,11 @@ async def learn_from_existing_gear(
                     "watts_per_channel": result.get("watts_per_channel"),
                     "channels": result.get("channels"),
                     "amplifier_class": result.get("amplifier_class"),
+                    "frequency_response": result.get("frequency_response"),
+                    "response_character": result.get("response_character"),
+                    "damping_factor": result.get("damping_factor"),
                     "features": result.get("features"),
+                    "eq_compensation": result.get("eq_compensation"),
                     "characteristics": result.get("characteristics"),
                     "best_for": result.get("best_for"),
                     "settings_by_source": result.get("settings_by_source")
