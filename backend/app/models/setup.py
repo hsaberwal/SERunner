@@ -23,6 +23,7 @@ class Setup(Base):
     instructions = Column(Text)  # step-by-step guide
     notes = Column(Text)  # user notes, what worked/didn't
     rating = Column(Integer)  # 1-5, how well it worked
+    corrections = Column(JSONB)  # per-channel corrections made during event
     created_at = Column(DateTime, default=datetime.utcnow)
     # Sharing settings
     is_shared = Column(Boolean, default=False)  # visible to other users

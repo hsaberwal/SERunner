@@ -59,6 +59,7 @@ class SetupUpdate(BaseModel):
     rating: Optional[int] = None
     is_shared: Optional[bool] = None
     shared_full_access: Optional[bool] = None
+    corrections: Optional[dict] = None  # Per-channel corrections made during event
 
 
 class SetupResponse(BaseResponseWithLocation):
@@ -76,6 +77,7 @@ class SetupResponse(BaseResponseWithLocation):
     instructions: Optional[str]
     notes: Optional[str]
     rating: Optional[int]
+    corrections: Optional[dict] = None  # Per-channel corrections made during event
     created_at: datetime
     is_shared: Optional[bool] = False
     shared_full_access: Optional[bool] = False

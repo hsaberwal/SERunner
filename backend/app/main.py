@@ -87,7 +87,7 @@ async def run_startup_migrations():
             pass
 
         # Add sharing columns to setups table
-        for col_name, col_type in [("is_shared", "BOOLEAN DEFAULT FALSE"), ("shared_full_access", "BOOLEAN DEFAULT FALSE")]:
+        for col_name, col_type in [("is_shared", "BOOLEAN DEFAULT FALSE"), ("shared_full_access", "BOOLEAN DEFAULT FALSE"), ("corrections", "JSONB")]:
             try:
                 await conn.execute(text(f"ALTER TABLE setups ADD COLUMN IF NOT EXISTS {col_name} {col_type}"))
             except Exception:
@@ -325,6 +325,7 @@ async def run_migrations():
         setup_columns = [
             ("is_shared", "BOOLEAN DEFAULT FALSE"),
             ("shared_full_access", "BOOLEAN DEFAULT FALSE"),
+            ("corrections", "JSONB"),
         ]
         for col_name, col_type in setup_columns:
             try:

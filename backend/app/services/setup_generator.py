@@ -370,6 +370,25 @@ Keep response under 4000 tokens. Be concise but systematic!"""
                         prompt += f"- **FX Settings Used**: {json.dumps(setup.fx_settings)}\n"
                     if setup.notes:
                         prompt += f"- **What Worked**: {setup.notes}\n"
+                    
+                    # Include corrections - THIS IS KEY FOR LEARNING!
+                    if setup.corrections:
+                        prompt += "- **CORRECTIONS MADE DURING EVENT** (APPLY THESE!):\n"
+                        for channel, correction in setup.corrections.items():
+                            prompt += f"  - Channel {channel}:\n"
+                            if correction.get('instrument'):
+                                prompt += f"    - Instrument: {correction['instrument']}\n"
+                            if correction.get('eq_changes'):
+                                prompt += f"    - EQ Changes: {json.dumps(correction['eq_changes'])}\n"
+                            if correction.get('compression_changes'):
+                                prompt += f"    - Compression Changes: {json.dumps(correction['compression_changes'])}\n"
+                            if correction.get('fx_changes'):
+                                prompt += f"    - FX Changes: {json.dumps(correction['fx_changes'])}\n"
+                            if correction.get('gain_change'):
+                                prompt += f"    - Gain Change: {correction['gain_change']}\n"
+                            if correction.get('notes'):
+                                prompt += f"    - Why: {correction['notes']}\n"
+                        prompt += "  **ACTION**: Apply these corrections to the starting settings!\n"
                     prompt += "\n"
 
             if lower_rated:
@@ -379,6 +398,22 @@ Keep response under 4000 tokens. Be concise but systematic!"""
                     prompt += f"- Performers: {json.dumps(setup.performers)}\n"
                     if setup.notes:
                         prompt += f"- **Issues/Notes**: {setup.notes}\n"
+                    
+                    # Include corrections that had to be made
+                    if setup.corrections:
+                        prompt += "- **CORRECTIONS THAT FIXED THE ISSUES**:\n"
+                        for channel, correction in setup.corrections.items():
+                            prompt += f"  - Channel {channel}:\n"
+                            if correction.get('instrument'):
+                                prompt += f"    - Instrument: {correction['instrument']}\n"
+                            if correction.get('eq_changes'):
+                                prompt += f"    - EQ Fix: {json.dumps(correction['eq_changes'])}\n"
+                            if correction.get('compression_changes'):
+                                prompt += f"    - Compression Fix: {json.dumps(correction['compression_changes'])}\n"
+                            if correction.get('notes'):
+                                prompt += f"    - Problem & Fix: {correction['notes']}\n"
+                        prompt += "  **ACTION**: Start with these corrected settings, not the original!\n"
+                    else:
                         prompt += "- **Action**: Address these issues in the new setup!\n"
                     prompt += "\n"
 

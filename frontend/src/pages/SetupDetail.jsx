@@ -16,6 +16,9 @@ function SetupDetail() {
   const [currentUserId, setCurrentUserId] = useState(null)
   const [isShared, setIsShared] = useState(false)
   const [sharedFullAccess, setSharedFullAccess] = useState(false)
+  const [corrections, setCorrections] = useState({})
+  const [showCorrectionsForm, setShowCorrectionsForm] = useState(false)
+  const [activeChannel, setActiveChannel] = useState(null)
 
   useEffect(() => {
     loadSetup()
@@ -39,6 +42,7 @@ function SetupDetail() {
       setNotes(response.data.notes || '')
       setIsShared(response.data.is_shared || false)
       setSharedFullAccess(response.data.shared_full_access || false)
+      setCorrections(response.data.corrections || {})
     } catch (error) {
       console.error('Failed to load setup:', error)
     } finally {
@@ -54,7 +58,7 @@ function SetupDetail() {
   const handleSave = async () => {
     setSaving(true)
     try {
-      const updateData = { rating, notes }
+      const updateData = { rating, notes, corrections }
       // Only include sharing settings if owner
       if (isOwner) {
         updateData.is_shared = isShared
@@ -67,6 +71,60 @@ function SetupDetail() {
       alert('Failed to update setup: ' + (error.response?.data?.detail || error.message))
     } finally {
       setSaving(false)
+    }
+  }
+
+  // Correction handlers
+  const addCorrection = (channelNum) => {
+    const channelConfig = setup.channel_config?.[channelNum] || {}
+    setCorrections(prev => ({
+      ...prev,
+      [channelNum]: {
+        instrument: channelConfig.instrument || '',
+        mic: channelConfig.mic || '',
+        eq_changes: {},
+        compression_changes: {},
+        fx_changes: {},
+        gain_change: '',
+        notes: ''
+      }
+    }))
+    setActiveChannel(channelNum)
+    setShowCorrectionsForm(true)
+  }
+
+  const updateCorrection = (channelNum, field, value) => {
+    setCorrections(prev => ({
+      ...prev,
+      [channelNum]: {
+        ...prev[channelNum],
+        [field]: value
+      }
+    }))
+  }
+
+  const updateEqChange = (channelNum, band, value) => {
+    setCorrections(prev => ({
+      ...prev,
+      [channelNum]: {
+        ...prev[channelNum],
+        eq_changes: {
+          ...prev[channelNum]?.eq_changes,
+          [band]: value
+        }
+      }
+    }))
+  }
+
+  const removeCorrection = (channelNum) => {
+    setCorrections(prev => {
+      const newCorrections = { ...prev }
+      delete newCorrections[channelNum]
+      return newCorrections
+    })
+    if (activeChannel === channelNum) {
+      setActiveChannel(null)
+      setShowCorrectionsForm(false)
     }
   }
 
@@ -225,6 +283,187 @@ function SetupDetail() {
             </pre>
           </div>
         )}
+
+        {/* Corrections Section - For Learning */}
+        <div className="card corrections-card">
+          <h2 className="card-header">
+            📝 Record Corrections
+            <span className="header-subtitle">Help the system learn from your adjustments</span>
+          </h2>
+          
+          <p className="corrections-intro">
+            Did you make changes during the event? Record them here so future setups at this venue 
+            will start with the corrected values. This is how the system learns!
+          </p>
+
+          {/* Show existing corrections */}
+          {Object.keys(corrections).length > 0 && (
+            <div className="existing-corrections">
+              <h4>Recorded Corrections:</h4>
+              {Object.entries(corrections).map(([channel, correction]) => (
+                <div key={channel} className="correction-item">
+                  <div className="correction-header">
+                    <strong>Channel {channel}</strong>
+                    {correction.instrument && <span className="correction-instrument">{correction.instrument}</span>}
+                    {canEdit && (
+                      <button 
+                        className="btn-remove" 
+                        onClick={() => removeCorrection(channel)}
+                        title="Remove correction"
+                      >×</button>
+                    )}
+                  </div>
+                  <div className="correction-details">
+                    {correction.eq_changes && Object.keys(correction.eq_changes).length > 0 && (
+                      <div><strong>EQ:</strong> {JSON.stringify(correction.eq_changes)}</div>
+                    )}
+                    {correction.compression_changes && Object.keys(correction.compression_changes).length > 0 && (
+                      <div><strong>Compression:</strong> {JSON.stringify(correction.compression_changes)}</div>
+                    )}
+                    {correction.gain_change && (
+                      <div><strong>Gain:</strong> {correction.gain_change}</div>
+                    )}
+                    {correction.notes && (
+                      <div><strong>Notes:</strong> {correction.notes}</div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Channel selection for adding corrections */}
+          {canEdit && setup.channel_config && Object.keys(setup.channel_config).length > 0 && (
+            <div className="add-correction-section">
+              <h4>Add Correction for Channel:</h4>
+              <div className="channel-buttons">
+                {Object.entries(setup.channel_config).map(([channelNum, config]) => (
+                  <button
+                    key={channelNum}
+                    className={`channel-btn ${corrections[channelNum] ? 'has-correction' : ''} ${activeChannel === channelNum ? 'active' : ''}`}
+                    onClick={() => corrections[channelNum] ? setActiveChannel(channelNum) : addCorrection(channelNum)}
+                  >
+                    <span className="channel-num">Ch {channelNum}</span>
+                    <span className="channel-name">{config.instrument || 'Unknown'}</span>
+                    {corrections[channelNum] && <span className="correction-badge">✓</span>}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Correction form for active channel */}
+          {showCorrectionsForm && activeChannel && corrections[activeChannel] && canEdit && (
+            <div className="correction-form">
+              <h4>
+                Corrections for Channel {activeChannel}: {corrections[activeChannel]?.instrument || setup.channel_config?.[activeChannel]?.instrument || 'Unknown'}
+              </h4>
+              
+              <div className="form-row">
+                <div className="form-group">
+                  <label className="form-label">HPF Change</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="e.g., 80Hz → 120Hz"
+                    value={corrections[activeChannel]?.eq_changes?.hpf || ''}
+                    onChange={(e) => updateEqChange(activeChannel, 'hpf', e.target.value)}
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Gain Change</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="e.g., +3dB or -2dB"
+                    value={corrections[activeChannel]?.gain_change || ''}
+                    onChange={(e) => updateCorrection(activeChannel, 'gain_change', e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label className="form-label">Band 1 (Low) Change</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="e.g., 250Hz: +2dB → -2dB"
+                    value={corrections[activeChannel]?.eq_changes?.band1 || ''}
+                    onChange={(e) => updateEqChange(activeChannel, 'band1', e.target.value)}
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Band 2 (Low-Mid) Change</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="e.g., 500Hz: flat → -3dB"
+                    value={corrections[activeChannel]?.eq_changes?.band2 || ''}
+                    onChange={(e) => updateEqChange(activeChannel, 'band2', e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label className="form-label">Band 3 (High-Mid) Change</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="e.g., 2.5kHz: +4dB → +2dB"
+                    value={corrections[activeChannel]?.eq_changes?.band3 || ''}
+                    onChange={(e) => updateEqChange(activeChannel, 'band3', e.target.value)}
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Band 4 (High) Change</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="e.g., 8kHz: +2dB → flat"
+                    value={corrections[activeChannel]?.eq_changes?.band4 || ''}
+                    onChange={(e) => updateEqChange(activeChannel, 'band4', e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Compression Changes</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  placeholder="e.g., threshold: -8dB → -12dB, ratio: 4:1 → 3:1"
+                  value={corrections[activeChannel]?.compression_changes?.summary || ''}
+                  onChange={(e) => updateCorrection(activeChannel, 'compression_changes', { summary: e.target.value })}
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Why did you make these changes?</label>
+                <textarea
+                  className="form-textarea"
+                  placeholder="e.g., 'Too muddy in the low-mids, had to cut 250Hz significantly. Room was more reverberant than expected.'"
+                  value={corrections[activeChannel]?.notes || ''}
+                  onChange={(e) => updateCorrection(activeChannel, 'notes', e.target.value)}
+                />
+              </div>
+
+              <button 
+                className="btn btn-secondary"
+                onClick={() => { setActiveChannel(null); setShowCorrectionsForm(false); }}
+              >
+                Done with this channel
+              </button>
+            </div>
+          )}
+
+          {canEdit && Object.keys(corrections).length > 0 && (
+            <button className="btn btn-primary" onClick={handleSave} disabled={saving} style={{ marginTop: '1rem' }}>
+              {saving ? 'Saving...' : 'Save Corrections'}
+            </button>
+          )}
+        </div>
 
         <div className="card">
           <h2 className="card-header">Rating & Notes</h2>
@@ -413,6 +652,203 @@ function SetupDetail() {
           width: 1.1rem;
           height: 1.1rem;
           cursor: pointer;
+        }
+
+        /* Corrections Section Styles */
+        .corrections-card {
+          border: 2px solid #f59e0b;
+          background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+        }
+
+        .corrections-card .card-header {
+          display: flex;
+          flex-direction: column;
+          gap: 0.25rem;
+        }
+
+        .header-subtitle {
+          font-size: 0.85rem;
+          font-weight: normal;
+          color: #92400e;
+        }
+
+        .corrections-intro {
+          color: #78350f;
+          font-size: 0.95rem;
+          margin-bottom: 1.5rem;
+          padding: 0.75rem;
+          background: rgba(255, 255, 255, 0.5);
+          border-radius: 0.5rem;
+          border-left: 4px solid #f59e0b;
+        }
+
+        .existing-corrections {
+          margin-bottom: 1.5rem;
+        }
+
+        .existing-corrections h4 {
+          color: #92400e;
+          margin-bottom: 0.75rem;
+        }
+
+        .correction-item {
+          background: white;
+          border: 1px solid #fbbf24;
+          border-radius: 0.5rem;
+          padding: 0.75rem;
+          margin-bottom: 0.5rem;
+        }
+
+        .correction-header {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          margin-bottom: 0.5rem;
+        }
+
+        .correction-instrument {
+          background: #fef3c7;
+          padding: 0.125rem 0.5rem;
+          border-radius: 0.25rem;
+          font-size: 0.85rem;
+          color: #92400e;
+        }
+
+        .btn-remove {
+          margin-left: auto;
+          background: #fee2e2;
+          color: #dc2626;
+          border: none;
+          width: 24px;
+          height: 24px;
+          border-radius: 50%;
+          cursor: pointer;
+          font-size: 1.1rem;
+          line-height: 1;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .btn-remove:hover {
+          background: #fecaca;
+        }
+
+        .correction-details {
+          font-size: 0.85rem;
+          color: #374151;
+        }
+
+        .correction-details > div {
+          margin-bottom: 0.25rem;
+        }
+
+        .add-correction-section h4 {
+          color: #92400e;
+          margin-bottom: 0.75rem;
+        }
+
+        .channel-buttons {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+          gap: 0.5rem;
+          margin-bottom: 1rem;
+        }
+
+        .channel-btn {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          padding: 0.75rem;
+          background: white;
+          border: 2px solid #d1d5db;
+          border-radius: 0.5rem;
+          cursor: pointer;
+          transition: all 0.2s;
+          position: relative;
+        }
+
+        .channel-btn:hover {
+          border-color: #f59e0b;
+          background: #fffbeb;
+        }
+
+        .channel-btn.has-correction {
+          border-color: #10b981;
+          background: #ecfdf5;
+        }
+
+        .channel-btn.active {
+          border-color: #3b82f6;
+          background: #eff6ff;
+          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+        }
+
+        .channel-num {
+          font-weight: bold;
+          font-size: 0.9rem;
+        }
+
+        .channel-name {
+          font-size: 0.75rem;
+          color: #6b7280;
+          text-align: center;
+        }
+
+        .correction-badge {
+          position: absolute;
+          top: -4px;
+          right: -4px;
+          background: #10b981;
+          color: white;
+          width: 18px;
+          height: 18px;
+          border-radius: 50%;
+          font-size: 0.7rem;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .correction-form {
+          background: white;
+          border: 2px solid #3b82f6;
+          border-radius: 0.75rem;
+          padding: 1.25rem;
+          margin-top: 1rem;
+        }
+
+        .correction-form h4 {
+          color: #1e40af;
+          margin-bottom: 1rem;
+          padding-bottom: 0.5rem;
+          border-bottom: 1px solid #bfdbfe;
+        }
+
+        .form-row {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 1rem;
+          margin-bottom: 0.75rem;
+        }
+
+        @media (max-width: 600px) {
+          .form-row {
+            grid-template-columns: 1fr;
+          }
+        }
+
+        .btn-secondary {
+          background: #6b7280;
+          color: white;
+          border: none;
+          padding: 0.5rem 1rem;
+          border-radius: 0.375rem;
+          cursor: pointer;
+        }
+
+        .btn-secondary:hover {
+          background: #4b5563;
         }
       `}</style>
     </>
