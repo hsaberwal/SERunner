@@ -15,7 +15,11 @@ function WhatsNew({ isOpen, onClose }) {
     setLoading(true)
     setError(null)
     try {
-      const response = await fetch('/version.json')
+      // Add cache-busting query param to ensure we get fresh version info
+      const cacheBuster = Date.now()
+      const response = await fetch(`/version.json?_=${cacheBuster}`, {
+        cache: 'no-store' // Tell browser not to use cache
+      })
       if (!response.ok) throw new Error('Version info not available')
       const data = await response.json()
       setVersionInfo(data)

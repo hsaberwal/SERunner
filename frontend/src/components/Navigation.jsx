@@ -11,8 +11,8 @@ function Navigation() {
   const [versionInfo, setVersionInfo] = useState(null)
 
   useEffect(() => {
-    // Load version info for the badge
-    fetch('/version.json')
+    // Load version info for the badge (cache-busted for PWA freshness)
+    fetch(`/version.json?_=${Date.now()}`, { cache: 'no-store' })
       .then(res => res.json())
       .then(data => setVersionInfo(data))
       .catch(() => setVersionInfo(null))

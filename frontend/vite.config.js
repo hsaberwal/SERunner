@@ -32,7 +32,24 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
+        // Don't precache version.json - we want it fresh every time
+        globIgnores: ['**/version.json'],
         runtimeCaching: [
+          {
+            // version.json should ALWAYS fetch from network to show latest
+            urlPattern: /\/version\.json$/,
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'version-cache',
+              expiration: {
+                maxEntries: 1,
+                maxAgeSeconds: 60 * 5 // 5 minutes max cache
+              },
+              cacheableResponse: {
+                statuses: [0, 200]
+              }
+            }
+          },
           {
             urlPattern: /^https:\/\/api\..*/i,
             handler: 'NetworkFirst',
