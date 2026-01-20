@@ -9,8 +9,31 @@ export const emptySpeakerSetup = {
   amp: { brand: '', model: '', watts: '', channels: '', notes: '' }
 }
 
-// Common GEQ frequencies for ring-out
-export const geqFrequencies = ['63Hz', '125Hz', '250Hz', '500Hz', '1kHz', '2kHz', '4kHz', '8kHz', '16kHz']
+// QuPac 1/3 Octave GEQ - All 32 bands (20Hz to 20kHz)
+export const geqFrequencies = [
+  '20Hz', '25Hz', '31.5Hz', '40Hz', '50Hz', '63Hz', '80Hz', '100Hz',
+  '125Hz', '160Hz', '200Hz', '250Hz', '315Hz', '400Hz', '500Hz', '630Hz',
+  '800Hz', '1kHz', '1.25kHz', '1.6kHz', '2kHz', '2.5kHz', '3.15kHz', '4kHz',
+  '5kHz', '6.3kHz', '8kHz', '10kHz', '12.5kHz', '16kHz', '20kHz'
+]
+
+// QuPac 4-band Parametric EQ structure
+export const emptyPEQBand = { freq: '', gain: '', width: 'medium' }
+export const emptyPEQ = {
+  band1: { ...emptyPEQBand },
+  band2: { ...emptyPEQBand },
+  band3: { ...emptyPEQBand },
+  band4: { ...emptyPEQBand }
+}
+
+// PEQ Width options (QuPac uses visual width, not Q numbers)
+export const peqWidthOptions = [
+  { value: 'very_wide', label: 'Very Wide (2+ octaves)' },
+  { value: 'wide', label: 'Wide (~1.5 octaves)' },
+  { value: 'medium', label: 'Medium (~1 octave)' },
+  { value: 'narrow', label: 'Narrow (~½ octave)' },
+  { value: 'very_narrow', label: 'Very Narrow (surgical)' }
+]
 
 // Known speakers and amps
 export const knownSpeakers = [
@@ -62,6 +85,8 @@ export const getEmptyLocationData = () => ({
   speaker_setup: { ...emptySpeakerSetup },
   lr_geq_cuts: {},
   monitor_geq_cuts: {},
+  lr_peq: { ...emptyPEQ },
+  monitor_peq: { ...emptyPEQ },
   room_notes: ''
 })
 

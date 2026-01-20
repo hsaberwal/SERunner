@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { locations, setups } from '../services/api'
 import Navigation from '../components/Navigation'
-import LocationForm, { getEmptyLocationData, geqFrequencies } from '../components/LocationForm'
+import LocationForm, { getEmptyLocationData, geqFrequencies, emptyPEQ, peqWidthOptions } from '../components/LocationForm'
 
 // Phase definitions
 const PHASES = [
@@ -62,7 +62,9 @@ function EventWizard() {
   // Ring-out data (will update location)
   const [ringOutData, setRingOutData] = useState({
     lr_geq_cuts: {},
-    monitor_geq_cuts: {}
+    monitor_geq_cuts: {},
+    lr_peq: { ...emptyPEQ },
+    monitor_peq: { ...emptyPEQ }
   })
 
   // External RTA verification state
@@ -78,11 +80,13 @@ function EventWizard() {
   }, [])
 
   useEffect(() => {
-    // When location changes, load its existing GEQ cuts
+    // When location changes, load its existing GEQ/PEQ cuts
     if (selectedLocation) {
       setRingOutData({
         lr_geq_cuts: selectedLocation.lr_geq_cuts || {},
-        monitor_geq_cuts: selectedLocation.monitor_geq_cuts || {}
+        monitor_geq_cuts: selectedLocation.monitor_geq_cuts || {},
+        lr_peq: selectedLocation.lr_peq || { ...emptyPEQ },
+        monitor_peq: selectedLocation.monitor_peq || { ...emptyPEQ }
       })
     }
   }, [selectedLocation])
@@ -172,13 +176,35 @@ function EventWizard() {
     setRingOutData({ ...ringOutData, [key]: newCuts })
   }
 
+  const updatePEQ = (type, band, field, value) => {
+    const key = type === 'lr' ? 'lr_peq' : 'monitor_peq'
+    setRingOutData({
+      ...ringOutData,
+      [key]: {
+        ...ringOutData[key],
+        [band]: {
+          ...ringOutData[key][band],
+          [field]: value
+        }
+      }
+    })
+  }
+
   const saveGEQToLocation = async () => {
     if (!selectedLocation) return
     try {
+      // Check if PEQ has any data
+      const hasPEQData = (peq) => {
+        if (!peq) return false
+        return Object.values(peq).some(band => band.freq || band.gain)
+      }
+
       await locations.update(selectedLocation.id, {
         ...selectedLocation,
         lr_geq_cuts: Object.keys(ringOutData.lr_geq_cuts).length > 0 ? ringOutData.lr_geq_cuts : null,
-        monitor_geq_cuts: Object.keys(ringOutData.monitor_geq_cuts).length > 0 ? ringOutData.monitor_geq_cuts : null
+        monitor_geq_cuts: Object.keys(ringOutData.monitor_geq_cuts).length > 0 ? ringOutData.monitor_geq_cuts : null,
+        lr_peq: hasPEQData(ringOutData.lr_peq) ? ringOutData.lr_peq : null,
+        monitor_peq: hasPEQData(ringOutData.monitor_peq) ? ringOutData.monitor_peq : null
       })
       // Refresh location data
       const response = await locations.getAll()
@@ -186,7 +212,7 @@ function EventWizard() {
       const updated = response.data.find(l => l.id === selectedLocation.id)
       setSelectedLocation(updated)
     } catch (error) {
-      console.error('Failed to save GEQ cuts:', error)
+      console.error('Failed to save GEQ/PEQ cuts:', error)
     }
   }
 
@@ -535,8 +561,14 @@ function EventWizard() {
     <div className="phase-content">
       <h2>Phase 3: Ring Out Mains (LR)</h2>
       <p className="phase-description">
-        Find and cut feedback frequencies in your main speakers using the measurement mic.
+        Find and cut feedback frequencies in your main speakers using pink noise and the measurement mic.
       </p>
+
+      <div className="instruction-box" style={{ background: '#fef3c7', borderColor: '#f59e0b' }}>
+        <h4>🔊 Keep Pink Noise Playing!</h4>
+        <p>Pink noise from Phase 2 should <strong>still be playing through LR mains</strong> during ring-out. This provides the consistent signal needed to identify problem frequencies.</p>
+        <p style={{ marginTop: '0.5rem', fontSize: '0.9rem' }}>If you turned it off, re-enable: <strong>Setup &gt; Audio &gt; SigGen &gt; Pink Noise &gt; Route to LR</strong></p>
+      </div>
 
       <div className="instruction-box">
         <h4>Setup for Ring Out</h4>
@@ -547,13 +579,14 @@ function EventWizard() {
           <li>On Qu-Pad app, select <strong>LR</strong> on the right-hand side (Mix selection)</li>
           <li>Tap <strong>Processing</strong> tab at top, then <strong>GEQ</strong> on left sidebar</li>
           <li>Press <strong>PAFL</strong> button for LR Master - this feeds the RTA display</li>
+          <li>Ensure <strong>pink noise is playing</strong> at moderate level through LR</li>
         </ol>
       </div>
 
       <div className="instruction-box">
         <h4>Ring Out Procedure (QuPac RTA + GEQ)</h4>
         <ol>
-          <li><strong>Slowly increase</strong> the PRM1 channel fader until the system just begins to ring</li>
+          <li><strong>With pink noise playing</strong>, slowly increase the PRM1 channel fader until the system just begins to ring/feedback</li>
           <li><strong>Watch the RTA</strong> display above the GEQ faders - the feedback frequency will show as a significant peak (red/highlighted bar)</li>
           <li><strong>Cut the frequency</strong>: Find the GEQ fader matching the peak, pull it down <strong>3-6 dB</strong></li>
           <li><strong>Repeat</strong>: Continue raising volume to find the next ringing frequency, then cut it</li>
@@ -589,11 +622,11 @@ function EventWizard() {
       )}
 
       <div className="geq-section">
-        <h4>LR GEQ Cuts</h4>
-        <p className="help-text">Enter negative dB values for cuts (e.g., -3, -6)</p>
-        <div className="geq-grid">
+        <h4>LR GEQ Cuts (1/3 Octave - 31 Bands)</h4>
+        <p className="help-text">Enter negative dB values for cuts (e.g., -3, -6). Only fill in bands you've cut.</p>
+        <div className="geq-grid-full">
           {geqFrequencies.map(freq => (
-            <div key={freq} className="geq-band">
+            <div key={freq} className="geq-band-small">
               <label>{freq}</label>
               <input
                 type="number"
@@ -602,8 +635,46 @@ function EventWizard() {
                 onChange={(e) => updateGEQ('lr', freq, e.target.value)}
                 placeholder="0"
                 min="-12"
-                max="0"
+                max="12"
               />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="peq-section">
+        <h4>LR Parametric EQ (4 Bands)</h4>
+        <p className="help-text">For surgical notch cuts that the GEQ can't handle precisely</p>
+        <div className="peq-grid">
+          {['band1', 'band2', 'band3', 'band4'].map((band, idx) => (
+            <div key={band} className="peq-band-row">
+              <span className="peq-band-label">Band {idx + 1}</span>
+              <input
+                type="text"
+                className="form-input"
+                placeholder="Freq (e.g., 2.5kHz)"
+                value={ringOutData.lr_peq[band]?.freq || ''}
+                onChange={(e) => updatePEQ('lr', band, 'freq', e.target.value)}
+                style={{ width: '100px' }}
+              />
+              <input
+                type="text"
+                className="form-input"
+                placeholder="dB (e.g., -6)"
+                value={ringOutData.lr_peq[band]?.gain || ''}
+                onChange={(e) => updatePEQ('lr', band, 'gain', e.target.value)}
+                style={{ width: '80px' }}
+              />
+              <select
+                className="form-select"
+                value={ringOutData.lr_peq[band]?.width || 'medium'}
+                onChange={(e) => updatePEQ('lr', band, 'width', e.target.value)}
+                style={{ width: '150px' }}
+              >
+                {peqWidthOptions.map(opt => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
             </div>
           ))}
         </div>
@@ -614,7 +685,7 @@ function EventWizard() {
           className="btn btn-secondary"
           onClick={saveGEQToLocation}
         >
-          Save GEQ Cuts to Venue
+          Save GEQ/PEQ to Venue
         </button>
         <button
           className="btn btn-primary"
@@ -678,11 +749,11 @@ function EventWizard() {
       )}
 
       <div className="geq-section">
-        <h4>Monitor GEQ Cuts</h4>
-        <p className="help-text">Enter negative dB values for cuts (e.g., -3, -6)</p>
-        <div className="geq-grid">
+        <h4>Monitor GEQ Cuts (1/3 Octave - 31 Bands)</h4>
+        <p className="help-text">Enter negative dB values for cuts (e.g., -3, -6). Only fill in bands you've cut.</p>
+        <div className="geq-grid-full">
           {geqFrequencies.map(freq => (
-            <div key={freq} className="geq-band">
+            <div key={freq} className="geq-band-small">
               <label>{freq}</label>
               <input
                 type="number"
@@ -691,8 +762,46 @@ function EventWizard() {
                 onChange={(e) => updateGEQ('monitor', freq, e.target.value)}
                 placeholder="0"
                 min="-12"
-                max="0"
+                max="12"
               />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="peq-section">
+        <h4>Monitor Parametric EQ (4 Bands)</h4>
+        <p className="help-text">For surgical notch cuts that the GEQ can't handle precisely</p>
+        <div className="peq-grid">
+          {['band1', 'band2', 'band3', 'band4'].map((band, idx) => (
+            <div key={band} className="peq-band-row">
+              <span className="peq-band-label">Band {idx + 1}</span>
+              <input
+                type="text"
+                className="form-input"
+                placeholder="Freq (e.g., 2.5kHz)"
+                value={ringOutData.monitor_peq[band]?.freq || ''}
+                onChange={(e) => updatePEQ('monitor', band, 'freq', e.target.value)}
+                style={{ width: '100px' }}
+              />
+              <input
+                type="text"
+                className="form-input"
+                placeholder="dB (e.g., -6)"
+                value={ringOutData.monitor_peq[band]?.gain || ''}
+                onChange={(e) => updatePEQ('monitor', band, 'gain', e.target.value)}
+                style={{ width: '80px' }}
+              />
+              <select
+                className="form-select"
+                value={ringOutData.monitor_peq[band]?.width || 'medium'}
+                onChange={(e) => updatePEQ('monitor', band, 'width', e.target.value)}
+                style={{ width: '150px' }}
+              >
+                {peqWidthOptions.map(opt => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
             </div>
           ))}
         </div>
@@ -1270,6 +1379,80 @@ function EventWizard() {
           width: 50px;
           text-align: center;
           padding: 0.3rem;
+        }
+
+        .geq-grid-full {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(55px, 1fr));
+          gap: 0.3rem;
+          margin-bottom: 1rem;
+        }
+
+        .geq-band-small {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+        }
+
+        .geq-band-small label {
+          font-size: 0.6rem;
+          color: var(--text-secondary);
+          margin-bottom: 0.15rem;
+          white-space: nowrap;
+        }
+
+        .geq-band-small input {
+          width: 45px;
+          text-align: center;
+          padding: 0.2rem;
+          font-size: 0.8rem;
+        }
+
+        .peq-section {
+          margin-top: 1.5rem;
+          padding: 1rem;
+          background: var(--bg-secondary);
+          border-radius: 0.5rem;
+        }
+
+        .peq-section h4 {
+          margin-bottom: 0.25rem;
+        }
+
+        .peq-grid {
+          display: flex;
+          flex-direction: column;
+          gap: 0.5rem;
+        }
+
+        .peq-band-row {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          flex-wrap: wrap;
+        }
+
+        .peq-band-label {
+          font-weight: 500;
+          min-width: 50px;
+          font-size: 0.85rem;
+        }
+
+        .peq-band-row input,
+        .peq-band-row select {
+          font-size: 0.85rem;
+          padding: 0.3rem 0.5rem;
+        }
+
+        @media (max-width: 500px) {
+          .peq-band-row {
+            flex-direction: column;
+            align-items: flex-start;
+          }
+          .peq-band-row input,
+          .peq-band-row select {
+            width: 100% !important;
+          }
         }
 
         .previous-cuts {
