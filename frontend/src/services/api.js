@@ -85,6 +85,16 @@ export const gear = {
     api.post(`/gear/${gearId}/learn`, null, { params: userNotes ? { user_notes: userNotes } : {} }),
 }
 
+// Knowledge Library - Learned hardware info (separate from inventory)
+export const knowledgeLibrary = {
+  getAll: (hardwareType = null) => 
+    api.get('/knowledge-library', { params: hardwareType ? { hardware_type: hardwareType } : {} }),
+  getOne: (id) => api.get(`/knowledge-library/${id}`),
+  learn: (data) => api.post('/knowledge-library/learn', data),
+  relearn: (id) => api.post(`/knowledge-library/${id}/relearn`),
+  delete: (id) => api.delete(`/knowledge-library/${id}`),
+}
+
 // Admin
 export const admin = {
   dbStatus: () => api.get('/admin/db-status'),

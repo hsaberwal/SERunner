@@ -11,6 +11,7 @@ from app.models.user import User
 from app.models.setup import Setup
 from app.models.location import Location
 from app.models.gear import Gear
+from app.models.knowledge_library import LearnedHardware
 from app.utils.auth import get_current_user
 from app.services.setup_generator import SetupGenerator
 from app.schemas import BaseResponseWithLocation
@@ -282,6 +283,19 @@ async def generate_setup(
             user_gear.append(gear_dict)
         logger.info(f"Found {len(user_gear)} gear items in user's inventory")
 
+        # Get knowledge library (learned hardware not in inventory)
+        knowledge_result = await db.execute(
+            select(LearnedHardware).where(LearnedHardware.user_id == current_user.id)
+        )
+        knowledge_items = knowledge_result.scalars().all()
+        
+        # Convert knowledge library to dict format
+        knowledge_library = []
+        for item in knowledge_items:
+            knowledge_dict = item.to_dict()
+            knowledge_library.append(knowledge_dict)
+        logger.info(f"Found {len(knowledge_library)} items in knowledge library")
+
         # Generate setup using Claude API
         logger.info(f"Generating setup for location {location.name} with {len(request.performers)} performers")
         generator = SetupGenerator()
@@ -290,7 +304,8 @@ async def generate_setup(
             performers=[p.model_dump() for p in request.performers],
             past_setups=past_setups,
             user=current_user,
-            user_gear=user_gear
+            user_gear=user_gear,
+            knowledge_library=knowledge_library
         )
         logger.info("Setup generated successfully from Claude API")
 
@@ -511,6 +526,14 @@ async def refresh_setup(
             user_gear.append(gear_dict)
         logger.info(f"Found {len(user_gear)} gear items for refresh")
 
+        # Get knowledge library (learned hardware not in inventory)
+        knowledge_result = await db.execute(
+            select(LearnedHardware).where(LearnedHardware.user_id == current_user.id)
+        )
+        knowledge_items = knowledge_result.scalars().all()
+        knowledge_library = [item.to_dict() for item in knowledge_items]
+        logger.info(f"Found {len(knowledge_library)} items in knowledge library for refresh")
+
         # Regenerate using Claude API
         generator = SetupGenerator()
         setup_data = await generator.generate(
@@ -518,7 +541,8 @@ async def refresh_setup(
             performers=setup.performers or [],
             past_setups=past_setups,
             user=current_user,
-            user_gear=user_gear
+            user_gear=user_gear,
+            knowledge_library=knowledge_library
         )
         logger.info("Setup regenerated successfully from Claude API")
 

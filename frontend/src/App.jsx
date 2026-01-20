@@ -11,6 +11,7 @@ import Gear from './pages/Gear'
 import Setup from './pages/Setup'
 import AdminUsers from './pages/AdminUsers'
 import EventWizard from './pages/EventWizard'
+import KnowledgeLibrary from './pages/KnowledgeLibrary'
 import './App.css'
 
 function PrivateRoute({ children }) {
@@ -93,6 +94,14 @@ function App() {
               element={
                 <PrivateRoute>
                   <EventWizard />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/knowledge"
+              element={
+                <PrivateRoute>
+                  <KnowledgeLibrary />
                 </PrivateRoute>
               }
             />

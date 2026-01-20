@@ -4,9 +4,9 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import get_settings
-from app.routers import auth, locations, setups, gear
+from app.routers import auth, locations, setups, gear, knowledge_library
 from app.database import engine, Base
-from app.models import User, Location, Setup, Gear, GearLoan, KnowledgeBase
+from app.models import User, Location, Setup, Gear, GearLoan, KnowledgeBase, LearnedHardware
 
 # Configure logging to stdout for Railway
 logging.basicConfig(
@@ -99,6 +99,39 @@ async def run_startup_migrations():
         except Exception:
             pass
 
+        # Create learned_hardware table for knowledge library
+        try:
+            await conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS learned_hardware (
+                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                    hardware_type VARCHAR(50) NOT NULL,
+                    brand VARCHAR(100) NOT NULL,
+                    model VARCHAR(100) NOT NULL,
+                    characteristics TEXT,
+                    best_for TEXT,
+                    settings_by_source JSONB,
+                    knowledge_base_entry TEXT,
+                    amp_specs JSONB,
+                    user_notes TEXT,
+                    created_at TIMESTAMP DEFAULT NOW(),
+                    updated_at TIMESTAMP DEFAULT NOW()
+                )
+            """))
+        except Exception:
+            pass
+
+        # Create indexes for learned_hardware
+        for idx_name, column in [
+            ("ix_learned_hardware_user_id", "user_id"),
+            ("ix_learned_hardware_type", "hardware_type"),
+            ("ix_learned_hardware_brand_model", "brand, model")
+        ]:
+            try:
+                await conn.execute(text(f"CREATE INDEX IF NOT EXISTS {idx_name} ON learned_hardware({column})"))
+            except Exception:
+            pass
+
     logger.info("Startup migrations completed")
 
 
@@ -142,6 +175,7 @@ app.include_router(auth.router, prefix="/auth", tags=["Authentication"])
 app.include_router(locations.router, prefix="/locations", tags=["Locations"])
 app.include_router(setups.router, prefix="/setups", tags=["Setups"])
 app.include_router(gear.router, prefix="/gear", tags=["Gear"])
+app.include_router(knowledge_library.router, tags=["Knowledge Library"])
 
 
 @app.get("/")

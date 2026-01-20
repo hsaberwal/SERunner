@@ -72,6 +72,11 @@ function Navigation() {
               Gear
             </Link>
           </li>
+          <li>
+            <Link to="/knowledge" className={`nav-link ${isActive('/knowledge') ? 'active' : ''}`}>
+              📚
+            </Link>
+          </li>
           {isAdmin && (
             <li>
               <Link to="/admin/users" className={`nav-link ${isActive('/admin/users') ? 'active' : ''}`}>

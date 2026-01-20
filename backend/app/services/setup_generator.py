@@ -20,11 +20,15 @@ class SetupGenerator:
     def __init__(self):
         self.claude_service = ClaudeService()
 
-    def _build_system_prompt(self, user_gear: List[Dict[str, Any]] = None) -> str:
+    def _build_system_prompt(self, user_gear: List[Dict[str, Any]] = None, knowledge_library: List[Dict[str, Any]] = None) -> str:
         """Build the system prompt with QuPac knowledge and sound engineering best practices.
         
         The knowledge is loaded DYNAMICALLY from knowledge/sound-knowledge-base.md,
         so updates to that file will automatically be reflected in Claude's responses.
+        
+        Also includes:
+        - user_gear: Equipment the user owns (from their inventory)
+        - knowledge_library: Learned hardware info (venue equipment they don't own)
         """
         
         # Load the knowledge base dynamically from the markdown file
@@ -163,6 +167,83 @@ class SetupGenerator:
             if not mics and not di_boxes and not speakers and not amplifiers:
                 user_gear_section += "(No learned gear in inventory yet - using default knowledge base)\n\n"
 
+        # Add knowledge library (learned hardware not in inventory, e.g., venue equipment)
+        knowledge_library_section = ""
+        if knowledge_library:
+            knowledge_library_section = "\n## Knowledge Library (Venue/Researched Equipment)\n\n"
+            knowledge_library_section += "**These are devices Claude has learned about but may not be in user's inventory.**\n"
+            knowledge_library_section += "Use this knowledge when the venue has this equipment installed.\n\n"
+            
+            # Group by type
+            kb_mics = [k for k in knowledge_library if k.get('hardware_type') in ('mic', 'microphone')]
+            kb_speakers = [k for k in knowledge_library if k.get('hardware_type') == 'speaker']
+            kb_amps = [k for k in knowledge_library if k.get('hardware_type') == 'amplifier']
+            kb_di_boxes = [k for k in knowledge_library if k.get('hardware_type') == 'di_box']
+            kb_mixers = [k for k in knowledge_library if k.get('hardware_type') == 'mixer']
+            
+            if kb_mics:
+                knowledge_library_section += "### Microphones (Learned)\n"
+                for item in kb_mics:
+                    knowledge_library_section += f"\n**{item.get('brand')} {item.get('model')}**\n"
+                    if item.get('characteristics'):
+                        knowledge_library_section += f"- Characteristics: {item['characteristics']}\n"
+                    if item.get('best_for'):
+                        knowledge_library_section += f"- Best for: {item['best_for']}\n"
+                    if item.get('settings_by_source'):
+                        knowledge_library_section += f"- Settings: {json.dumps(item['settings_by_source'])}\n"
+                knowledge_library_section += "\n"
+            
+            if kb_speakers:
+                knowledge_library_section += "### Speakers (Learned)\n"
+                for item in kb_speakers:
+                    knowledge_library_section += f"\n**{item.get('brand')} {item.get('model')}**\n"
+                    if item.get('characteristics'):
+                        knowledge_library_section += f"- Characteristics: {item['characteristics']}\n"
+                    if item.get('best_for'):
+                        knowledge_library_section += f"- Best for: {item['best_for']}\n"
+                    if item.get('settings_by_source'):
+                        knowledge_library_section += f"- Settings: {json.dumps(item['settings_by_source'])}\n"
+                knowledge_library_section += "\n"
+            
+            if kb_amps:
+                knowledge_library_section += "### Amplifiers (Learned)\n"
+                for item in kb_amps:
+                    knowledge_library_section += f"\n**{item.get('brand')} {item.get('model')}**\n"
+                    if item.get('characteristics'):
+                        knowledge_library_section += f"- Characteristics: {item['characteristics']}\n"
+                    if item.get('watts_per_channel') or item.get('amp_specs', {}).get('watts_per_channel'):
+                        watts = item.get('watts_per_channel') or item.get('amp_specs', {}).get('watts_per_channel')
+                        knowledge_library_section += f"- Power: {watts}\n"
+                    if item.get('frequency_response') or item.get('amp_specs', {}).get('frequency_response'):
+                        freq = item.get('frequency_response') or item.get('amp_specs', {}).get('frequency_response')
+                        knowledge_library_section += f"- Frequency Response: {freq}\n"
+                    if item.get('response_character') or item.get('amp_specs', {}).get('response_character'):
+                        char = item.get('response_character') or item.get('amp_specs', {}).get('response_character')
+                        knowledge_library_section += f"- Character: {char}\n"
+                    if item.get('settings_by_source'):
+                        knowledge_library_section += f"- Integration Settings: {json.dumps(item['settings_by_source'])}\n"
+                knowledge_library_section += "\n"
+            
+            if kb_di_boxes:
+                knowledge_library_section += "### DI Boxes (Learned)\n"
+                for item in kb_di_boxes:
+                    knowledge_library_section += f"\n**{item.get('brand')} {item.get('model')}**\n"
+                    if item.get('characteristics'):
+                        knowledge_library_section += f"- Characteristics: {item['characteristics']}\n"
+                    if item.get('best_for'):
+                        knowledge_library_section += f"- Best for: {item['best_for']}\n"
+                knowledge_library_section += "\n"
+            
+            if kb_mixers:
+                knowledge_library_section += "### Mixers (Learned)\n"
+                for item in kb_mixers:
+                    knowledge_library_section += f"\n**{item.get('brand')} {item.get('model')}**\n"
+                    if item.get('characteristics'):
+                        knowledge_library_section += f"- Characteristics: {item['characteristics']}\n"
+                    if item.get('best_for'):
+                        knowledge_library_section += f"- Best for: {item['best_for']}\n"
+                knowledge_library_section += "\n"
+
         speaker_section = """## Speaker & Amplifier Knowledge
 
 ### Speakers
@@ -260,8 +341,8 @@ Return a JSON object (no markdown, just raw JSON) with these keys:
 
 Keep response under 4000 tokens. Be concise but systematic!"""
 
-        # Combine: Equipment + User Gear + Knowledge Base + Output Format
-        full_prompt = equipment_intro + user_gear_section + speaker_section + "\n## Sound Engineering Knowledge Base (Loaded Dynamically)\n\n" + knowledge_base + output_format
+        # Combine: Equipment + User Gear + Knowledge Library + Speaker Section + Knowledge Base + Output Format
+        full_prompt = equipment_intro + user_gear_section + knowledge_library_section + speaker_section + "\n## Sound Engineering Knowledge Base (Loaded Dynamically)\n\n" + knowledge_base + output_format
         
         logger.info(f"Built system prompt: {len(full_prompt)} total characters")
         return full_prompt
@@ -463,14 +544,15 @@ Keep response under 4000 tokens. Be concise but systematic!"""
         performers: List[Dict[str, Any]],
         past_setups: List[Setup],
         user: User,
-        user_gear: List[Dict[str, Any]] = None
+        user_gear: List[Dict[str, Any]] = None,
+        knowledge_library: List[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
         """Generate a mixer setup"""
         # Use user's API key if provided
         if user.api_key:
             self.claude_service = ClaudeService(api_key=user.api_key)
 
-        system_prompt = self._build_system_prompt(user_gear=user_gear)
+        system_prompt = self._build_system_prompt(user_gear=user_gear, knowledge_library=knowledge_library)
         user_prompt = self._build_user_prompt(location, performers, past_setups)
 
         # Get response from Claude

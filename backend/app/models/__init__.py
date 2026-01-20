@@ -3,5 +3,6 @@ from app.models.location import Location
 from app.models.setup import Setup
 from app.models.gear import Gear, GearLoan
 from app.models.knowledge_base import KnowledgeBase
+from app.models.knowledge_library import LearnedHardware
 
-__all__ = ["User", "Location", "Setup", "Gear", "GearLoan", "KnowledgeBase"]
+__all__ = ["User", "Location", "Setup", "Gear", "GearLoan", "KnowledgeBase", "LearnedHardware"]

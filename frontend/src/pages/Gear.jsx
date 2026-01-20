@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { Link } from 'react-router-dom'
 import { gear } from '../services/api'
 import Navigation from '../components/Navigation'
 import LearningOverlay from '../components/LearningOverlay'
@@ -217,15 +218,15 @@ function Gear() {
       />
       <div className="container">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-          <h1>Gear Inventory</h1>
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
-            <button className="btn btn-secondary" onClick={() => { setShowLearnNewForm(!showLearnNewForm); setShowForm(false); setLearnedSettings(null); }}>
-              {showLearnNewForm ? 'Cancel' : 'Learn New Hardware'}
-            </button>
-            <button className="btn btn-primary" onClick={() => { setShowForm(!showForm); setShowLearnNewForm(false); }}>
-              {showForm ? 'Cancel' : 'Add Gear'}
-            </button>
+          <div>
+            <h1>Gear Inventory</h1>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', margin: '0.25rem 0 0' }}>
+              Equipment you own • <Link to="/knowledge" style={{ color: 'var(--primary)' }}>📚 Knowledge Library</Link> for venue gear
+            </p>
           </div>
+          <button className="btn btn-primary" onClick={() => { setShowForm(!showForm); setShowLearnNewForm(false); }}>
+            {showForm ? 'Cancel' : 'Add Gear'}
+          </button>
         </div>
 
         {/* Learn New Hardware Form */}
