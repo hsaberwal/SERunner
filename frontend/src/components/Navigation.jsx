@@ -1,10 +1,22 @@
+import { useState, useEffect } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
+import WhatsNew from './WhatsNew'
 
 function Navigation() {
   const { logout, isAdmin } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
+  const [showWhatsNew, setShowWhatsNew] = useState(false)
+  const [versionInfo, setVersionInfo] = useState(null)
+
+  useEffect(() => {
+    // Load version info for the badge
+    fetch('/version.json')
+      .then(res => res.json())
+      .then(data => setVersionInfo(data))
+      .catch(() => setVersionInfo(null))
+  }, [])
 
   const handleLogout = () => {
     logout()
@@ -14,9 +26,21 @@ function Navigation() {
   const isActive = (path) => location.pathname === path
 
   return (
+    <>
     <nav className="nav">
       <div className="nav-container">
-        <Link to="/" className="nav-brand">SERunner</Link>
+        <div className="nav-brand-wrapper">
+          <Link to="/" className="nav-brand">SERunner</Link>
+          {versionInfo && (
+            <button 
+              className="version-btn" 
+              onClick={() => setShowWhatsNew(true)}
+              title="View recent changes"
+            >
+              v{versionInfo.commitHash}
+            </button>
+          )}
+        </div>
         <ul className="nav-links">
           <li>
             <Link to="/" className={`nav-link ${isActive('/') ? 'active' : ''}`}>
@@ -63,6 +87,41 @@ function Navigation() {
         </ul>
       </div>
     </nav>
+
+    <WhatsNew isOpen={showWhatsNew} onClose={() => setShowWhatsNew(false)} />
+
+    <style>{`
+      .nav-brand-wrapper {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+
+      .version-btn {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        padding: 0.2rem 0.5rem;
+        border-radius: 0.75rem;
+        font-size: 0.7rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-family: monospace;
+      }
+
+      .version-btn:hover {
+        transform: scale(1.05);
+        box-shadow: 0 2px 8px rgba(102, 126, 234, 0.4);
+      }
+
+      @media (max-width: 768px) {
+        .version-btn {
+          display: none;
+        }
+      }
+    `}</style>
+    </>
   )
 }
 

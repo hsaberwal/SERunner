@@ -1,5 +1,8 @@
 FROM node:18-alpine AS builder
 
+# Install git for version generation
+RUN apk add --no-cache git
+
 WORKDIR /app
 
 # Copy package files
@@ -8,7 +11,7 @@ COPY package*.json ./
 # Install dependencies
 RUN npm ci
 
-# Copy source code
+# Copy source code and .git for version info
 COPY . .
 
 # Build argument for API URL

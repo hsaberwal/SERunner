@@ -1,0 +1,70 @@
+{
+  "version": "1.0.0",
+  "commitHash": "290d317",
+  "commitDate": "2026-01-19 22:29:13 -0500",
+  "branch": "main",
+  "commits": [
+    {
+      "hash": "290d317",
+      "message": "Feature: Channel-level corrections system for learning",
+      "date": "2026-01-19 22:29:13 -0500",
+      "author": "hsaberwal"
+    },
+    {
+      "hash": "619dfd4",
+      "message": "Feature: Include user's gear inventory and learned settings in Claude setup generation",
+      "date": "2026-01-19 22:22:58 -0500",
+      "author": "hsaberwal"
+    },
+    {
+      "hash": "c4f427c",
+      "message": "Feature: Dynamic knowledge base loading - updates to sound-knowledge-base.md now automatically apply to Claude prompts",
+      "date": "2026-01-19 22:19:30 -0500",
+      "author": "hsaberwal"
+    },
+    {
+      "hash": "fbdaa93",
+      "message": "Fix: Ardas now uses both FX1+FX2 (like Palki but less intense) for reverent atmosphere",
+      "date": "2026-01-19 22:16:21 -0500",
+      "author": "hsaberwal"
+    },
+    {
+      "hash": "9e76b44",
+      "message": "Fix: FX routing - FX2 Hall Medium for flute/strings (needs space), Palki uses BOTH FX1+FX2 for sacred atmosphere",
+      "date": "2026-01-19 22:14:39 -0500",
+      "author": "hsaberwal"
+    },
+    {
+      "hash": "c79c814",
+      "message": "Feature: Comprehensive FX routing update - FX1 Plate (FOH vocals), FX2 Hall (FOH instruments), FX3 Room (monitors), FX4 available",
+      "date": "2026-01-19 22:10:47 -0500",
+      "author": "hsaberwal"
+    },
+    {
+      "hash": "fd11533",
+      "message": "Fix: Microphone type mismatch - use 'mic' consistently, add backward compatibility for 'microphone'",
+      "date": "2026-01-19 22:01:27 -0500",
+      "author": "hsaberwal"
+    },
+    {
+      "hash": "63ac498",
+      "message": "Fix: EventWizard now uses dynamic gear inventory for microphone dropdown (matching SetupGenerator)",
+      "date": "2026-01-19 21:54:00 -0500",
+      "author": "hsaberwal"
+    },
+    {
+      "hash": "822de49",
+      "message": "Add PEQ columns to auto-migration on startup",
+      "date": "2026-01-19 21:50:10 -0500",
+      "author": "hsaberwal"
+    },
+    {
+      "hash": "860e694",
+      "message": "Feature: Enhanced ring-out wizard with full GEQ and PEQ tracking",
+      "date": "2026-01-19 21:47:12 -0500",
+      "author": "hsaberwal"
+    }
+  ],
+  "buildTime": "2026-01-20T03:33:53.634Z",
+  "source": "git"
+}
