@@ -441,12 +441,16 @@ Keep response under 4000 tokens. Be concise but systematic!"""
                 mon = setup['monitors']
                 prompt += f"- Monitors: {mon['quantity']}x {mon['brand']} {mon.get('model', '')}"
                 prompt += f" ({'Powered' if mon.get('powered', True) else 'Passive'})\n"
-            if setup.get('amp', {}).get('brand'):
+            if setup.get('amp', {}).get('brand') or setup.get('amp', {}).get('model'):
                 amp = setup['amp']
-                prompt += f"- Amplifier: {amp['brand']} {amp.get('model', '')}"
-                if amp.get('watts'):
-                    prompt += f" ({amp['watts']}W)"
-                prompt += "\n"
+                amp_name = f"{amp.get('brand', '')} {amp.get('model', '')}".strip()
+                if amp_name:
+                    prompt += f"- Amplifier: {amp_name}"
+                    if amp.get('watts'):
+                        prompt += f" ({amp['watts']}W)"
+                    if amp.get('channels'):
+                        prompt += f" [{amp['channels']} channels]"
+                    prompt += "\n"
             prompt += "\n"
 
         # Include GEQ cuts from previous ring-outs at this venue
