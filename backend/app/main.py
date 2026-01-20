@@ -26,7 +26,7 @@ async def run_startup_migrations():
 
     async with engine.begin() as conn:
         # Add columns to locations table
-        for col_name, col_type in [("lr_geq_cuts", "JSONB"), ("monitor_geq_cuts", "JSONB"), ("room_notes", "TEXT")]:
+        for col_name, col_type in [("lr_geq_cuts", "JSONB"), ("monitor_geq_cuts", "JSONB"), ("room_notes", "TEXT"), ("lr_peq", "JSONB"), ("monitor_peq", "JSONB")]:
             try:
                 await conn.execute(text(f"ALTER TABLE locations ADD COLUMN IF NOT EXISTS {col_name} {col_type}"))
             except Exception:
@@ -225,6 +225,8 @@ async def run_migrations():
             ("lr_geq_cuts", "JSONB"),
             ("monitor_geq_cuts", "JSONB"),
             ("room_notes", "TEXT"),
+            ("lr_peq", "JSONB"),
+            ("monitor_peq", "JSONB"),
         ]
         for col_name, col_type in location_columns:
             try:
