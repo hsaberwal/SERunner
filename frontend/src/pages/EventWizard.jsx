@@ -576,16 +576,16 @@ function EventWizard() {
             <ul style={{ margin: '0.5rem 0 0 0', paddingLeft: '1rem', fontSize: '0.85rem' }}>
               <li>Decay: 1.8 - 2.2s</li>
               <li>Pre-delay: 30-50ms</li>
-              <li>HF Damp: Medium</li>
+              <li>For: Vocals, Speech, Ardas</li>
             </ul>
           </div>
           
           <div style={{ background: 'white', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #e5e7eb' }}>
-            <strong style={{ color: '#8b5cf6' }}>FX2: Small Hall (FOH Ambient)</strong>
+            <strong style={{ color: '#8b5cf6' }}>FX2: Hall Medium (FOH Space)</strong>
             <ul style={{ margin: '0.5rem 0 0 0', paddingLeft: '1rem', fontSize: '0.85rem' }}>
-              <li>Decay: 2.0 - 2.5s</li>
-              <li>Pre-delay: 20-30ms</li>
-              <li>Use for: instruments</li>
+              <li>Decay: 2.5 - 3.5s</li>
+              <li>Pre-delay: 20-40ms</li>
+              <li>For: <strong>Flute</strong>, strings, Palki</li>
             </ul>
           </div>
           
@@ -608,7 +608,11 @@ function EventWizard() {
           </div>
         </div>
         
-        <p style={{ marginTop: '0.75rem', fontSize: '0.85rem', color: '#374151' }}>
+        <div style={{ marginTop: '0.75rem', padding: '0.5rem', background: '#fef3c7', borderRadius: '0.25rem', fontSize: '0.85rem' }}>
+          <strong>🙏 Palki/Scripture:</strong> Use BOTH FX1 + FX2 at -8dB each for sacred atmosphere. The word of God should linger reverently.
+        </div>
+        
+        <p style={{ marginTop: '0.5rem', fontSize: '0.85rem', color: '#374151' }}>
           <strong>Tip:</strong> Set FX Return levels in LR view to 0dB. Both Send AND Return must be up to hear FX.
         </p>
       </div>

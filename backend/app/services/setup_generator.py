@@ -144,27 +144,36 @@ If subwoofer is present:
 - Both Send and Return in LR view must be up, or you won't hear any FX
 
 ### FX Engine Assignments (STANDARD SETUP)
-- **FX1: Plate Reverb** (FOH Vocals) - Decay 1.8-2.2s, Pre-delay 30-50ms
-- **FX2: Small Hall** (FOH Instruments) - Decay 2.0-2.5s, Pre-delay 20-30ms
+- **FX1: Plate Reverb** (FOH Vocals/Speech) - Decay 1.8-2.2s, Pre-delay 30-50ms, dense and smooth
+- **FX2: Hall Medium** (FOH Spacious) - Decay 2.5-3.5s, Pre-delay 20-40ms, for sources needing SPACE
 - **FX3: Room** (Monitor Reverb) - Decay 0.8-1.2s SHORT!, Route to Mixes ONLY
 - **FX4: Available** (Delay or backup)
 
 ### FOH Send Guidelines
-| Source Type | FX1 (Plate) | FX2 (Hall) |
-|-------------|-------------|------------|
-| Lead Vocal | -8 to -10dB | OFF |
-| Backing Vocal | -12dB | OFF |
-| Speech/Podium | -15dB or OFF | OFF |
-| Flute | OFF | -8dB |
-| Strings (Dilruba, etc) | OFF | -8 to -12dB |
-| Harmonium | OFF | -15dB |
-| Tabla | OFF | -20dB |
-| Guitar | OFF | -12dB |
+| Source Type | FX1 (Plate) | FX2 (Hall) | Notes |
+|-------------|-------------|------------|-------|
+| Lead Vocal | -8 to -10dB | OFF | Plate is vocal standard |
+| Backing Vocal | -12dB | OFF | |
+| Speech/Podium | -15dB or OFF | OFF | Clarity over ambience |
+| Ardas | -10dB | OFF | Reverent but clear |
+| **Palki/Scripture** | -8dB | -8dB | **BOTH FX for sacred atmosphere** |
+| **Flute** | OFF | **-6 to -8dB** | Flute loves space! |
+| Dilruba/Esraj | OFF | -8dB | Bowed strings like space |
+| Sarangi | OFF | -8dB | |
+| Taus | OFF | -8dB | |
+| Rabab | OFF | -10dB | |
+| Violin | OFF | -10dB | |
+| Harmonium | OFF | -15dB | Subtle |
+| Tabla | OFF | -20dB | Very subtle |
+| Guitar | OFF | -12dB | |
+
+**SPECIAL CASE - Palki/Scripture Reading**: 
+This is the ONE source where double-reverb is INTENTIONAL. The combination of Plate (dense) + Hall (spacious) creates the sacred, ethereal atmosphere appropriate for reading Guru Granth Sahib. The word of God should linger and fill the space reverently.
 
 ### Monitor Send Guidelines (FX3 Only)
 - **Vocals**: -12 to -15dB IF requested (start with OFF)
 - **Instruments**: OFF (musicians need dry signal for timing)
-- **Speech**: OFF (speakers need clarity)
+- **Speech/Palki**: OFF (reader needs clarity to read accurately)
 
 ## Sound Engineering Best Practices from Live Sessions
 
@@ -217,8 +226,8 @@ Width descriptions:
 - Band 3: 5 kHz, +2 dB, WIDE width (affects ~3.3-7.5kHz) - articulation
 - Band 4: 9 kHz, +5 dB, WIDE width (affects ~6-14kHz) - CRITICAL: add air
 - Compression: 3:1, -9dB threshold, 17ms attack, 100ms release, soft knee, +2dB gain, Manual RMS
-- FOH Reverb: FX2 (Small Hall) @ -8dB send (flute likes space)
-- Monitor Reverb: OFF (musicians need dry signal)
+- FOH Reverb: FX2 (Hall Medium) @ -6 to -8dB send - **FLUTE LOVES SPACE!** Use the longer Hall reverb
+- Monitor Reverb: OFF (flautist needs dry signal for timing)
 
 ### Tabla (Beta 57A)
 - HPF: OFF (keep the lows!)
@@ -259,7 +268,7 @@ Width descriptions:
 - Band 3: 2.5 kHz, -4 dB, NARROW width (affects ~1.9-3.3kHz) - piezo quack
 - Band 4: 6 kHz, +4 dB, WIDE width (affects ~4-9kHz) - bowing articulation
 - Compression: 2.5:1, -12dB threshold, 20ms attack, 150ms release, soft knee, +2dB gain, Manual RMS
-- FOH Reverb: FX2 (Small Hall) @ -8dB send (bowed strings like space)
+- FOH Reverb: FX2 (Hall Medium) @ -8dB send - bowed strings love space!
 - Monitor Reverb: OFF
 - DI Box: Radial PZ-DI or SB-4, Ground LIFT, Pad OFF
 
@@ -340,29 +349,33 @@ Purpose: Sikh prayer recitation - voice should linger with gentle reverb, warm a
 - Monitor Reverb: OFF
 
 ### Palki / Guru Granth Sahib Reading (Beta 58A)
-Purpose: Sacred scripture reading - requires significant reverb for divine atmosphere
+Purpose: Sacred scripture reading - THE WORD OF GOD should linger with divine atmosphere
 - HPF: 85 Hz
 - Band 1: 220 Hz, +3 dB, MEDIUM width (affects ~150-330Hz) - rich warmth
 - Band 2: 450 Hz, -2 dB, MEDIUM width (affects ~300-680Hz) - reduce mud
 - Band 3: 2.5 kHz, +3 dB, MEDIUM width (affects ~1.7-3.7kHz) - presence without harshness
 - Band 4: 7 kHz, +2 dB, WIDE width (affects ~4.6-10.5kHz) - subtle air
 - Compression: 3:1, -12dB threshold, 20ms attack, 150ms release, soft knee, +2dB gain, Manual RMS
-- FOH Reverb: FX1 (Plate) @ -5dB send + FX2 (Hall) @ -10dB send (rich reverb for sacred atmosphere)
-- Monitor Reverb: OFF
-- Note: The higher reverb is intentional - scripture reading should fill the space reverently
+- **FOH Reverb: USE BOTH FX1 + FX2 for sacred atmosphere!**
+  - FX1 (Plate) @ -8dB send - adds density and smoothness
+  - FX2 (Hall Medium) @ -8dB send - adds space and ethereal quality
+- Monitor Reverb: OFF (reader needs clarity to read scripture accurately)
+- **IMPORTANT**: This is the ONE source where double-reverb is INTENTIONAL. The combination creates the sacred, ethereal atmosphere - the word of God should linger and fill the space reverently.
 
 ## Key Principles
 
-1. **Don't Double-Reverb**: Keep instruments in separate reverb spaces. Vocal in both FX1 and FX2 sounds washy.
+1. **Don't Double-Reverb** (except Palki): Keep instruments in separate reverb spaces. Vocal in both FX1 and FX2 sounds washy.
 2. **FX Strategy**: 
-   - FX1 (Plate): Vocals only - smooth, dense, musical
-   - FX2 (Small Hall): Instruments - flute, strings, harmonium, tabla (subtle)
+   - FX1 (Plate): Vocals, speech, Ardas - smooth, dense, musical
+   - FX2 (Hall Medium): Flute, bowed strings, Palki - sources that need SPACE
    - FX3 (Room): Monitor reverb ONLY - short decay, vocals if requested
    - FX4: Available for delay or backup
-3. **Monitor FX Rule**: Most performers DON'T need reverb in monitors. Start with FX3 OFF, add only if requested.
-4. **Beta 57 on Flute**: Always boost 8-10 kHz heavily - Beta 57 lacks natural airiness on flute.
-5. **Direct Acoustic Guitar**: ALWAYS cut 2-3 kHz to remove piezo quack.
-6. **Tabla Compression**: Fast attack (6ms) + soft knee OFF = preserves punch.
+3. **EXCEPTION - Palki/Scripture**: Use BOTH FX1 + FX2 together! This creates the sacred, ethereal atmosphere for reading Guru Granth Sahib. The word of God should linger reverently.
+4. **Flute Loves Space**: Send flute to FX2 (Hall) at -6 to -8dB - flute benefits from spacious reverb.
+5. **Monitor FX Rule**: Most performers DON'T need reverb in monitors. Start with FX3 OFF, add only if requested.
+6. **Beta 57 on Flute**: Always boost 8-10 kHz heavily - Beta 57 lacks natural airiness on flute.
+7. **Direct Acoustic Guitar**: ALWAYS cut 2-3 kHz to remove piezo quack.
+8. **Tabla Compression**: Fast attack (6ms) + soft knee OFF = preserves punch.
 
 ## Troubleshooting Quick Reference
 

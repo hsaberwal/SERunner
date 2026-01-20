@@ -29,17 +29,17 @@ Adjust proportionally if overall FX is too loud/quiet.
 
 ### FOH Reverb Strategy
 - **FX1 (Plate)**: Primary vocal reverb — smooth, dense, musical
-- **FX2 (Small Hall)**: Secondary/ambient — instruments, special moments
+- **FX2 (Hall Medium)**: Spacious reverb — flute, bowed strings, Palki (sources that need SPACE)
 
 ### Monitor Reverb Strategy
 - **FX3 (Room/Short Plate)**: Monitor reverb — short decay, vocals only
 - **FX4 (Available)**: Slapback delay or backup
 
-**Important**: Don't double-reverb! If vocal is in both FX1 and FX2, it sounds distant and washy. Keep them separate.
+**Important**: Don't double-reverb EXCEPT for Palki! Most sources should use ONE reverb only.
 
 ### Recommended FX Settings
 
-#### FX1: Plate Reverb (FOH Primary)
+#### FX1: Plate Reverb (FOH Vocals/Speech)
 ```
 Type: Plate
 Decay: 1.8 - 2.2 seconds
@@ -49,14 +49,14 @@ Diffusion: High
 ```
 **Why Plate?** Industry standard for live vocals. Dense and musical without getting washy. Sits well in the mix.
 
-#### FX2: Small Hall (FOH Secondary)
+#### FX2: Hall Medium (FOH Spacious)
 ```
-Type: Small Hall or Chamber
-Decay: 2.0 - 2.5 seconds
-Pre-delay: 20-30ms
-HF Damping: Medium-High
+Type: Hall (Medium)
+Decay: 2.5 - 3.5 seconds
+Pre-delay: 20-40ms
+HF Damping: Medium
 ```
-**Use for:** Harmonium (subtle), string instruments, special moments (Ardas, key shabads)
+**Use for:** Flute (loves space!), bowed strings (Dilruba, Sarangi, Taus), Palki/Scripture reading
 
 #### FX3: Room (Monitor Reverb)
 ```
@@ -77,15 +77,24 @@ Feedback: 0-10%
 **Use case:** Some vocalists prefer slapback over reverb in monitors.
 
 ### FOH Send Levels (Channel → FX1/FX2)
-| Channel | FX1 Send (Plate) | FX2 Send (Hall) |
-|---------|------------------|-----------------|
-| Lead Vocal | -8 to -10 dB | OFF |
-| Backing Vocal | -12 dB | OFF |
-| Flute | OFF | -8 dB |
-| Harmonium | OFF | -15 dB |
-| Tabla | OFF | -20 dB (subtle) |
-| Guitar | OFF | -12 dB |
-| Speech/Podium | -15 dB (very subtle) | OFF |
+| Channel | FX1 Send (Plate) | FX2 Send (Hall) | Notes |
+|---------|------------------|-----------------|-------|
+| Lead Vocal | -8 to -10 dB | OFF | Plate is vocal standard |
+| Backing Vocal | -12 dB | OFF | |
+| Speech/Podium | -15 dB | OFF | Clarity over ambience |
+| Ardas | -10 dB | OFF | Reverent but clear |
+| **Palki/Scripture** | **-8 dB** | **-8 dB** | **USE BOTH for sacred atmosphere!** |
+| **Flute** | OFF | **-6 to -8 dB** | **Flute loves space!** |
+| Dilruba/Esraj | OFF | -8 dB | Bowed strings like space |
+| Sarangi | OFF | -8 dB | |
+| Taus | OFF | -8 dB | |
+| Rabab | OFF | -10 dB | |
+| Harmonium | OFF | -15 dB | Subtle |
+| Tabla | OFF | -20 dB | Very subtle |
+| Guitar | OFF | -12 dB | |
+
+**SPECIAL CASE - Palki/Scripture Reading:**
+This is the ONE source where double-reverb is INTENTIONAL. The combination of Plate (dense) + Hall (spacious) creates the sacred, ethereal atmosphere appropriate for reading Guru Granth Sahib. The word of God should linger and fill the space reverently.
 
 ### Monitor Send Levels (Channel → FX3)
 | Channel | FX3 Send (Monitor Reverb) |
@@ -364,8 +373,8 @@ Cut: 250-300 Hz @ -3 dB (remove mud)
 Cut: 2.5-3 kHz @ -3 dB (reduce harshness)
 Boost: 8-10 kHz @ +4 dB (add air)
 Compression: 3:1, -9 dB threshold, 17ms attack, soft knee ON
-FOH Reverb: FX2 (Small Hall) @ -8 dB send (flute likes space)
-Monitor Reverb: OFF (musicians need dry signal for timing)
+FOH Reverb: FX2 (Hall Medium) @ -6 to -8 dB send - FLUTE LOVES SPACE!
+Monitor Reverb: OFF (flautist needs dry signal for timing)
 ```
 
 ### New Tabla (Beta 57)
@@ -390,7 +399,7 @@ FOH Reverb: FX2 (Small Hall) @ -12 dB send
 Monitor Reverb: OFF
 ```
 
-### Speech/Podium/Ardas
+### Speech/Podium
 ```
 HPF: 100-120 Hz (higher to remove all rumble)
 Cut: 300-400 Hz @ -3 dB (reduce boominess)
@@ -398,6 +407,34 @@ Presence: 3-4 kHz @ +3 dB (clarity)
 Compression: 3:1, -10 dB threshold, 20ms attack, soft knee ON
 FOH Reverb: FX1 (Plate) @ -15 dB send (VERY subtle, or OFF)
 Monitor Reverb: OFF (speaker needs clarity)
+```
+
+### Ardas (Prayer Recitation)
+```
+HPF: 90 Hz
+Warmth: 250 Hz @ +2 dB
+Cut: 500 Hz @ -2 dB (reduce boxiness)
+Presence: 3 kHz @ +3 dB (clarity)
+Compression: 3:1, -10 dB threshold, 15ms attack, soft knee ON
+FOH Reverb: FX1 (Plate) @ -10 dB send (reverent but clear)
+Monitor Reverb: OFF
+```
+
+### Palki / Guru Granth Sahib Reading (THE WORD OF GOD)
+```
+HPF: 85 Hz
+Warmth: 220 Hz @ +3 dB (rich warmth)
+Cut: 450 Hz @ -2 dB (reduce mud)
+Presence: 2.5 kHz @ +3 dB (gentle presence)
+Air: 7 kHz @ +2 dB (subtle)
+Compression: 3:1, -12 dB threshold, 20ms attack, soft knee ON
+
+*** SPECIAL FX ROUTING - USE BOTH! ***
+FOH Reverb: FX1 (Plate) @ -8 dB + FX2 (Hall) @ -8 dB
+Monitor Reverb: OFF (reader needs clarity)
+
+This is the ONE source where double-reverb is INTENTIONAL.
+The word of God should linger and fill the space reverently.
 ```
 
 ---
