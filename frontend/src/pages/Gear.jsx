@@ -184,7 +184,7 @@ function Gear() {
                     onChange={(e) => setNewHardwareData({ ...newHardwareData, hardware_type: e.target.value })}
                     required
                   >
-                    <option value="microphone">Microphone</option>
+                    <option value="mic">Microphone</option>
                     <option value="speaker">Speaker</option>
                     <option value="amplifier">Amplifier</option>
                     <option value="di_box">DI Box</option>

@@ -39,8 +39,8 @@ function SetupGenerator() {
     }
   }
 
-  // Get microphones from gear inventory
-  const microphones = gearList.filter(g => g.type === 'mic')
+  // Get microphones from gear inventory (handle both 'mic' and 'microphone' for backward compatibility)
+  const microphones = gearList.filter(g => g.type === 'mic' || g.type === 'microphone')
   // Get DI boxes from gear inventory  
   const diBoxes = gearList.filter(g => g.type === 'di_box')
 
