@@ -20,7 +20,7 @@ class SetupGenerator:
     def __init__(self):
         self.claude_service = ClaudeService()
 
-    def _build_system_prompt(self) -> str:
+    def _build_system_prompt(self, user_gear: List[Dict[str, Any]] = None) -> str:
         """Build the system prompt with QuPac knowledge and sound engineering best practices.
         
         The knowledge is loaded DYNAMICALLY from knowledge/sound-knowledge-base.md,
@@ -64,7 +64,106 @@ class SetupGenerator:
 2. Ground lift to eliminate hum
 3. Balanced output to QuPac XLR input
 
-## Speaker & Amplifier Knowledge
+"""
+
+        # Add user's gear inventory with learned settings (DYNAMIC!)
+        user_gear_section = ""
+        if user_gear:
+            user_gear_section = "\n## User's Gear Inventory (with Learned Settings)\n\n"
+            user_gear_section += "**IMPORTANT**: Use these settings from the user's actual gear inventory!\n\n"
+            
+            # Group gear by type
+            mics = [g for g in user_gear if g.get('type') in ('mic', 'microphone')]
+            di_boxes = [g for g in user_gear if g.get('type') == 'di_box']
+            speakers = [g for g in user_gear if g.get('type') == 'speaker']
+            amplifiers = [g for g in user_gear if g.get('type') == 'amplifier']
+            other_gear = [g for g in user_gear if g.get('type') not in ('mic', 'microphone', 'di_box', 'speaker', 'amplifier')]
+            
+            if mics:
+                user_gear_section += "### Microphones (User's Inventory)\n"
+                for mic in mics:
+                    brand = mic.get('brand', 'Unknown')
+                    model = mic.get('model', 'Unknown')
+                    qty = mic.get('quantity', 1)
+                    available = mic.get('quantity_available', qty)
+                    settings = mic.get('default_settings', {})
+                    
+                    user_gear_section += f"\n**{brand} {model}** (Available: {available})\n"
+                    
+                    if settings:
+                        if settings.get('characteristics'):
+                            user_gear_section += f"- Characteristics: {settings['characteristics']}\n"
+                        if settings.get('best_for'):
+                            user_gear_section += f"- Best for: {settings['best_for']}\n"
+                        if settings.get('settings_by_source'):
+                            user_gear_section += f"- Recommended settings by source type:\n"
+                            for source, source_settings in settings['settings_by_source'].items():
+                                user_gear_section += f"  - {source}: {json.dumps(source_settings)}\n"
+                    else:
+                        user_gear_section += "- (No learned settings yet - use default EQ)\n"
+                user_gear_section += "\n"
+            
+            if di_boxes:
+                user_gear_section += "### DI Boxes (User's Inventory)\n"
+                for di in di_boxes:
+                    brand = di.get('brand', 'Unknown')
+                    model = di.get('model', 'Unknown')
+                    qty = di.get('quantity', 1)
+                    available = di.get('quantity_available', qty)
+                    settings = di.get('default_settings', {})
+                    
+                    user_gear_section += f"\n**{brand} {model}** (Available: {available})\n"
+                    if settings:
+                        if settings.get('characteristics'):
+                            user_gear_section += f"- Characteristics: {settings['characteristics']}\n"
+                        if settings.get('best_for'):
+                            user_gear_section += f"- Best for: {settings['best_for']}\n"
+                    else:
+                        user_gear_section += "- (Use default DI settings)\n"
+                user_gear_section += "\n"
+            
+            if speakers:
+                user_gear_section += "### Speakers (User's Inventory)\n"
+                for spk in speakers:
+                    brand = spk.get('brand', 'Unknown')
+                    model = spk.get('model', 'Unknown')
+                    qty = spk.get('quantity', 1)
+                    settings = spk.get('default_settings', {})
+                    
+                    user_gear_section += f"\n**{brand} {model}** (Qty: {qty})\n"
+                    if settings:
+                        if settings.get('characteristics'):
+                            user_gear_section += f"- Characteristics: {settings['characteristics']}\n"
+                        if settings.get('best_for'):
+                            user_gear_section += f"- Best for: {settings['best_for']}\n"
+                user_gear_section += "\n"
+            
+            if amplifiers:
+                user_gear_section += "### Amplifiers (User's Inventory)\n"
+                for amp in amplifiers:
+                    brand = amp.get('brand', 'Unknown')
+                    model = amp.get('model', 'Unknown')
+                    qty = amp.get('quantity', 1)
+                    settings = amp.get('default_settings', {})
+                    
+                    user_gear_section += f"\n**{brand} {model}** (Qty: {qty})\n"
+                    if settings:
+                        if settings.get('watts_per_channel'):
+                            user_gear_section += f"- Power: {settings['watts_per_channel']}W per channel\n"
+                        if settings.get('channels'):
+                            user_gear_section += f"- Channels: {settings['channels']}\n"
+                        if settings.get('frequency_response'):
+                            user_gear_section += f"- Frequency Response: {settings['frequency_response']}\n"
+                        if settings.get('response_character'):
+                            user_gear_section += f"- Character: {settings['response_character']}\n"
+                        if settings.get('eq_compensation'):
+                            user_gear_section += f"- EQ Compensation: {settings['eq_compensation']}\n"
+                user_gear_section += "\n"
+            
+            if not mics and not di_boxes and not speakers and not amplifiers:
+                user_gear_section += "(No learned gear in inventory yet - using default knowledge base)\n\n"
+
+        speaker_section = """## Speaker & Amplifier Knowledge
 
 ### Speakers
 
@@ -161,8 +260,8 @@ Return a JSON object (no markdown, just raw JSON) with these keys:
 
 Keep response under 4000 tokens. Be concise but systematic!"""
 
-        # Combine: Equipment + Knowledge Base + Output Format
-        full_prompt = equipment_intro + "\n## Sound Engineering Knowledge Base (Loaded Dynamically)\n\n" + knowledge_base + output_format
+        # Combine: Equipment + User Gear + Knowledge Base + Output Format
+        full_prompt = equipment_intro + user_gear_section + speaker_section + "\n## Sound Engineering Knowledge Base (Loaded Dynamically)\n\n" + knowledge_base + output_format
         
         logger.info(f"Built system prompt: {len(full_prompt)} total characters")
         return full_prompt
@@ -306,14 +405,15 @@ Keep response under 4000 tokens. Be concise but systematic!"""
         location: Location,
         performers: List[Dict[str, Any]],
         past_setups: List[Setup],
-        user: User
+        user: User,
+        user_gear: List[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
         """Generate a mixer setup"""
         # Use user's API key if provided
         if user.api_key:
             self.claude_service = ClaudeService(api_key=user.api_key)
 
-        system_prompt = self._build_system_prompt()
+        system_prompt = self._build_system_prompt(user_gear=user_gear)
         user_prompt = self._build_user_prompt(location, performers, past_setups)
 
         # Get response from Claude

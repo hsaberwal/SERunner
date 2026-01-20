@@ -10,6 +10,7 @@ from app.database import get_db
 from app.models.user import User
 from app.models.setup import Setup
 from app.models.location import Location
+from app.models.gear import Gear
 from app.utils.auth import get_current_user
 from app.services.setup_generator import SetupGenerator
 from app.schemas import BaseResponseWithLocation
@@ -257,6 +258,28 @@ async def generate_setup(
         past_setups = past_setups_result.scalars().all()
         logger.info(f"Found {len(past_setups)} past rated setups for learning")
 
+        # Get user's gear inventory with learned settings
+        gear_result = await db.execute(
+            select(Gear).where(Gear.user_id == current_user.id)
+        )
+        gear_items = gear_result.scalars().all()
+        
+        # Convert gear to dict format for the generator
+        user_gear = []
+        for gear in gear_items:
+            gear_dict = {
+                "id": str(gear.id),
+                "type": gear.type,
+                "brand": gear.brand,
+                "model": gear.model,
+                "quantity": gear.quantity,
+                "specs": gear.specs,
+                "default_settings": gear.default_settings,
+                "notes": gear.notes
+            }
+            user_gear.append(gear_dict)
+        logger.info(f"Found {len(user_gear)} gear items in user's inventory")
+
         # Generate setup using Claude API
         logger.info(f"Generating setup for location {location.name} with {len(request.performers)} performers")
         generator = SetupGenerator()
@@ -264,7 +287,8 @@ async def generate_setup(
             location=location,
             performers=[p.model_dump() for p in request.performers],
             past_setups=past_setups,
-            user=current_user
+            user=current_user,
+            user_gear=user_gear
         )
         logger.info("Setup generated successfully from Claude API")
 
@@ -463,13 +487,36 @@ async def refresh_setup(
         past_setups = past_setups_result.scalars().all()
         logger.info(f"Refreshing setup {setup_id} with {len(past_setups)} past setups for learning")
 
+        # Get user's gear inventory with learned settings
+        gear_result = await db.execute(
+            select(Gear).where(Gear.user_id == current_user.id)
+        )
+        gear_items = gear_result.scalars().all()
+        
+        # Convert gear to dict format for the generator
+        user_gear = []
+        for gear in gear_items:
+            gear_dict = {
+                "id": str(gear.id),
+                "type": gear.type,
+                "brand": gear.brand,
+                "model": gear.model,
+                "quantity": gear.quantity,
+                "specs": gear.specs,
+                "default_settings": gear.default_settings,
+                "notes": gear.notes
+            }
+            user_gear.append(gear_dict)
+        logger.info(f"Found {len(user_gear)} gear items for refresh")
+
         # Regenerate using Claude API
         generator = SetupGenerator()
         setup_data = await generator.generate(
             location=location,
             performers=setup.performers or [],
             past_setups=past_setups,
-            user=current_user
+            user=current_user,
+            user_gear=user_gear
         )
         logger.info("Setup regenerated successfully from Claude API")
 
