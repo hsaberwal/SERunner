@@ -82,7 +82,7 @@ Feedback: 0-10%
 | Lead Vocal | -8 to -10 dB | OFF | Plate is vocal standard |
 | Backing Vocal | -12 dB | OFF | |
 | Speech/Podium | -15 dB | OFF | Clarity over ambience |
-| Ardas | -10 dB | OFF | Reverent but clear |
+| Ardas | -8 dB | -12 dB | Reverent with gentle space |
 | **Palki/Scripture** | **-8 dB** | **-8 dB** | **USE BOTH for sacred atmosphere!** |
 | **Flute** | OFF | **-6 to -8 dB** | **Flute loves space!** |
 | Dilruba/Esraj | OFF | -8 dB | Bowed strings like space |
@@ -416,8 +416,12 @@ Warmth: 250 Hz @ +2 dB
 Cut: 500 Hz @ -2 dB (reduce boxiness)
 Presence: 3 kHz @ +3 dB (clarity)
 Compression: 3:1, -10 dB threshold, 15ms attack, soft knee ON
-FOH Reverb: FX1 (Plate) @ -10 dB send (reverent but clear)
+
+*** FX ROUTING - USE BOTH (but less than Palki) ***
+FOH Reverb: FX1 (Plate) @ -8 dB + FX2 (Hall) @ -12 dB
 Monitor Reverb: OFF
+
+More reverb than speech, less than Palki - reverent with gentle space.
 ```
 
 ### Palki / Guru Granth Sahib Reading (THE WORD OF GOD)

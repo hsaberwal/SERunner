@@ -155,7 +155,7 @@ If subwoofer is present:
 | Lead Vocal | -8 to -10dB | OFF | Plate is vocal standard |
 | Backing Vocal | -12dB | OFF | |
 | Speech/Podium | -15dB or OFF | OFF | Clarity over ambience |
-| Ardas | -10dB | OFF | Reverent but clear |
+| Ardas | -8dB | -12dB | Reverent with gentle space |
 | **Palki/Scripture** | -8dB | -8dB | **BOTH FX for sacred atmosphere** |
 | **Flute** | OFF | **-6 to -8dB** | Flute loves space! |
 | Dilruba/Esraj | OFF | -8dB | Bowed strings like space |
@@ -338,14 +338,16 @@ Purpose: Clear speech delivery - intelligibility is critical, minimal reverb
 - Monitor Reverb: OFF (speaker needs clarity)
 
 ### Ardas Mic (Beta 58A)
-Purpose: Sikh prayer recitation - voice should linger with gentle reverb, warm and reverent
+Purpose: Sikh prayer recitation - voice should linger with gentle reverb, warm and reverent (MORE than speech, LESS than Palki)
 - HPF: 90 Hz
 - Band 1: 250 Hz, +2 dB, MEDIUM width (affects ~170-375Hz) - warmth
 - Band 2: 500 Hz, -2 dB, MEDIUM width (affects ~335-750Hz) - reduce boxiness
 - Band 3: 3 kHz, +3 dB, MEDIUM width (affects ~2-4.5kHz) - clarity
 - Band 4: 8 kHz, +2 dB, WIDE width (affects ~5.3-12kHz) - gentle presence
 - Compression: 3:1, -10dB threshold, 15ms attack, 100ms release, soft knee, +2dB gain, Manual RMS
-- FOH Reverb: FX1 (Plate) @ -8dB send (noticeable reverb, voice lingers respectfully)
+- **FOH Reverb: Use BOTH FX for reverent atmosphere (but less than Palki):**
+  - FX1 (Plate) @ -8dB send - primary warmth
+  - FX2 (Hall Medium) @ -12dB send - gentle space (lower than Palki's -8dB)
 - Monitor Reverb: OFF
 
 ### Palki / Guru Granth Sahib Reading (Beta 58A)
