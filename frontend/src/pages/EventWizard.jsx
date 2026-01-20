@@ -566,6 +566,53 @@ function EventWizard() {
         </ol>
       </div>
 
+      <div className="instruction-box" style={{ background: '#f0fdf4', borderColor: '#22c55e' }}>
+        <h4>🎛️ Configure FX Engines</h4>
+        <p style={{ marginBottom: '0.75rem' }}>Set up your 4 FX engines before soundcheck:</p>
+        
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.75rem' }}>
+          <div style={{ background: 'white', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #e5e7eb' }}>
+            <strong style={{ color: '#3b82f6' }}>FX1: Plate (FOH Vocals)</strong>
+            <ul style={{ margin: '0.5rem 0 0 0', paddingLeft: '1rem', fontSize: '0.85rem' }}>
+              <li>Decay: 1.8 - 2.2s</li>
+              <li>Pre-delay: 30-50ms</li>
+              <li>HF Damp: Medium</li>
+            </ul>
+          </div>
+          
+          <div style={{ background: 'white', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #e5e7eb' }}>
+            <strong style={{ color: '#8b5cf6' }}>FX2: Small Hall (FOH Ambient)</strong>
+            <ul style={{ margin: '0.5rem 0 0 0', paddingLeft: '1rem', fontSize: '0.85rem' }}>
+              <li>Decay: 2.0 - 2.5s</li>
+              <li>Pre-delay: 20-30ms</li>
+              <li>Use for: instruments</li>
+            </ul>
+          </div>
+          
+          <div style={{ background: 'white', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #e5e7eb' }}>
+            <strong style={{ color: '#f59e0b' }}>FX3: Room (Monitor Reverb)</strong>
+            <ul style={{ margin: '0.5rem 0 0 0', paddingLeft: '1rem', fontSize: '0.85rem' }}>
+              <li>Decay: 0.8 - 1.2s <strong>(SHORT!)</strong></li>
+              <li>Route to: Mixes only</li>
+              <li>Vocals only, if requested</li>
+            </ul>
+          </div>
+          
+          <div style={{ background: 'white', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #e5e7eb' }}>
+            <strong style={{ color: '#6b7280' }}>FX4: Available</strong>
+            <ul style={{ margin: '0.5rem 0 0 0', paddingLeft: '1rem', fontSize: '0.85rem' }}>
+              <li>Optional: Slapback delay</li>
+              <li>Time: 80-120ms</li>
+              <li>Or keep as backup</li>
+            </ul>
+          </div>
+        </div>
+        
+        <p style={{ marginTop: '0.75rem', fontSize: '0.85rem', color: '#374151' }}>
+          <strong>Tip:</strong> Set FX Return levels in LR view to 0dB. Both Send AND Return must be up to hear FX.
+        </p>
+      </div>
+
       {selectedLocation?.notes && (
         <div className="info-box warning">
           <h4>Previous Notes for This Venue</h4>

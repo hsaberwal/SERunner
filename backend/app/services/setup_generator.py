@@ -143,6 +143,29 @@ If subwoofer is present:
 - FX Return in LR view = brings it back into LR mix
 - Both Send and Return in LR view must be up, or you won't hear any FX
 
+### FX Engine Assignments (STANDARD SETUP)
+- **FX1: Plate Reverb** (FOH Vocals) - Decay 1.8-2.2s, Pre-delay 30-50ms
+- **FX2: Small Hall** (FOH Instruments) - Decay 2.0-2.5s, Pre-delay 20-30ms
+- **FX3: Room** (Monitor Reverb) - Decay 0.8-1.2s SHORT!, Route to Mixes ONLY
+- **FX4: Available** (Delay or backup)
+
+### FOH Send Guidelines
+| Source Type | FX1 (Plate) | FX2 (Hall) |
+|-------------|-------------|------------|
+| Lead Vocal | -8 to -10dB | OFF |
+| Backing Vocal | -12dB | OFF |
+| Speech/Podium | -15dB or OFF | OFF |
+| Flute | OFF | -8dB |
+| Strings (Dilruba, etc) | OFF | -8 to -12dB |
+| Harmonium | OFF | -15dB |
+| Tabla | OFF | -20dB |
+| Guitar | OFF | -12dB |
+
+### Monitor Send Guidelines (FX3 Only)
+- **Vocals**: -12 to -15dB IF requested (start with OFF)
+- **Instruments**: OFF (musicians need dry signal for timing)
+- **Speech**: OFF (speakers need clarity)
+
 ## Sound Engineering Best Practices from Live Sessions
 
 ### PEQ Width Guide for QuPac (NO Q NUMBERS!)
@@ -174,7 +197,8 @@ Width descriptions:
 - Band 3: 4.5 kHz, +4.5 dB, MEDIUM width (affects ~3-6.7kHz) - presence
 - Band 4: 10 kHz, +2 dB, WIDE width (affects ~6.5-15kHz) - air
 - Compression: 4:1, -8dB threshold, 15ms attack, 100ms release, soft knee, +3dB gain, Manual RMS
-- Reverb: Hall Small/Stage @ -10 dB send
+- FOH Reverb: FX1 (Plate) @ -8 to -10dB send
+- Monitor Reverb: FX3 (Room) @ -12 to -15dB IF requested
 
 ### Male Vocal (Shure Beta 58A)
 - HPF: 75 Hz
@@ -183,7 +207,8 @@ Width descriptions:
 - Band 3: 3 kHz, +4 dB, MEDIUM width (affects ~2-4.5kHz) - presence
 - Band 4: 9.5 kHz, +3 dB, WIDE width (affects ~6-15kHz) - air
 - Compression: 4:1, -8dB threshold, 15ms attack, 100ms release, soft knee, +3dB gain, Manual RMS
-- Reverb: Hall Small/Stage @ -10 dB send
+- FOH Reverb: FX1 (Plate) @ -8 to -10dB send
+- Monitor Reverb: FX3 (Room) @ -12 to -15dB IF requested
 
 ### Flute (Beta 57A)
 - HPF: 90 Hz
@@ -192,7 +217,8 @@ Width descriptions:
 - Band 3: 5 kHz, +2 dB, WIDE width (affects ~3.3-7.5kHz) - articulation
 - Band 4: 9 kHz, +5 dB, WIDE width (affects ~6-14kHz) - CRITICAL: add air
 - Compression: 3:1, -9dB threshold, 17ms attack, 100ms release, soft knee, +2dB gain, Manual RMS
-- Reverb: Arena @ -5 dB send (flute likes space)
+- FOH Reverb: FX2 (Small Hall) @ -8dB send (flute likes space)
+- Monitor Reverb: OFF (musicians need dry signal)
 
 ### Tabla (Beta 57A)
 - HPF: OFF (keep the lows!)
@@ -201,7 +227,8 @@ Width descriptions:
 - Band 3: 2.5 kHz, +3 dB, MEDIUM width (affects ~1.7-3.7kHz) - attack definition
 - Band 4: 8 kHz, +1.5 dB, WIDE width (affects ~5.3-12kHz) - harmonics
 - Compression: 4:1, -9dB threshold, 6ms attack (FAST!), 100ms release, hard knee, +4dB gain, Manual Peak
-- Reverb: Hall Small/Stage @ -20 dB send (subtle)
+- FOH Reverb: FX2 (Small Hall) @ -20dB send (very subtle)
+- Monitor Reverb: OFF (tabla player needs dry signal)
 
 ### Acoustic Guitar (DI/Piezo)
 - HPF: 82 Hz
@@ -210,7 +237,8 @@ Width descriptions:
 - Band 3: 5 kHz, +2 dB, WIDE width (affects ~3.3-7.5kHz) - string definition
 - Band 4: 9 kHz, +4.5 dB, WIDE width (affects ~6-14kHz) - shimmer
 - Compression: 3:1, -11dB threshold, 13ms attack, 100ms release, soft knee, +2dB gain, Manual RMS
-- Reverb: Hall Small/Stage @ -15 dB send
+- FOH Reverb: FX2 (Small Hall) @ -12dB send
+- Monitor Reverb: OFF
 - DI Box: Radial PZ-DI or SB-4, Ground LIFT, Pad OFF
 
 ### Rabab / Rubab (DI/Piezo)
@@ -220,7 +248,8 @@ Width descriptions:
 - Band 3: 4 kHz, +3 dB, MEDIUM width (affects ~2.7-6kHz) - pluck definition
 - Band 4: 8 kHz, +3 dB, WIDE width (affects ~5.3-12kHz) - sympathetic shimmer
 - Compression: 3:1, -10dB threshold, 12ms attack, 100ms release, soft knee, +2dB gain, Manual RMS
-- Reverb: Hall Small/Stage @ -12 dB send
+- FOH Reverb: FX2 (Small Hall) @ -10dB send
+- Monitor Reverb: OFF
 - DI Box: Radial PZ-DI or SB-4, Ground LIFT, Pad OFF
 
 ### Dilruba / Esraj (DI/Piezo)
@@ -230,7 +259,8 @@ Width descriptions:
 - Band 3: 2.5 kHz, -4 dB, NARROW width (affects ~1.9-3.3kHz) - piezo quack
 - Band 4: 6 kHz, +4 dB, WIDE width (affects ~4-9kHz) - bowing articulation
 - Compression: 2.5:1, -12dB threshold, 20ms attack, 150ms release, soft knee, +2dB gain, Manual RMS
-- Reverb: Arena @ -8 dB send (bowed strings love space)
+- FOH Reverb: FX2 (Small Hall) @ -8dB send (bowed strings like space)
+- Monitor Reverb: OFF
 - DI Box: Radial PZ-DI or SB-4, Ground LIFT, Pad OFF
 
 ### Taus / Mayuri (DI/Piezo)
@@ -240,7 +270,8 @@ Width descriptions:
 - Band 3: 2.5 kHz, -4 dB, NARROW width (affects ~1.9-3.3kHz) - piezo quack
 - Band 4: 5 kHz, +3 dB, WIDE width (affects ~3.3-7.5kHz) - bow articulation
 - Compression: 2.5:1, -12dB threshold, 25ms attack, 150ms release, soft knee, +2dB gain, Manual RMS
-- Reverb: Arena @ -8 dB send
+- FOH Reverb: FX2 (Small Hall) @ -8dB send
+- Monitor Reverb: OFF
 - DI Box: Radial PZ-DI or SB-4, Ground LIFT, Pad OFF
 
 ### Violin (DI/Piezo)
@@ -250,7 +281,8 @@ Width descriptions:
 - Band 3: 5 kHz, +3 dB, MEDIUM width (affects ~3.3-7.5kHz) - bow articulation
 - Band 4: 10 kHz, +4 dB, WIDE width (affects ~6.5-15kHz) - brilliance
 - Compression: 3:1, -10dB threshold, 15ms attack, 100ms release, soft knee, +2dB gain, Manual RMS
-- Reverb: Hall Small/Stage @ -10 dB send
+- FOH Reverb: FX2 (Small Hall) @ -10dB send
+- Monitor Reverb: OFF
 - DI Box: Radial PZ-DI or SB-4, Ground LIFT, Pad OFF
 
 ### Sarangi (DI/Piezo)
@@ -260,7 +292,8 @@ Width descriptions:
 - Band 3: 2.5 kHz, -4 dB, NARROW width (affects ~1.9-3.3kHz) - piezo quack
 - Band 4: 7 kHz, +5 dB, WIDE width (affects ~4.6-10.5kHz) - sympathetic strings
 - Compression: 2.5:1, -11dB threshold, 18ms attack, 120ms release, soft knee, +2dB gain, Manual RMS
-- Reverb: Arena @ -6 dB send
+- FOH Reverb: FX2 (Small Hall) @ -8dB send
+- Monitor Reverb: OFF
 - DI Box: Radial PZ-DI or SB-4, Ground LIFT, Pad OFF
 
 ### Harmonium (Direct/DI or Mic)
@@ -270,7 +303,8 @@ Width descriptions:
 - Band 3: 2 kHz, +2 dB, MEDIUM width (affects ~1.3-3kHz) - note clarity
 - Band 4: 6 kHz, +3 dB, WIDE width (affects ~4-9kHz) - bellows air
 - Compression: 3:1, -10dB threshold, 20ms attack, 150ms release, soft knee, +2dB gain, Manual RMS
-- Reverb: Hall Small/Stage @ -15 dB send
+- FOH Reverb: FX2 (Small Hall) @ -15dB send
+- Monitor Reverb: OFF
 - If using mic (Beta 57A): position 6-8 inches from reeds, angled
 
 ### Keyboard/Synth (Direct/DI)
@@ -280,7 +314,8 @@ Width descriptions:
 - Band 3: 3 kHz, +2 dB, MEDIUM width (affects ~2-4.5kHz) - presence
 - Band 4: 10 kHz, +2 dB, WIDE width (affects ~6.5-15kHz) - sparkle
 - Compression: 2:1, -12dB threshold, 20ms attack, 150ms release, soft knee, +1dB gain, Manual RMS
-- Reverb: Depends on patch - often OFF if patch has built-in reverb
+- FOH Reverb: Often OFF if patch has built-in reverb, otherwise FX2 @ -15dB
+- Monitor Reverb: OFF
 
 ### Podium / Speech Mic (Beta 58A)
 Purpose: Clear speech delivery - intelligibility is critical, minimal reverb
@@ -290,7 +325,8 @@ Purpose: Clear speech delivery - intelligibility is critical, minimal reverb
 - Band 3: 3.5 kHz, +5 dB, MEDIUM width (affects ~2.3-5.2kHz) - CRITICAL: speech clarity
 - Band 4: 8 kHz, +2 dB, WIDE width (affects ~5.3-12kHz) - articulation, consonants
 - Compression: 4:1, -10dB threshold, 10ms attack, 100ms release, soft knee, +3dB gain, Manual RMS
-- Reverb: OFF or very minimal (-25dB send) - clarity over ambience
+- FOH Reverb: OFF or FX1 (Plate) @ -20dB (very minimal)
+- Monitor Reverb: OFF (speaker needs clarity)
 
 ### Ardas Mic (Beta 58A)
 Purpose: Sikh prayer recitation - voice should linger with gentle reverb, warm and reverent
@@ -300,7 +336,8 @@ Purpose: Sikh prayer recitation - voice should linger with gentle reverb, warm a
 - Band 3: 3 kHz, +3 dB, MEDIUM width (affects ~2-4.5kHz) - clarity
 - Band 4: 8 kHz, +2 dB, WIDE width (affects ~5.3-12kHz) - gentle presence
 - Compression: 3:1, -10dB threshold, 15ms attack, 100ms release, soft knee, +2dB gain, Manual RMS
-- Reverb: Hall Medium @ -8 dB send (noticeable reverb, voice lingers respectfully)
+- FOH Reverb: FX1 (Plate) @ -8dB send (noticeable reverb, voice lingers respectfully)
+- Monitor Reverb: OFF
 
 ### Palki / Guru Granth Sahib Reading (Beta 58A)
 Purpose: Sacred scripture reading - requires significant reverb for divine atmosphere
@@ -310,16 +347,22 @@ Purpose: Sacred scripture reading - requires significant reverb for divine atmos
 - Band 3: 2.5 kHz, +3 dB, MEDIUM width (affects ~1.7-3.7kHz) - presence without harshness
 - Band 4: 7 kHz, +2 dB, WIDE width (affects ~4.6-10.5kHz) - subtle air
 - Compression: 3:1, -12dB threshold, 20ms attack, 150ms release, soft knee, +2dB gain, Manual RMS
-- Reverb: Arena @ -5 dB send (HIGH reverb - creates sacred, ethereal atmosphere)
-- Note: The high reverb is intentional - scripture reading should fill the space reverently
+- FOH Reverb: FX1 (Plate) @ -5dB send + FX2 (Hall) @ -10dB send (rich reverb for sacred atmosphere)
+- Monitor Reverb: OFF
+- Note: The higher reverb is intentional - scripture reading should fill the space reverently
 
 ## Key Principles
 
-1. **Don't Double-Reverb**: Keep instruments in separate reverb spaces. If a vocal is in both FX1 and FX2, it sounds washy.
-2. **FX Strategy**: Use FX1 (Arena) for instruments wanting big space (flute). Use FX2 (Hall Small/Stage) for vocals, tabla, guitar.
-3. **Beta 57 on Flute**: Always boost 8-10 kHz heavily - Beta 57 lacks natural airiness on flute.
-4. **Direct Acoustic Guitar**: ALWAYS cut 2-3 kHz to remove piezo quack.
-5. **Tabla Compression**: Fast attack (6ms) + soft knee OFF = preserves punch.
+1. **Don't Double-Reverb**: Keep instruments in separate reverb spaces. Vocal in both FX1 and FX2 sounds washy.
+2. **FX Strategy**: 
+   - FX1 (Plate): Vocals only - smooth, dense, musical
+   - FX2 (Small Hall): Instruments - flute, strings, harmonium, tabla (subtle)
+   - FX3 (Room): Monitor reverb ONLY - short decay, vocals if requested
+   - FX4: Available for delay or backup
+3. **Monitor FX Rule**: Most performers DON'T need reverb in monitors. Start with FX3 OFF, add only if requested.
+4. **Beta 57 on Flute**: Always boost 8-10 kHz heavily - Beta 57 lacks natural airiness on flute.
+5. **Direct Acoustic Guitar**: ALWAYS cut 2-3 kHz to remove piezo quack.
+6. **Tabla Compression**: Fast attack (6ms) + soft knee OFF = preserves punch.
 
 ## Troubleshooting Quick Reference
 
@@ -376,7 +419,7 @@ Return a JSON object (no markdown, just raw JSON) with these keys:
 
 4. **fx_settings**: dict with FX engine config and per-channel sends:
    ```
-   {"fx1": "Arena Reverb", "fx2": "Hall Small", "sends": {"1": {"fx1": "off", "fx2": "-10dB"}, "2": {"fx1": "-5dB", "fx2": "off"}}}
+   {"fx1": "Plate Reverb (FOH Vocals)", "fx2": "Small Hall (FOH Instruments)", "fx3": "Room (Monitor Reverb)", "fx4": "Available", "sends": {"1": {"fx1": "-10dB", "fx2": "off", "fx3": "-15dB"}, "2": {"fx1": "off", "fx2": "-8dB", "fx3": "off"}}}
    ```
 
 5. **instructions**: A SYSTEMATIC step-by-step guide in this EXACT format:

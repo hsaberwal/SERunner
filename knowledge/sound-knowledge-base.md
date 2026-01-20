@@ -25,21 +25,77 @@ Adjust proportionally if overall FX is too loud/quiet.
 
 ---
 
-## FX Assignments
+## FX Assignments (QuPac 4 FX Engines)
 
-### Reverb Strategy: Keep Instruments in Separate Spaces
-- **FX1 (Arena)**: Flute only — wants big, spacious reverb
-- **FX2 (Hall Small/Stage)**: Vocals, Tabla, Guitar — more intimate, focused space
+### FOH Reverb Strategy
+- **FX1 (Plate)**: Primary vocal reverb — smooth, dense, musical
+- **FX2 (Small Hall)**: Secondary/ambient — instruments, special moments
+
+### Monitor Reverb Strategy
+- **FX3 (Room/Short Plate)**: Monitor reverb — short decay, vocals only
+- **FX4 (Available)**: Slapback delay or backup
 
 **Important**: Don't double-reverb! If vocal is in both FX1 and FX2, it sounds distant and washy. Keep them separate.
 
-### Send Levels (Channel → FX)
-| Channel | FX1 Send (Arena) | FX2 Send (Hall Small/Stage) |
-|---------|------------------|------------------------------|
-| Flute | -5 dB | OFF |
-| Vocal | OFF | -10 dB |
-| Tabla | OFF | -20 dB |
-| Guitar | -15 to -18 dB | -15 dB |
+### Recommended FX Settings
+
+#### FX1: Plate Reverb (FOH Primary)
+```
+Type: Plate
+Decay: 1.8 - 2.2 seconds
+Pre-delay: 30-50ms (keeps vocals upfront)
+HF Damping: Medium
+Diffusion: High
+```
+**Why Plate?** Industry standard for live vocals. Dense and musical without getting washy. Sits well in the mix.
+
+#### FX2: Small Hall (FOH Secondary)
+```
+Type: Small Hall or Chamber
+Decay: 2.0 - 2.5 seconds
+Pre-delay: 20-30ms
+HF Damping: Medium-High
+```
+**Use for:** Harmonium (subtle), string instruments, special moments (Ardas, key shabads)
+
+#### FX3: Room (Monitor Reverb)
+```
+Type: Room or Short Plate
+Decay: 0.8 - 1.2 seconds (SHORT!)
+Pre-delay: 15-25ms
+HF Damping: High (reduce harshness in wedges)
+Route: Monitor mixes ONLY (not LR)
+```
+**Critical:** Keep monitor reverb short to avoid feedback and timing issues.
+
+#### FX4: Available (Optional Delay)
+```
+Type: Mono Delay (if used)
+Time: 80-120ms (slapback)
+Feedback: 0-10%
+```
+**Use case:** Some vocalists prefer slapback over reverb in monitors.
+
+### FOH Send Levels (Channel → FX1/FX2)
+| Channel | FX1 Send (Plate) | FX2 Send (Hall) |
+|---------|------------------|-----------------|
+| Lead Vocal | -8 to -10 dB | OFF |
+| Backing Vocal | -12 dB | OFF |
+| Flute | OFF | -8 dB |
+| Harmonium | OFF | -15 dB |
+| Tabla | OFF | -20 dB (subtle) |
+| Guitar | OFF | -12 dB |
+| Speech/Podium | -15 dB (very subtle) | OFF |
+
+### Monitor Send Levels (Channel → FX3)
+| Channel | FX3 Send (Monitor Reverb) |
+|---------|---------------------------|
+| Lead Vocal | -12 to -15 dB |
+| Backing Vocal | -18 dB or OFF |
+| Instruments | OFF (musicians need dry signal) |
+| Speech/Podium | OFF |
+
+**Note:** Most performers only need a touch of reverb in monitors. Start with FX3 OFF and add only if requested.
 
 ---
 
@@ -285,7 +341,8 @@ Cut: 600-700 Hz @ -4 to -5 dB
 Boost: 300-350 Hz @ +2 to +3 dB
 Presence: 4-5 kHz @ +4 to +5 dB
 Compression: 4:1, -8 dB threshold, 15ms attack, soft knee ON
-Reverb: Hall Small/Stage @ -10 dB send
+FOH Reverb: FX1 (Plate) @ -8 to -10 dB send
+Monitor Reverb: FX3 (Room) @ -12 to -15 dB send (if requested)
 ```
 
 ### New Male Vocalist
@@ -296,7 +353,8 @@ Boost: 200-260 Hz @ +2 to +3 dB
 Presence: 2.5-3.5 kHz @ +4 dB
 Air: 9-10 kHz @ +3 dB
 Compression: 4:1, -8 dB threshold, 15ms attack, soft knee ON
-Reverb: Hall Small/Stage @ -10 dB send
+FOH Reverb: FX1 (Plate) @ -8 to -10 dB send
+Monitor Reverb: FX3 (Room) @ -12 to -15 dB send (if requested)
 ```
 
 ### New Flute (Beta 57)
@@ -306,7 +364,8 @@ Cut: 250-300 Hz @ -3 dB (remove mud)
 Cut: 2.5-3 kHz @ -3 dB (reduce harshness)
 Boost: 8-10 kHz @ +4 dB (add air)
 Compression: 3:1, -9 dB threshold, 17ms attack, soft knee ON
-Reverb: Arena @ -5 dB send (flute likes space)
+FOH Reverb: FX2 (Small Hall) @ -8 dB send (flute likes space)
+Monitor Reverb: OFF (musicians need dry signal for timing)
 ```
 
 ### New Tabla (Beta 57)
@@ -316,7 +375,8 @@ Boost: 60 Hz @ +2-3 dB (sub-bass)
 Boost: 200-250 Hz @ +6 to +10 dB (body — adjust to taste)
 Optional: 2-3 kHz @ +3 dB (attack definition)
 Compression: 4:1, -9 dB threshold, 6ms attack, soft knee OFF
-Reverb: Hall Small/Stage @ -20 dB send (subtle)
+FOH Reverb: FX2 (Small Hall) @ -20 dB send (very subtle)
+Monitor Reverb: OFF (tabla player needs dry signal)
 ```
 
 ### New Acoustic Guitar (DI)
@@ -326,7 +386,18 @@ Boost: 150-180 Hz @ +3 dB (body)
 Cut: 2.5-3 kHz @ -3 to -4 dB (CRITICAL: piezo quack)
 Boost: 8-10 kHz @ +4 to +5 dB (shimmer)
 Compression: 3:1, -11 dB threshold, 13ms attack, soft knee ON
-Reverb: Hall Small/Stage @ -15 dB send
+FOH Reverb: FX2 (Small Hall) @ -12 dB send
+Monitor Reverb: OFF
+```
+
+### Speech/Podium/Ardas
+```
+HPF: 100-120 Hz (higher to remove all rumble)
+Cut: 300-400 Hz @ -3 dB (reduce boominess)
+Presence: 3-4 kHz @ +3 dB (clarity)
+Compression: 3:1, -10 dB threshold, 20ms attack, soft knee ON
+FOH Reverb: FX1 (Plate) @ -15 dB send (VERY subtle, or OFF)
+Monitor Reverb: OFF (speaker needs clarity)
 ```
 
 ---
