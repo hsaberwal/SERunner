@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { locations, setups, gear } from '../services/api'
 import Navigation from '../components/Navigation'
 import LocationForm, { getEmptyLocationData, geqFrequencies, emptyPEQ, peqWidthOptions } from '../components/LocationForm'
+import GeneratingOverlay from '../components/GeneratingOverlay'
 
 // Phase definitions
 const PHASES = [
@@ -21,7 +22,6 @@ function EventWizard() {
   const [gearList, setGearList] = useState([])
   const [selectedLocation, setSelectedLocation] = useState(null)
   const [loading, setLoading] = useState(false)
-  const [loadingMessage, setLoadingMessage] = useState('')
   const [generatedSetupId, setGeneratedSetupId] = useState(null)
   const [showNewLocation, setShowNewLocation] = useState(false)
   const [creatingLocation, setCreatingLocation] = useState(false)
@@ -372,32 +372,9 @@ function EventWizard() {
     }
 
     setLoading(true)
-    setLoadingMessage('Preparing your setup request...')
 
     try {
-      const messageTimer = setTimeout(() => {
-        setLoadingMessage('Analyzing performer lineup and venue details...')
-      }, 2000)
-
-      const messageTimer2 = setTimeout(() => {
-        setLoadingMessage('Claude is generating your QuPac configuration...')
-      }, 5000)
-
-      const messageTimer3 = setTimeout(() => {
-        setLoadingMessage('Almost there... building detailed instructions...')
-      }, 15000)
-
-      const messageTimer4 = setTimeout(() => {
-        setLoadingMessage('Still working... complex setups take a bit longer...')
-      }, 30000)
-
       const response = await setups.generate(eventData)
-
-      clearTimeout(messageTimer)
-      clearTimeout(messageTimer2)
-      clearTimeout(messageTimer3)
-      clearTimeout(messageTimer4)
-
       setGeneratedSetupId(response.data.id)
       setPhaseCompleted({ ...phaseCompleted, 5: true })
       setCurrentPhase(6)
@@ -405,7 +382,6 @@ function EventWizard() {
       alert('Failed to generate setup: ' + (error.response?.data?.detail || error.message))
     } finally {
       setLoading(false)
-      setLoadingMessage('')
     }
   }
 
@@ -1351,19 +1327,9 @@ function EventWizard() {
   return (
     <>
       <Navigation />
+      <GeneratingOverlay isVisible={loading} />
       <div className="container">
         <h1 style={{ marginBottom: '1rem' }}>Event Setup Wizard</h1>
-
-        {/* Loading Overlay */}
-        {loading && (
-          <div className="loading-overlay">
-            <div className="loading-content">
-              <div className="loading-spinner"></div>
-              <p className="loading-message">{loadingMessage}</p>
-              <p className="loading-tip">This typically takes 15-45 seconds</p>
-            </div>
-          </div>
-        )}
 
         {/* Phase Progress */}
         <div className="phase-progress">
@@ -1730,62 +1696,6 @@ function EventWizard() {
         .btn-large {
           padding: 1rem 2rem;
           font-size: 1.1rem;
-        }
-
-        /* Loading Overlay Styles */
-        .loading-overlay {
-          position: fixed;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background: rgba(0, 0, 0, 0.5);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          z-index: 1000;
-          backdrop-filter: blur(4px);
-        }
-
-        .loading-content {
-          background: #ffffff;
-          padding: 2.5rem 3rem;
-          border-radius: 1rem;
-          text-align: center;
-          max-width: 90%;
-          min-width: 320px;
-          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
-          border: 1px solid #e5e7eb;
-        }
-
-        .loading-spinner {
-          width: 60px;
-          height: 60px;
-          border: 4px solid #e5e7eb;
-          border-top-color: #3b82f6;
-          border-radius: 50%;
-          animation: spin 1s linear infinite;
-          margin: 0 auto 1.5rem;
-        }
-
-        @keyframes spin {
-          to {
-            transform: rotate(360deg);
-          }
-        }
-
-        .loading-message {
-          font-size: 1.1rem;
-          color: #1f2937;
-          margin-bottom: 0.75rem;
-          min-height: 1.5em;
-          font-weight: 500;
-        }
-
-        .loading-tip {
-          font-size: 0.85rem;
-          color: #6b7280;
-          margin: 0;
         }
 
         /* Matching Setup Banner Styles */

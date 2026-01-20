@@ -3,13 +3,13 @@ import { useNavigate } from 'react-router-dom'
 import { locations, setups, gear } from '../services/api'
 import Navigation from '../components/Navigation'
 import LocationForm, { getEmptyLocationData } from '../components/LocationForm'
+import GeneratingOverlay from '../components/GeneratingOverlay'
 
 function SetupGenerator() {
   const navigate = useNavigate()
   const [locationList, setLocationList] = useState([])
   const [gearList, setGearList] = useState([])
   const [loading, setLoading] = useState(false)
-  const [loadingMessage, setLoadingMessage] = useState('')
   const [showNewLocation, setShowNewLocation] = useState(false)
   const [creatingLocation, setCreatingLocation] = useState(false)
   const [formData, setFormData] = useState({
@@ -257,59 +257,23 @@ function SetupGenerator() {
     }
 
     setLoading(true)
-    setLoadingMessage('Preparing your setup request...')
 
     try {
-      // Update loading messages to show progress
-      const messageTimer = setTimeout(() => {
-        setLoadingMessage('Analyzing performer lineup and venue details...')
-      }, 2000)
-
-      const messageTimer2 = setTimeout(() => {
-        setLoadingMessage('Claude is generating your QuPac configuration...')
-      }, 5000)
-
-      const messageTimer3 = setTimeout(() => {
-        setLoadingMessage('Almost there... building detailed instructions...')
-      }, 15000)
-
-      const messageTimer4 = setTimeout(() => {
-        setLoadingMessage('Still working... complex setups take a bit longer...')
-      }, 30000)
-
       const response = await setups.generate(formData)
-
-      // Clear all timers
-      clearTimeout(messageTimer)
-      clearTimeout(messageTimer2)
-      clearTimeout(messageTimer3)
-      clearTimeout(messageTimer4)
-
       navigate(`/setup/${response.data.id}`)
     } catch (error) {
       alert('Failed to generate setup: ' + (error.response?.data?.detail || error.message))
     } finally {
       setLoading(false)
-      setLoadingMessage('')
     }
   }
 
   return (
     <>
       <Navigation />
+      <GeneratingOverlay isVisible={loading} />
       <div className="container">
         <h1 style={{ marginBottom: '2rem' }}>Quick Generate Setup</h1>
-
-        {/* Loading Overlay */}
-        {loading && (
-          <div className="loading-overlay">
-            <div className="loading-content">
-              <div className="loading-spinner"></div>
-              <p className="loading-message">{loadingMessage}</p>
-              <p className="loading-tip">This typically takes 15-45 seconds</p>
-            </div>
-          </div>
-        )}
 
         <div className="card">
           <form onSubmit={handleSubmit}>
