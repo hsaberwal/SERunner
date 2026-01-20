@@ -22,15 +22,34 @@ export const knownSpeakers = [
 ]
 
 export const knownAmps = [
-  { value: '', label: 'Select or type custom...' },
-  { value: 'Crown XTi 1002', label: 'Crown XTi 1002' },
-  { value: 'Crown XTi 2002', label: 'Crown XTi 2002' },
-  { value: 'Crown XTi 4002', label: 'Crown XTi 4002' },
-  { value: 'Crown XLS 1002', label: 'Crown XLS 1002' },
-  { value: 'Crown XLS 1502', label: 'Crown XLS 1502' },
-  { value: 'Crown XLS 2002', label: 'Crown XLS 2002' },
-  { value: 'Crown CDi 1000', label: 'Crown CDi 1000 (70V)' },
-  { value: 'custom', label: 'Other (type below)' }
+  { value: '', label: 'Select or type custom...', watts: '', channels: '' },
+  // Crown XTi Series - with DSP
+  { value: 'Crown XTi 1002', label: 'Crown XTi 1002', watts: '500W x2 @ 4Ω', channels: '2' },
+  { value: 'Crown XTi 2002', label: 'Crown XTi 2002', watts: '800W x2 @ 4Ω', channels: '2' },
+  { value: 'Crown XTi 4002', label: 'Crown XTi 4002', watts: '1200W x2 @ 4Ω', channels: '2' },
+  // Crown XLS Series - DriveCore
+  { value: 'Crown XLS 1002', label: 'Crown XLS 1002', watts: '350W x2 @ 4Ω', channels: '2' },
+  { value: 'Crown XLS 1502', label: 'Crown XLS 1502', watts: '525W x2 @ 4Ω', channels: '2' },
+  { value: 'Crown XLS 2002', label: 'Crown XLS 2002', watts: '650W x2 @ 4Ω', channels: '2' },
+  { value: 'Crown XLS 2502', label: 'Crown XLS 2502', watts: '775W x2 @ 4Ω', channels: '2' },
+  // Crown CDi Series - Install/70V
+  { value: 'Crown CDi 1000', label: 'Crown CDi 1000 (70V)', watts: '500W x2 @ 4Ω / 70V', channels: '2' },
+  { value: 'Crown CDi 2000', label: 'Crown CDi 2000 (70V)', watts: '800W x2 @ 4Ω / 70V', channels: '2' },
+  // QSC GX Series
+  { value: 'QSC GX3', label: 'QSC GX3', watts: '425W x2 @ 4Ω', channels: '2' },
+  { value: 'QSC GX5', label: 'QSC GX5', watts: '700W x2 @ 4Ω', channels: '2' },
+  { value: 'QSC GX7', label: 'QSC GX7', watts: '1000W x2 @ 4Ω', channels: '2' },
+  // QSC PLD Series
+  { value: 'QSC PLD4.2', label: 'QSC PLD4.2', watts: '400W x4 @ 4Ω', channels: '4' },
+  { value: 'QSC PLD4.5', label: 'QSC PLD4.5', watts: '1150W x4 @ 4Ω', channels: '4' },
+  // Powersoft
+  { value: 'Powersoft T304', label: 'Powersoft T304', watts: '300W x4 @ 4Ω', channels: '4' },
+  { value: 'Powersoft T602', label: 'Powersoft T602', watts: '300W x2 + 600W x2 @ 4Ω', channels: '4' },
+  // Yamaha
+  { value: 'Yamaha PX3', label: 'Yamaha PX3', watts: '500W x2 @ 4Ω', channels: '2' },
+  { value: 'Yamaha PX5', label: 'Yamaha PX5', watts: '800W x2 @ 4Ω', channels: '2' },
+  { value: 'Yamaha PX8', label: 'Yamaha PX8', watts: '1050W x2 @ 4Ω', channels: '2' },
+  { value: 'custom', label: 'Other (type below)', watts: '', channels: '' }
 ]
 
 // Helper to get empty form data
@@ -336,46 +355,89 @@ function LocationForm({
           <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.25rem', display: 'block' }}>
             Amplifier <span style={{ fontWeight: 'normal' }}>(if passive speakers)</span>
           </label>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '0.5rem', alignItems: 'center' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '0.5rem' }}>
             <select
               className="form-select"
               value={knownAmps.find(a => a.value === formData.speaker_setup?.amp?.model)?.value ||
                      (formData.speaker_setup?.amp?.model ? 'custom' : '')}
               onChange={(e) => {
-                if (e.target.value && e.target.value !== 'custom') {
-                  updateSpeakerField('amp', 'brand', 'Crown')
+                const selectedAmp = knownAmps.find(a => a.value === e.target.value)
+                if (e.target.value && e.target.value !== 'custom' && selectedAmp) {
+                  // Extract brand from the value (first word)
+                  const brand = e.target.value.split(' ')[0]
+                  updateSpeakerField('amp', 'brand', brand)
                   updateSpeakerField('amp', 'model', e.target.value)
+                  // Auto-fill watts and channels from known specs
+                  if (selectedAmp.watts) {
+                    updateSpeakerField('amp', 'watts', selectedAmp.watts)
+                  }
+                  if (selectedAmp.channels) {
+                    updateSpeakerField('amp', 'channels', selectedAmp.channels)
+                  }
                 } else if (e.target.value === 'custom') {
+                  // Set a placeholder to trigger custom input display
+                  updateSpeakerField('amp', 'brand', '')
+                  updateSpeakerField('amp', 'model', 'Custom Amp')
+                  updateSpeakerField('amp', 'watts', '')
+                  updateSpeakerField('amp', 'channels', '')
+                } else if (e.target.value === '') {
+                  // Clear everything when "Select..." is chosen
                   updateSpeakerField('amp', 'brand', '')
                   updateSpeakerField('amp', 'model', '')
+                  updateSpeakerField('amp', 'watts', '')
+                  updateSpeakerField('amp', 'channels', '')
                 }
               }}
               disabled={disabled}
             >
               {knownAmps.map(a => (
-                <option key={a.value} value={a.value}>{a.label}</option>
+                <option key={a.value} value={a.value}>
+                  {a.label}{a.watts ? ` (${a.watts})` : ''}
+                </option>
               ))}
             </select>
-            <input
-              type="text"
-              className="form-input"
-              placeholder="Watts"
-              value={formData.speaker_setup?.amp?.watts || ''}
-              onChange={(e) => updateSpeakerField('amp', 'watts', e.target.value)}
-              style={{ width: '80px' }}
-              disabled={disabled}
-            />
+            {/* Show watts/channels for known amps (read-only display) */}
+            {formData.speaker_setup?.amp?.watts && knownAmps.find(a => a.value === formData.speaker_setup?.amp?.model) && (
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', padding: '0.25rem 0' }}>
+                <strong>Output:</strong> {formData.speaker_setup?.amp?.watts}
+                {formData.speaker_setup?.amp?.channels && ` • ${formData.speaker_setup?.amp?.channels} channels`}
+              </div>
+            )}
           </div>
-          {(!knownAmps.find(a => a.value === formData.speaker_setup?.amp?.model) && formData.speaker_setup?.amp?.model) && (
-            <input
-              type="text"
-              className="form-input"
-              placeholder="Custom amp (Brand Model)"
-              value={formData.speaker_setup?.amp?.model || ''}
-              onChange={(e) => updateSpeakerField('amp', 'model', e.target.value)}
-              style={{ marginTop: '0.25rem' }}
-              disabled={disabled}
-            />
+          {/* Custom amp input - show when model exists but is not a known amp */}
+          {formData.speaker_setup?.amp?.model && !knownAmps.find(a => a.value === formData.speaker_setup?.amp?.model) && (
+            <div style={{ marginTop: '0.5rem' }}>
+              <input
+                type="text"
+                className="form-input"
+                placeholder="Custom amp (Brand Model)"
+                value={formData.speaker_setup?.amp?.model || ''}
+                onChange={(e) => updateSpeakerField('amp', 'model', e.target.value)}
+                style={{ marginBottom: '0.25rem' }}
+                disabled={disabled}
+              />
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                <input
+                  type="text"
+                  className="form-input"
+                  placeholder="Watts (e.g., 500W x2 @ 4Ω)"
+                  value={formData.speaker_setup?.amp?.watts || ''}
+                  onChange={(e) => updateSpeakerField('amp', 'watts', e.target.value)}
+                  disabled={disabled}
+                />
+                <input
+                  type="text"
+                  className="form-input"
+                  placeholder="Channels (e.g., 2)"
+                  value={formData.speaker_setup?.amp?.channels || ''}
+                  onChange={(e) => updateSpeakerField('amp', 'channels', e.target.value)}
+                  disabled={disabled}
+                />
+              </div>
+              <p style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', margin: '0.25rem 0 0' }}>
+                Tip: Include power rating at typical impedance (e.g., "500W x2 @ 4Ω")
+              </p>
+            </div>
           )}
         </div>
       </div>
