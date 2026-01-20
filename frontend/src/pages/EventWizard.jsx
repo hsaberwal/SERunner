@@ -1159,7 +1159,7 @@ function EventWizard() {
                 value={performer.count}
                 onChange={(e) => updatePerformer(index, 'count', parseInt(e.target.value) || 1)}
                 min="1"
-                max="16"
+                max="32"
                 title="Number of this performer type"
                 style={{ width: '60px' }}
               />
@@ -1198,7 +1198,7 @@ function EventWizard() {
                         value={performer.channels?.[i] || ''}
                         onChange={(e) => updatePerformerChannel(index, i, e.target.value)}
                         min="1"
-                        max="16"
+                        max="64"
                         placeholder="Ch"
                         title={`Channel for ${performer.type} ${performer.count > 1 ? `#${i + 1}` : ''}`}
                       />

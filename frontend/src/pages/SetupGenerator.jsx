@@ -459,7 +459,7 @@ function SetupGenerator() {
                       value={performer.count}
                       onChange={(e) => updatePerformer(index, 'count', parseInt(e.target.value))}
                       min="1"
-                      max="16"
+                      max="32"
                       placeholder="Qty"
                       title="Number of this performer type"
                       style={{ width: '60px' }}
@@ -493,16 +493,16 @@ function SetupGenerator() {
                             <label className="channel-input-label">
                               {performer.count > 1 ? `#${i + 1}` : ''}
                             </label>
-                            <input
-                              type="number"
-                              className="form-input channel-input"
-                              value={performer.channels?.[i] || ''}
-                              onChange={(e) => updatePerformerChannel(index, i, e.target.value)}
-                              min="1"
-                              max="16"
-                              placeholder="Ch"
-                              title={`Channel for ${performer.type} ${performer.count > 1 ? `#${i + 1}` : ''}`}
-                            />
+                      <input
+                        type="number"
+                        className="form-input channel-input"
+                        value={performer.channels?.[i] || ''}
+                        onChange={(e) => updatePerformerChannel(index, i, e.target.value)}
+                        min="1"
+                        max="64"
+                        placeholder="Ch"
+                        title={`Channel for ${performer.type} ${performer.count > 1 ? `#${i + 1}` : ''}`}
+                      />
                           </div>
                         ))}
                       </div>
