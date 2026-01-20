@@ -1,12 +1,13 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { locations, setups } from '../services/api'
+import { locations, setups, gear } from '../services/api'
 import Navigation from '../components/Navigation'
 import LocationForm, { getEmptyLocationData } from '../components/LocationForm'
 
 function SetupGenerator() {
   const navigate = useNavigate()
   const [locationList, setLocationList] = useState([])
+  const [gearList, setGearList] = useState([])
   const [loading, setLoading] = useState(false)
   const [loadingMessage, setLoadingMessage] = useState('')
   const [showNewLocation, setShowNewLocation] = useState(false)
@@ -26,7 +27,34 @@ function SetupGenerator() {
 
   useEffect(() => {
     loadLocations()
+    loadGear()
   }, [])
+
+  const loadGear = async () => {
+    try {
+      const response = await gear.getAll()
+      setGearList(response.data)
+    } catch (error) {
+      console.error('Failed to load gear:', error)
+    }
+  }
+
+  // Get microphones from gear inventory
+  const microphones = gearList.filter(g => g.type === 'mic')
+  // Get DI boxes from gear inventory  
+  const diBoxes = gearList.filter(g => g.type === 'di_box')
+
+  // Generate a unique key for each gear item to use as dropdown value
+  // Using display name as the value since it's more readable in Claude prompts
+  const getGearKey = (item) => {
+    const displayName = `${item.brand || ''} ${item.model || ''}`.trim()
+    return displayName || `gear_${item.id}`
+  }
+
+  // Get display name for gear item (same as key for clarity)
+  const getGearDisplayName = (item) => {
+    return `${item.brand || ''} ${item.model || ''}`.trim() || 'Unknown'
+  }
 
   // Check for matching setups when location or performers change
   const checkForMatchingSetup = useCallback(async () => {
@@ -95,21 +123,53 @@ function SetupGenerator() {
     }
   }
 
+  // Find a mic in inventory that matches certain keywords (for smart defaults)
+  const findMicByKeywords = (keywords) => {
+    for (const mic of microphones) {
+      const fullName = getGearDisplayName(mic).toLowerCase()
+      for (const keyword of keywords) {
+        if (fullName.includes(keyword.toLowerCase())) {
+          return getGearKey(mic)
+        }
+      }
+    }
+    // Return first available mic if no match found
+    return microphones.length > 0 ? getGearKey(microphones[0]) : ''
+  }
+
   // Get default input source based on performer type
   const getDefaultInputSource = (performerType) => {
     const piezoTypes = ['acoustic_guitar', 'rabab', 'dilruba', 'taus', 'violin', 'sarangi']
     const vocalTypes = ['vocal_female', 'vocal_male']
     const speechTypes = ['podium', 'ardas', 'palki']
     const directTypes = ['keyboard']
+    const instrumentTypes = ['tabla', 'flute', 'harmonium']
 
-    if (piezoTypes.includes(performerType)) return 'di_piezo'
-    if (vocalTypes.includes(performerType)) return 'beta_58a'
-    if (speechTypes.includes(performerType)) return 'beta_58a'
+    // For piezo instruments, prefer DI box
+    if (piezoTypes.includes(performerType)) {
+      if (diBoxes.length > 0) {
+        return getGearKey(diBoxes[0])
+      }
+      return 'di_piezo'
+    }
+
+    // For direct input instruments
     if (directTypes.includes(performerType)) return 'direct'
-    if (performerType === 'tabla') return 'beta_57a'
-    if (performerType === 'flute') return 'beta_57a'
-    if (performerType === 'harmonium') return 'beta_57a'
-    return ''
+
+    // For vocals, try to find Beta 58A or similar vocal mic
+    if (vocalTypes.includes(performerType) || speechTypes.includes(performerType)) {
+      const vocalMic = findMicByKeywords(['58', 'vocal', 'sm58', 'e835', 'e945'])
+      if (vocalMic) return vocalMic
+    }
+
+    // For instruments, try to find Beta 57A or similar instrument mic
+    if (instrumentTypes.includes(performerType)) {
+      const instrumentMic = findMicByKeywords(['57', 'instrument', 'sm57', 'e906', 'c1000'])
+      if (instrumentMic) return instrumentMic
+    }
+
+    // Fallback: return first available mic
+    return microphones.length > 0 ? getGearKey(microphones[0]) : ''
   }
 
   const addPerformer = () => {
@@ -337,15 +397,33 @@ function SetupGenerator() {
                     style={{ minWidth: '140px' }}
                   >
                     <option value="">Input source...</option>
-                    <optgroup label="Microphones">
-                      <option value="beta_58a">Shure Beta 58A</option>
-                      <option value="beta_57a">Shure Beta 57A</option>
-                      <option value="c1000s">AKG C1000S</option>
+                    {microphones.length > 0 && (
+                      <optgroup label="Microphones">
+                        {microphones.map((mic) => (
+                          <option key={mic.id} value={getGearKey(mic)}>
+                            {getGearDisplayName(mic)}
+                          </option>
+                        ))}
+                      </optgroup>
+                    )}
+                    {diBoxes.length > 0 && (
+                      <optgroup label="DI Boxes">
+                        {diBoxes.map((di) => (
+                          <option key={di.id} value={getGearKey(di)}>
+                            {getGearDisplayName(di)}
+                          </option>
+                        ))}
+                      </optgroup>
+                    )}
+                    <optgroup label="Direct Input">
+                      <option value="di_piezo">DI Box (Piezo/Generic)</option>
+                      <option value="direct">Direct / Line In</option>
                     </optgroup>
-                    <optgroup label="DI / Direct">
-                      <option value="di_piezo">DI Box (Piezo)</option>
-                      <option value="direct">Direct / Line</option>
-                    </optgroup>
+                    {microphones.length === 0 && diBoxes.length === 0 && (
+                      <optgroup label="No gear added">
+                        <option value="" disabled>Add mics in Gear page</option>
+                      </optgroup>
+                    )}
                   </select>
                   <input
                     type="number"
