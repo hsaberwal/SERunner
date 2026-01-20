@@ -1,4 +1,6 @@
 import httpx
+import time
+from typing import Tuple
 from anthropic import AsyncAnthropic
 from app.config import get_settings
 
@@ -18,11 +20,18 @@ class ClaudeService:
         self.model = settings.claude_model
 
     async def generate_setup(self, system_prompt: str, user_prompt: str) -> str:
-        """Generate a setup using Claude API"""
+        """Generate a setup using Claude API (returns text only for backward compatibility)"""
+        text, _ = await self.generate_setup_with_timing(system_prompt, user_prompt)
+        return text
+
+    async def generate_setup_with_timing(self, system_prompt: str, user_prompt: str) -> Tuple[str, float]:
+        """Generate a setup using Claude API, returns (text, duration_seconds)"""
         print(f"=== CLAUDE SERVICE: Using model {self.model} ===", flush=True)
         print(f"=== CLAUDE SERVICE: System prompt length={len(system_prompt)} ===", flush=True)
         print(f"=== CLAUDE SERVICE: User prompt length={len(user_prompt)} ===", flush=True)
 
+        start_time = time.time()
+        
         try:
             message = await self.client.messages.create(
                 model=self.model,
@@ -35,21 +44,26 @@ class ClaudeService:
                     }
                 ]
             )
+            
+            duration = time.time() - start_time
 
             print(f"=== CLAUDE SERVICE: Response stop_reason={message.stop_reason} ===", flush=True)
             print(f"=== CLAUDE SERVICE: Response content length={len(message.content)} ===", flush=True)
             print(f"=== CLAUDE SERVICE: Response usage={message.usage} ===", flush=True)
+            print(f"=== CLAUDE SERVICE: Response time={duration:.2f}s ===", flush=True)
 
             if message.content and len(message.content) > 0:
                 text = message.content[0].text
                 print(f"=== CLAUDE SERVICE: Text length={len(text) if text else 0} ===", flush=True)
-                return text
+                return text, duration
             else:
                 print("=== CLAUDE SERVICE: No content in response! ===", flush=True)
-                return ""
+                return "", duration
         except httpx.TimeoutException as e:
-            print(f"=== CLAUDE SERVICE: TIMEOUT ERROR: {e} ===", flush=True)
-            raise Exception(f"Claude API timeout after 180 seconds: {str(e)}")
+            duration = time.time() - start_time
+            print(f"=== CLAUDE SERVICE: TIMEOUT ERROR after {duration:.2f}s: {e} ===", flush=True)
+            raise Exception(f"Claude API timeout after {duration:.0f} seconds: {str(e)}")
         except Exception as e:
-            print(f"=== CLAUDE SERVICE: ERROR: {type(e).__name__}: {e} ===", flush=True)
+            duration = time.time() - start_time
+            print(f"=== CLAUDE SERVICE: ERROR after {duration:.2f}s: {type(e).__name__}: {e} ===", flush=True)
             raise

@@ -1,34 +1,12 @@
 import { useState, useEffect } from 'react'
+import { stats } from '../services/api'
 
+// Step percentages (will be scaled based on actual API timing)
 const LEARNING_STEPS = [
-  { 
-    id: 1, 
-    label: 'Gathering Information', 
-    description: 'Collecting hardware specs and characteristics',
-    icon: '📋',
-    duration: 1500 
-  },
-  { 
-    id: 2, 
-    label: 'Researching Hardware', 
-    description: 'Claude is analyzing frequency response and sonic character',
-    icon: '🔍',
-    duration: 3000 
-  },
-  { 
-    id: 3, 
-    label: 'Building Recommendations', 
-    description: 'Generating EQ and compression settings for different sources',
-    icon: '⚙️',
-    duration: 8000 
-  },
-  { 
-    id: 4, 
-    label: 'Creating Knowledge Entry', 
-    description: 'Formatting settings for your database',
-    icon: '💾',
-    duration: 3000 
-  }
+  { id: 1, label: 'Gathering Information', description: 'Collecting hardware specs and characteristics', icon: '📋', pct: 0.10 },
+  { id: 2, label: 'Researching Hardware', description: 'Claude is analyzing frequency response and sonic character', icon: '🔍', pct: 0.20 },
+  { id: 3, label: 'Building Recommendations', description: 'Generating EQ and compression settings for different sources', icon: '⚙️', pct: 0.50 },
+  { id: 4, label: 'Creating Knowledge Entry', description: 'Formatting settings for your database', icon: '💾', pct: 0.20 }
 ]
 
 const LEARNING_TIPS = [
@@ -45,8 +23,30 @@ function LearningOverlay({ isVisible, hardwareType, brand, model }) {
   const [currentStep, setCurrentStep] = useState(1)
   const [tipIndex, setTipIndex] = useState(0)
   const [elapsedTime, setElapsedTime] = useState(0)
+  const [estimatedTime, setEstimatedTime] = useState({ avg: 20, min: 10, max: 45 })
 
-  // Progress through steps
+  // Fetch actual timing data on mount
+  useEffect(() => {
+    const fetchTiming = async () => {
+      try {
+        const response = await stats.getResponseTimes()
+        if (response.data?.hardware_learning) {
+          const data = response.data.hardware_learning
+          setEstimatedTime({
+            avg: Math.round(data.avg_seconds),
+            min: Math.round(data.min_seconds),
+            max: Math.round(data.max_seconds),
+            samples: data.sample_count
+          })
+        }
+      } catch (error) {
+        console.error('Could not fetch timing data:', error)
+      }
+    }
+    fetchTiming()
+  }, [])
+
+  // Progress through steps based on estimated timing
   useEffect(() => {
     if (!isVisible) {
       setCurrentStep(1)
@@ -54,12 +54,13 @@ function LearningOverlay({ isVisible, hardwareType, brand, model }) {
       return
     }
 
+    const totalMs = estimatedTime.avg * 1000
     const stepTimers = []
     let accumulated = 0
 
     LEARNING_STEPS.forEach((step, index) => {
       if (index > 0) {
-        accumulated += LEARNING_STEPS[index - 1].duration
+        accumulated += LEARNING_STEPS[index - 1].pct * totalMs
         const timer = setTimeout(() => {
           setCurrentStep(step.id)
         }, accumulated)
@@ -68,7 +69,7 @@ function LearningOverlay({ isVisible, hardwareType, brand, model }) {
     })
 
     return () => stepTimers.forEach(t => clearTimeout(t))
-  }, [isVisible])
+  }, [isVisible, estimatedTime])
 
   // Rotate tips
   useEffect(() => {
@@ -186,7 +187,10 @@ function LearningOverlay({ isVisible, hardwareType, brand, model }) {
         <div className="learning-timer">
           <span className="timer-label">Elapsed:</span>
           <span className="timer-value">{formatTime(elapsedTime)}</span>
-          <span className="timer-estimate">• Usually takes 10-20 seconds</span>
+          <span className="timer-estimate">
+            • Usually takes {formatTime(estimatedTime.avg)}
+            {estimatedTime.samples > 0 && ` (based on ${estimatedTime.samples} requests)`}
+          </span>
         </div>
 
         {/* Rotating Tip */}

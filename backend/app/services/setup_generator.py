@@ -555,11 +555,24 @@ Keep response under 4000 tokens. Be concise but systematic!"""
         system_prompt = self._build_system_prompt(user_gear=user_gear, knowledge_library=knowledge_library)
         user_prompt = self._build_user_prompt(location, performers, past_setups)
 
-        # Get response from Claude
+        # Get response from Claude (with timing)
         print("=== CALLING CLAUDE API ===", flush=True)
         logger.info("Calling Claude API...")
-        response = await self.claude_service.generate_setup(system_prompt, user_prompt)
+        response, duration = await self.claude_service.generate_setup_with_timing(system_prompt, user_prompt)
         print(f"=== CLAUDE RESPONSE LENGTH: {len(response) if response else 0} ===", flush=True)
+        print(f"=== CLAUDE RESPONSE TIME: {duration:.2f}s ===", flush=True)
+        
+        # Record the response time for analytics
+        try:
+            from app.main import record_response_time
+            await record_response_time(
+                "setup_generation", 
+                duration, 
+                len(system_prompt) + len(user_prompt),
+                len(response) if response else 0
+            )
+        except Exception as e:
+            logger.warning(f"Could not record response time: {e}")
         print(f"=== CLAUDE RESPONSE PREVIEW: {response[:500] if response else 'EMPTY'} ===", flush=True)
         logger.info(f"Claude API response length: {len(response) if response else 0}")
         logger.info(f"Claude API response preview: {response[:500] if response else 'EMPTY'}")

@@ -132,6 +132,21 @@ async def run_startup_migrations():
             except Exception:
                 pass
 
+        # Create claude_response_times table for tracking API timing
+        try:
+            await conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS claude_response_times (
+                    id SERIAL PRIMARY KEY,
+                    operation_type VARCHAR(50) NOT NULL,
+                    duration_seconds FLOAT NOT NULL,
+                    prompt_length INTEGER,
+                    response_length INTEGER,
+                    created_at TIMESTAMP DEFAULT NOW()
+                )
+            """))
+        except Exception:
+            pass
+
     logger.info("Startup migrations completed")
 
 
@@ -190,6 +205,81 @@ async def root():
 @app.get("/health")
 async def health_check():
     return {"status": "healthy"}
+
+
+@app.get("/api/response-times")
+async def get_response_times():
+    """Get average Claude API response times for UI estimation."""
+    from sqlalchemy import text
+    
+    try:
+        async with engine.begin() as conn:
+            # Get stats for setup generation (last 20 calls)
+            result = await conn.execute(text("""
+                SELECT 
+                    operation_type,
+                    AVG(duration_seconds) as avg_duration,
+                    MIN(duration_seconds) as min_duration,
+                    MAX(duration_seconds) as max_duration,
+                    COUNT(*) as sample_count
+                FROM claude_response_times
+                WHERE created_at > NOW() - INTERVAL '7 days'
+                GROUP BY operation_type
+            """))
+            rows = result.fetchall()
+            
+            stats = {}
+            for row in rows:
+                stats[row[0]] = {
+                    "avg_seconds": round(row[1], 1) if row[1] else 60,
+                    "min_seconds": round(row[2], 1) if row[2] else 30,
+                    "max_seconds": round(row[3], 1) if row[3] else 120,
+                    "sample_count": row[4]
+                }
+            
+            # Default values if no data
+            if "setup_generation" not in stats:
+                stats["setup_generation"] = {
+                    "avg_seconds": 60,
+                    "min_seconds": 30,
+                    "max_seconds": 120,
+                    "sample_count": 0
+                }
+            if "hardware_learning" not in stats:
+                stats["hardware_learning"] = {
+                    "avg_seconds": 20,
+                    "min_seconds": 10,
+                    "max_seconds": 45,
+                    "sample_count": 0
+                }
+            
+            return stats
+    except Exception as e:
+        logger.error(f"Error getting response times: {e}")
+        # Return defaults on error
+        return {
+            "setup_generation": {"avg_seconds": 60, "min_seconds": 30, "max_seconds": 120, "sample_count": 0},
+            "hardware_learning": {"avg_seconds": 20, "min_seconds": 10, "max_seconds": 45, "sample_count": 0}
+        }
+
+
+async def record_response_time(operation_type: str, duration_seconds: float, prompt_length: int = None, response_length: int = None):
+    """Record a Claude API response time for analytics."""
+    from sqlalchemy import text
+    
+    try:
+        async with engine.begin() as conn:
+            await conn.execute(text("""
+                INSERT INTO claude_response_times (operation_type, duration_seconds, prompt_length, response_length)
+                VALUES (:op_type, :duration, :prompt_len, :response_len)
+            """), {
+                "op_type": operation_type,
+                "duration": duration_seconds,
+                "prompt_len": prompt_length,
+                "response_len": response_length
+            })
+    except Exception as e:
+        logger.error(f"Error recording response time: {e}")
 
 
 @app.get("/admin/cors-debug")

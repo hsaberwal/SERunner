@@ -95,6 +95,11 @@ export const knowledgeLibrary = {
   delete: (id) => api.delete(`/knowledge-library/${id}`),
 }
 
+// Stats
+export const stats = {
+  getResponseTimes: () => api.get('/api/response-times'),
+}
+
 // Admin
 export const admin = {
   dbStatus: () => api.get('/admin/db-status'),

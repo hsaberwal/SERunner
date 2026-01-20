@@ -1,34 +1,14 @@
 import { useState, useEffect } from 'react'
+import { stats } from '../services/api'
+
+// Default step durations (will be scaled based on actual API timing)
+const DEFAULT_TOTAL_TIME = 60000 // 60 seconds default
 
 const GENERATION_STEPS = [
-  { 
-    id: 1, 
-    label: 'Preparing Request', 
-    description: 'Gathering venue and performer data',
-    icon: '📋',
-    duration: 2000 
-  },
-  { 
-    id: 2, 
-    label: 'Analyzing Setup', 
-    description: 'Reviewing past setups and venue characteristics',
-    icon: '🔍',
-    duration: 4000 
-  },
-  { 
-    id: 3, 
-    label: 'Generating Config', 
-    description: 'Building channel settings, EQ, and compression',
-    icon: '⚙️',
-    duration: 20000 
-  },
-  { 
-    id: 4, 
-    label: 'Finalizing', 
-    description: 'Formatting instructions and recommendations',
-    icon: '✨',
-    duration: 10000 
-  }
+  { id: 1, label: 'Preparing Request', description: 'Gathering venue and performer data', icon: '📋', pct: 0.05 },
+  { id: 2, label: 'Analyzing Setup', description: 'Reviewing past setups and venue characteristics', icon: '🔍', pct: 0.10 },
+  { id: 3, label: 'Generating Config', description: 'Building channel settings, EQ, and compression', icon: '⚙️', pct: 0.60 },
+  { id: 4, label: 'Finalizing', description: 'Formatting instructions and recommendations', icon: '✨', pct: 0.25 }
 ]
 
 const SOUND_TIPS = [
@@ -48,8 +28,30 @@ function GeneratingOverlay({ isVisible }) {
   const [currentStep, setCurrentStep] = useState(1)
   const [tipIndex, setTipIndex] = useState(0)
   const [elapsedTime, setElapsedTime] = useState(0)
+  const [estimatedTime, setEstimatedTime] = useState({ avg: 60, min: 30, max: 120 })
 
-  // Progress through steps based on timing
+  // Fetch actual timing data on mount
+  useEffect(() => {
+    const fetchTiming = async () => {
+      try {
+        const response = await stats.getResponseTimes()
+        if (response.data?.setup_generation) {
+          const data = response.data.setup_generation
+          setEstimatedTime({
+            avg: Math.round(data.avg_seconds),
+            min: Math.round(data.min_seconds),
+            max: Math.round(data.max_seconds),
+            samples: data.sample_count
+          })
+        }
+      } catch (error) {
+        console.error('Could not fetch timing data:', error)
+      }
+    }
+    fetchTiming()
+  }, [])
+
+  // Progress through steps based on estimated timing
   useEffect(() => {
     if (!isVisible) {
       setCurrentStep(1)
@@ -57,12 +59,13 @@ function GeneratingOverlay({ isVisible }) {
       return
     }
 
+    const totalMs = estimatedTime.avg * 1000
     const stepTimers = []
     let accumulated = 0
 
     GENERATION_STEPS.forEach((step, index) => {
       if (index > 0) {
-        accumulated += GENERATION_STEPS[index - 1].duration
+        accumulated += GENERATION_STEPS[index - 1].pct * totalMs
         const timer = setTimeout(() => {
           setCurrentStep(step.id)
         }, accumulated)
@@ -71,7 +74,7 @@ function GeneratingOverlay({ isVisible }) {
     })
 
     return () => stepTimers.forEach(t => clearTimeout(t))
-  }, [isVisible])
+  }, [isVisible, estimatedTime])
 
   // Rotate tips every 5 seconds
   useEffect(() => {
@@ -157,7 +160,10 @@ function GeneratingOverlay({ isVisible }) {
         <div className="generating-timer">
           <span className="timer-label">Elapsed:</span>
           <span className="timer-value">{formatTime(elapsedTime)}</span>
-          <span className="timer-estimate">• Usually takes 15-45 seconds</span>
+          <span className="timer-estimate">
+            • Usually takes {formatTime(estimatedTime.avg)}
+            {estimatedTime.samples > 0 && ` (based on ${estimatedTime.samples} requests)`}
+          </span>
         </div>
 
         {/* Rotating Tip */}

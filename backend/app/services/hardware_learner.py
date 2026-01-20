@@ -152,7 +152,19 @@ Return as JSON with the structure specified in the system prompt."""
 
         logger.info(f"Learning new hardware: {brand} {model} ({hardware_type})")
 
-        response = await self.claude_service.generate_setup(system_prompt, user_prompt)
+        response, duration = await self.claude_service.generate_setup_with_timing(system_prompt, user_prompt)
+        
+        # Record the response time for analytics
+        try:
+            from app.main import record_response_time
+            await record_response_time(
+                "hardware_learning", 
+                duration, 
+                len(system_prompt) + len(user_prompt),
+                len(response) if response else 0
+            )
+        except Exception as e:
+            logger.warning(f"Could not record response time: {e}")
 
         # Parse JSON response
         try:
