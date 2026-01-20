@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { gear } from '../services/api'
 import Navigation from '../components/Navigation'
+import LearningOverlay from '../components/LearningOverlay'
 
 function Gear() {
   const [gearList, setGearList] = useState([])
@@ -25,10 +26,12 @@ function Gear() {
 
   // Hardware learning state
   const [learningGearId, setLearningGearId] = useState(null)
+  const [learningHardwareInfo, setLearningHardwareInfo] = useState(null) // Track what's being learned
   const [learnedSettings, setLearnedSettings] = useState(null)
+  const [savedToInventory, setSavedToInventory] = useState(false)
   const [showLearnNewForm, setShowLearnNewForm] = useState(false)
   const [newHardwareData, setNewHardwareData] = useState({
-    hardware_type: 'microphone',
+    hardware_type: 'mic',
     brand: '',
     model: '',
     user_notes: '',
@@ -98,18 +101,26 @@ function Gear() {
   }
 
   // Learn settings for existing gear
-  const handleLearnFromGear = async (gearId, userNotes = null) => {
-    setLearningGearId(gearId)
+  const handleLearnFromGear = async (gearItem, userNotes = null) => {
+    setLearningGearId(gearItem.id)
+    setLearningHardwareInfo({
+      type: gearItem.type,
+      brand: gearItem.brand,
+      model: gearItem.model
+    })
     setLearnedSettings(null)
+    setSavedToInventory(false)
     try {
-      const response = await gear.learnFromExisting(gearId, userNotes)
-      setLearnedSettings(response.data)
+      const response = await gear.learnFromExisting(gearItem.id, userNotes)
+      setLearnedSettings({ ...response.data, existingGearId: gearItem.id })
+      setSavedToInventory(true) // Already saved for existing gear
       // Reload gear to get updated default_settings
       loadGear()
     } catch (error) {
       alert('Failed to learn settings: ' + (error.response?.data?.detail || error.message))
     } finally {
       setLearningGearId(null)
+      setLearningHardwareInfo(null)
     }
   }
 
@@ -117,7 +128,13 @@ function Gear() {
   const handleLearnNewHardware = async (e) => {
     e.preventDefault()
     setLearningGearId('new')
+    setLearningHardwareInfo({
+      type: newHardwareData.hardware_type,
+      brand: newHardwareData.brand,
+      model: newHardwareData.model
+    })
     setLearnedSettings(null)
+    setSavedToInventory(false)
     try {
       const response = await gear.learn(newHardwareData)
       setLearnedSettings(response.data)
@@ -125,6 +142,44 @@ function Gear() {
       alert('Failed to learn settings: ' + (error.response?.data?.detail || error.message))
     } finally {
       setLearningGearId(null)
+      setLearningHardwareInfo(null)
+    }
+  }
+
+  // Save learned hardware to inventory
+  const handleSaveToInventory = async () => {
+    if (!learnedSettings) return
+    
+    try {
+      const newGear = {
+        type: learnedSettings.hardware_type || newHardwareData.hardware_type,
+        brand: learnedSettings.brand,
+        model: learnedSettings.model,
+        quantity: 1,
+        notes: learnedSettings.characteristics || '',
+        default_settings: learnedSettings.settings_by_source || {}
+      }
+      
+      // Add amplifier-specific fields
+      if (newGear.type === 'amplifier') {
+        newGear.default_settings = {
+          ...newGear.default_settings,
+          watts_per_channel: learnedSettings.watts_per_channel,
+          channels: learnedSettings.channels,
+          amplifier_class: learnedSettings.amplifier_class,
+          frequency_response: learnedSettings.frequency_response,
+          response_character: learnedSettings.response_character,
+          damping_factor: learnedSettings.damping_factor,
+          features: learnedSettings.features,
+          eq_compensation: learnedSettings.eq_compensation
+        }
+      }
+      
+      await gear.create(newGear)
+      setSavedToInventory(true)
+      loadGear()
+    } catch (error) {
+      alert('Failed to save to inventory: ' + (error.response?.data?.detail || error.message))
     }
   }
 
@@ -154,6 +209,12 @@ function Gear() {
   return (
     <>
       <Navigation />
+      <LearningOverlay 
+        isVisible={learningGearId !== null} 
+        hardwareType={learningHardwareInfo?.type}
+        brand={learningHardwareInfo?.brand}
+        model={learningHardwareInfo?.model}
+      />
       <div className="container">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '0.5rem' }}>
           <h1>Gear Inventory</h1>
@@ -229,54 +290,147 @@ function Gear() {
               </button>
             </form>
 
-            {/* Display learned settings */}
+            {/* Display learned settings - Enhanced UI */}
             {learnedSettings && !learnedSettings.error && (
-              <div className="learned-settings" style={{ marginTop: '1.5rem', padding: '1rem', background: 'var(--bg-secondary)', borderRadius: '0.5rem' }}>
-                <h3 style={{ marginBottom: '1rem' }}>Learned Settings: {learnedSettings.brand} {learnedSettings.model}</h3>
+              <div className="learned-results">
+                <div className="learned-results-header">
+                  <span style={{ fontSize: '1.5rem' }}>✅</span>
+                  <h3>Claude Learned: {learnedSettings.brand} {learnedSettings.model}</h3>
+                  <span className="learned-results-badge">
+                    {savedToInventory ? 'Saved to Inventory' : 'Ready to Save'}
+                  </span>
+                </div>
 
+                {/* Characteristics */}
                 {learnedSettings.characteristics && (
-                  <div style={{ marginBottom: '1rem' }}>
-                    <strong>Characteristics:</strong>
-                    <p style={{ margin: '0.25rem 0', fontSize: '0.9rem' }}>{learnedSettings.characteristics}</p>
+                  <div className="learned-section">
+                    <h4>🎯 Sonic Characteristics</h4>
+                    <p>{learnedSettings.characteristics}</p>
                   </div>
                 )}
 
+                {/* Best For */}
                 {learnedSettings.best_for && (
-                  <div style={{ marginBottom: '1rem' }}>
-                    <strong>Best For:</strong>
-                    <p style={{ margin: '0.25rem 0', fontSize: '0.9rem' }}>{learnedSettings.best_for}</p>
+                  <div className="learned-section">
+                    <h4>👍 Best Used For</h4>
+                    <p>{learnedSettings.best_for}</p>
                   </div>
                 )}
 
-                {learnedSettings.settings_by_source && Object.keys(learnedSettings.settings_by_source).length > 0 && (
-                  <div style={{ marginBottom: '1rem' }}>
-                    <strong>Recommended Settings by Source:</strong>
-                    <div style={{ marginTop: '0.5rem', maxHeight: '200px', overflow: 'auto', background: '#1f2937', color: '#e5e7eb', padding: '0.75rem', borderRadius: '0.25rem', fontSize: '0.8rem', fontFamily: 'monospace' }}>
-                      <pre style={{ margin: 0 }}>{JSON.stringify(learnedSettings.settings_by_source, null, 2)}</pre>
+                {/* Amplifier-specific info */}
+                {learnedSettings.hardware_type === 'amplifier' && (
+                  <div className="learned-section">
+                    <h4>⚡ Amplifier Specifications</h4>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '0.5rem', marginTop: '0.5rem' }}>
+                      {learnedSettings.watts_per_channel && (
+                        <p><strong>Power:</strong> {learnedSettings.watts_per_channel}</p>
+                      )}
+                      {learnedSettings.channels && (
+                        <p><strong>Channels:</strong> {learnedSettings.channels}</p>
+                      )}
+                      {learnedSettings.amplifier_class && (
+                        <p><strong>Class:</strong> {learnedSettings.amplifier_class}</p>
+                      )}
+                      {learnedSettings.frequency_response && (
+                        <p><strong>Frequency:</strong> {learnedSettings.frequency_response}</p>
+                      )}
+                      {learnedSettings.response_character && (
+                        <p><strong>Character:</strong> {learnedSettings.response_character}</p>
+                      )}
+                      {learnedSettings.damping_factor && (
+                        <p><strong>Damping:</strong> {learnedSettings.damping_factor}</p>
+                      )}
                     </div>
+                    {learnedSettings.features && learnedSettings.features.length > 0 && (
+                      <p style={{ marginTop: '0.5rem' }}><strong>Features:</strong> {learnedSettings.features.join(', ')}</p>
+                    )}
+                    {learnedSettings.eq_compensation && (
+                      <p style={{ marginTop: '0.5rem', fontStyle: 'italic' }}>💡 <strong>EQ Tip:</strong> {learnedSettings.eq_compensation}</p>
+                    )}
                   </div>
                 )}
 
-                {learnedSettings.knowledge_base_entry && (
-                  <div>
-                    <strong>Knowledge Base Entry:</strong>
-                    <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
-                      Copy this to your sound-knowledge-base.md file:
-                    </p>
-                    <textarea
-                      readOnly
-                      value={learnedSettings.knowledge_base_entry}
-                      style={{ width: '100%', minHeight: '150px', fontFamily: 'monospace', fontSize: '0.8rem', padding: '0.5rem' }}
-                      onClick={(e) => e.target.select()}
-                    />
+                {/* Settings by Source */}
+                {learnedSettings.settings_by_source && Object.keys(learnedSettings.settings_by_source).length > 0 && (
+                  <div className="learned-section">
+                    <h4>⚙️ Settings by Source ({Object.keys(learnedSettings.settings_by_source).length} presets)</h4>
+                    <details style={{ marginTop: '0.5rem' }}>
+                      <summary style={{ cursor: 'pointer', color: '#065f46', fontWeight: '500' }}>
+                        Click to view detailed settings
+                      </summary>
+                      <div className="settings-preview" style={{ marginTop: '0.5rem' }}>
+                        <pre style={{ margin: 0 }}>{JSON.stringify(learnedSettings.settings_by_source, null, 2)}</pre>
+                      </div>
+                    </details>
                   </div>
                 )}
+
+                {/* What's being saved */}
+                <div className="learned-section" style={{ background: '#eff6ff', border: '1px solid #3b82f6' }}>
+                  <h4>💾 What's Saved to Database</h4>
+                  <ul style={{ margin: '0.5rem 0 0', paddingLeft: '1.25rem', fontSize: '0.85rem', color: '#1e40af' }}>
+                    <li>Hardware type, brand, and model</li>
+                    <li>Sonic characteristics and best-use recommendations</li>
+                    {learnedSettings.settings_by_source && (
+                      <li>{Object.keys(learnedSettings.settings_by_source).length} source-specific EQ/compression presets</li>
+                    )}
+                    {learnedSettings.hardware_type === 'amplifier' && (
+                      <li>Power output, frequency response, and amplifier class</li>
+                    )}
+                  </ul>
+                </div>
+
+                {/* Knowledge Base Entry (collapsible) */}
+                {learnedSettings.knowledge_base_entry && (
+                  <div className="learned-section">
+                    <h4>📝 Knowledge Base Entry</h4>
+                    <details>
+                      <summary style={{ cursor: 'pointer', color: '#065f46', fontWeight: '500', fontSize: '0.85rem' }}>
+                        View markdown for sound-knowledge-base.md
+                      </summary>
+                      <textarea
+                        readOnly
+                        value={learnedSettings.knowledge_base_entry}
+                        style={{ width: '100%', minHeight: '120px', fontFamily: 'monospace', fontSize: '0.75rem', padding: '0.5rem', marginTop: '0.5rem', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '0.25rem' }}
+                        onClick={(e) => e.target.select()}
+                      />
+                    </details>
+                  </div>
+                )}
+
+                {/* Actions */}
+                <div className="learned-actions">
+                  {!savedToInventory ? (
+                    <button className="btn btn-primary" onClick={handleSaveToInventory}>
+                      💾 Save to Inventory
+                    </button>
+                  ) : (
+                    <div className="saved-indicator">
+                      <svg viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                      Saved to Inventory
+                    </div>
+                  )}
+                  <button 
+                    className="btn btn-secondary" 
+                    onClick={() => { setLearnedSettings(null); setSavedToInventory(false); }}
+                  >
+                    Clear Results
+                  </button>
+                </div>
               </div>
             )}
 
             {learnedSettings?.error && (
               <div style={{ marginTop: '1rem', padding: '1rem', background: '#fef2f2', border: '1px solid #ef4444', borderRadius: '0.5rem' }}>
                 <strong style={{ color: '#dc2626' }}>Error:</strong> {learnedSettings.error}
+                {learnedSettings.raw_response && (
+                  <details style={{ marginTop: '0.5rem' }}>
+                    <summary style={{ cursor: 'pointer', fontSize: '0.8rem' }}>View raw response</summary>
+                    <pre style={{ fontSize: '0.7rem', overflow: 'auto', maxHeight: '200px' }}>{learnedSettings.raw_response}</pre>
+                  </details>
+                )}
               </div>
             )}
           </div>
@@ -480,7 +634,7 @@ function Gear() {
                       {['mic', 'speaker', 'di_box', 'amplifier'].includes(item.type) && (
                         <button
                           className="btn btn-info"
-                          onClick={() => handleLearnFromGear(item.id)}
+                          onClick={() => handleLearnFromGear(item)}
                           disabled={learningGearId === item.id}
                           style={{ padding: '0.5rem 1rem' }}
                           title="Use Claude to generate/update recommended settings"
