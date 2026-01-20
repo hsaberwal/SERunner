@@ -329,19 +329,41 @@ Keep response under 4000 tokens. Be concise but systematic!"""
         }
 
         prompt += "\n## Performer Lineup\n"
+        prompt += "**IMPORTANT**: Use the EXACT channel numbers specified below!\n\n"
+        
         for i, performer in enumerate(performers, 1):
             performer_type = performer.get('type', 'Unknown')
             count = performer.get('count', 1)
             input_source = performer.get('input_source', '')
             input_name = input_source_names.get(input_source, input_source)
             notes = performer.get('notes', '')
+            channels = performer.get('channels', [])
+            
+            # Filter out empty channel values and convert to int
+            channels = [int(ch) for ch in channels if ch and str(ch).strip()]
 
             prompt += f"{i}. **{performer_type}** (count: {count})"
             if input_name:
                 prompt += f" - Using: {input_name}"
+            
+            # Show channel assignments
+            if channels:
+                if len(channels) == 1:
+                    prompt += f" - **Channel {channels[0]}**"
+                else:
+                    primary_ch = channels[0]
+                    other_chs = channels[1:]
+                    prompt += f" - **Channel {primary_ch}** (primary)"
+                    prompt += f", copy settings to Channel(s) {', '.join(map(str, other_chs))}"
+            
             if notes:
                 prompt += f" - {notes}"
             prompt += "\n"
+        
+        prompt += "\n**Channel Assignment Instructions**:\n"
+        prompt += "- Generate detailed settings ONLY for the primary (first) channel of each performer type\n"
+        prompt += "- For performers with multiple channels, instruct user to COPY settings from primary to others\n"
+        prompt += "- This saves time - identical performers get identical settings\n"
 
         # Add context from past setups with enhanced learning
         if past_setups:

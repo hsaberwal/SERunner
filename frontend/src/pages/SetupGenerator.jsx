@@ -16,7 +16,7 @@ function SetupGenerator() {
     location_id: '',
     event_name: '',
     event_date: '',
-    performers: [{ type: '', count: 1, input_source: '', notes: '' }]
+    performers: [{ type: '', count: 1, input_source: '', notes: '', channels: [] }]
   })
   const [newLocation, setNewLocation] = useState(getEmptyLocationData())
 
@@ -175,7 +175,7 @@ function SetupGenerator() {
   const addPerformer = () => {
     setFormData({
       ...formData,
-      performers: [...formData.performers, { type: '', count: 1, input_source: '', notes: '' }]
+      performers: [...formData.performers, { type: '', count: 1, input_source: '', notes: '', channels: [] }]
     })
   }
 
@@ -198,6 +198,33 @@ function SetupGenerator() {
       }
     }
 
+    // Adjust channels array when count changes
+    if (field === 'count') {
+      const newCount = parseInt(value) || 1
+      const currentChannels = newPerformers[index].channels || []
+      
+      if (newCount > currentChannels.length) {
+        // Add empty channel slots
+        const newChannels = [...currentChannels]
+        while (newChannels.length < newCount) {
+          newChannels.push('')
+        }
+        newPerformers[index].channels = newChannels
+      } else if (newCount < currentChannels.length) {
+        // Trim channels array
+        newPerformers[index].channels = currentChannels.slice(0, newCount)
+      }
+    }
+
+    setFormData({ ...formData, performers: newPerformers })
+  }
+
+  // Update a specific channel for a performer
+  const updatePerformerChannel = (performerIndex, channelIndex, channelNum) => {
+    const newPerformers = [...formData.performers]
+    const channels = [...(newPerformers[performerIndex].channels || [])]
+    channels[channelIndex] = channelNum
+    newPerformers[performerIndex].channels = channels
     setFormData({ ...formData, performers: newPerformers })
   }
 
@@ -353,103 +380,138 @@ function SetupGenerator() {
             <div className="form-group">
               <label className="form-label">Performers *</label>
               {formData.performers.map((performer, index) => (
-                <div key={index} className="performer-row">
-                  <select
-                    className="form-select"
-                    value={performer.type}
-                    onChange={(e) => updatePerformer(index, 'type', e.target.value)}
-                    required
-                  >
-                    <option value="">Select type...</option>
-                    <optgroup label="Vocals">
-                      <option value="vocal_female">Female Vocal</option>
-                      <option value="vocal_male">Male Vocal</option>
-                    </optgroup>
-                    <optgroup label="Speech / Recitation">
-                      <option value="podium">Podium / Speech</option>
-                      <option value="ardas">Ardas</option>
-                      <option value="palki">Palki / Scripture Reading</option>
-                    </optgroup>
-                    <optgroup label="Percussion">
-                      <option value="tabla">Tabla</option>
-                    </optgroup>
-                    <optgroup label="Wind">
-                      <option value="flute">Flute</option>
-                    </optgroup>
-                    <optgroup label="Strings (Piezo/DI)">
-                      <option value="acoustic_guitar">Acoustic Guitar</option>
-                      <option value="rabab">Rabab / Rubab</option>
-                      <option value="dilruba">Dilruba / Esraj</option>
-                      <option value="taus">Taus / Mayuri</option>
-                      <option value="violin">Violin (Piezo)</option>
-                      <option value="sarangi">Sarangi</option>
-                    </optgroup>
-                    <optgroup label="Keys">
-                      <option value="harmonium">Harmonium</option>
-                      <option value="keyboard">Keyboard / Synth</option>
-                    </optgroup>
-                    <option value="other">Other</option>
-                  </select>
-                  <select
-                    className="form-select"
-                    value={performer.input_source}
-                    onChange={(e) => updatePerformer(index, 'input_source', e.target.value)}
-                    style={{ minWidth: '140px' }}
-                  >
-                    <option value="">Input source...</option>
-                    {microphones.length > 0 && (
-                      <optgroup label="Microphones">
-                        {microphones.map((mic) => (
-                          <option key={mic.id} value={getGearKey(mic)}>
-                            {getGearDisplayName(mic)}
-                          </option>
-                        ))}
-                      </optgroup>
-                    )}
-                    {diBoxes.length > 0 && (
-                      <optgroup label="DI Boxes">
-                        {diBoxes.map((di) => (
-                          <option key={di.id} value={getGearKey(di)}>
-                            {getGearDisplayName(di)}
-                          </option>
-                        ))}
-                      </optgroup>
-                    )}
-                    <optgroup label="Direct Input">
-                      <option value="di_piezo">DI Box (Piezo/Generic)</option>
-                      <option value="direct">Direct / Line In</option>
-                    </optgroup>
-                    {microphones.length === 0 && diBoxes.length === 0 && (
-                      <optgroup label="No gear added">
-                        <option value="" disabled>Add mics in Gear page</option>
-                      </optgroup>
-                    )}
-                  </select>
-                  <input
-                    type="number"
-                    className="form-input"
-                    value={performer.count}
-                    onChange={(e) => updatePerformer(index, 'count', parseInt(e.target.value))}
-                    min="1"
-                    placeholder="Count"
-                    style={{ width: '70px' }}
-                  />
-                  <input
-                    type="text"
-                    className="form-input"
-                    value={performer.notes}
-                    onChange={(e) => updatePerformer(index, 'notes', e.target.value)}
-                    placeholder="Notes (optional)"
-                  />
-                  {formData.performers.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => removePerformer(index)}
-                      className="btn btn-danger"
-                      style={{ padding: '0.5rem 1rem', flexShrink: 0 }}
+                <div key={index} className="performer-entry">
+                  <div className="performer-row">
+                    <select
+                      className="form-select"
+                      value={performer.type}
+                      onChange={(e) => updatePerformer(index, 'type', e.target.value)}
+                      required
                     >
-                      Remove
-                    </button>
+                      <option value="">Select type...</option>
+                      <optgroup label="Vocals">
+                        <option value="vocal_female">Female Vocal</option>
+                        <option value="vocal_male">Male Vocal</option>
+                      </optgroup>
+                      <optgroup label="Speech / Recitation">
+                        <option value="podium">Podium / Speech</option>
+                        <option value="ardas">Ardas</option>
+                        <option value="palki">Palki / Scripture Reading</option>
+                      </optgroup>
+                      <optgroup label="Percussion">
+                        <option value="tabla">Tabla</option>
+                      </optgroup>
+                      <optgroup label="Wind">
+                        <option value="flute">Flute</option>
+                      </optgroup>
+                      <optgroup label="Strings (Piezo/DI)">
+                        <option value="acoustic_guitar">Acoustic Guitar</option>
+                        <option value="rabab">Rabab / Rubab</option>
+                        <option value="dilruba">Dilruba / Esraj</option>
+                        <option value="taus">Taus / Mayuri</option>
+                        <option value="violin">Violin (Piezo)</option>
+                        <option value="sarangi">Sarangi</option>
+                      </optgroup>
+                      <optgroup label="Keys">
+                        <option value="harmonium">Harmonium</option>
+                        <option value="keyboard">Keyboard / Synth</option>
+                      </optgroup>
+                      <option value="other">Other</option>
+                    </select>
+                    <select
+                      className="form-select"
+                      value={performer.input_source}
+                      onChange={(e) => updatePerformer(index, 'input_source', e.target.value)}
+                      style={{ minWidth: '140px' }}
+                    >
+                      <option value="">Input source...</option>
+                      {microphones.length > 0 && (
+                        <optgroup label="Microphones">
+                          {microphones.map((mic) => (
+                            <option key={mic.id} value={getGearKey(mic)}>
+                              {getGearDisplayName(mic)}
+                            </option>
+                          ))}
+                        </optgroup>
+                      )}
+                      {diBoxes.length > 0 && (
+                        <optgroup label="DI Boxes">
+                          {diBoxes.map((di) => (
+                            <option key={di.id} value={getGearKey(di)}>
+                              {getGearDisplayName(di)}
+                            </option>
+                          ))}
+                        </optgroup>
+                      )}
+                      <optgroup label="Direct Input">
+                        <option value="di_piezo">DI Box (Piezo/Generic)</option>
+                        <option value="direct">Direct / Line In</option>
+                      </optgroup>
+                      {microphones.length === 0 && diBoxes.length === 0 && (
+                        <optgroup label="No gear added">
+                          <option value="" disabled>Add mics in Gear page</option>
+                        </optgroup>
+                      )}
+                    </select>
+                    <input
+                      type="number"
+                      className="form-input"
+                      value={performer.count}
+                      onChange={(e) => updatePerformer(index, 'count', parseInt(e.target.value))}
+                      min="1"
+                      max="16"
+                      placeholder="Qty"
+                      title="Number of this performer type"
+                      style={{ width: '60px' }}
+                    />
+                    <input
+                      type="text"
+                      className="form-input"
+                      value={performer.notes}
+                      onChange={(e) => updatePerformer(index, 'notes', e.target.value)}
+                      placeholder="Notes (optional)"
+                    />
+                    {formData.performers.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => removePerformer(index)}
+                        className="btn btn-danger"
+                        style={{ padding: '0.5rem 1rem', flexShrink: 0 }}
+                      >
+                        ×
+                      </button>
+                    )}
+                  </div>
+                  
+                  {/* Channel Assignment Row */}
+                  {performer.type && performer.count > 0 && (
+                    <div className="channel-assignment">
+                      <span className="channel-label">Channels:</span>
+                      <div className="channel-inputs">
+                        {Array.from({ length: performer.count }, (_, i) => (
+                          <div key={i} className="channel-input-group">
+                            <label className="channel-input-label">
+                              {performer.count > 1 ? `#${i + 1}` : ''}
+                            </label>
+                            <input
+                              type="number"
+                              className="form-input channel-input"
+                              value={performer.channels?.[i] || ''}
+                              onChange={(e) => updatePerformerChannel(index, i, e.target.value)}
+                              min="1"
+                              max="16"
+                              placeholder="Ch"
+                              title={`Channel for ${performer.type} ${performer.count > 1 ? `#${i + 1}` : ''}`}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                      {performer.count > 1 && (
+                        <span className="channel-hint">
+                          💡 Set up Ch {performer.channels?.[0] || '?'}, then copy to others
+                        </span>
+                      )}
+                    </div>
                   )}
                 </div>
               ))}
@@ -517,26 +579,98 @@ function SetupGenerator() {
       </div>
 
       <style>{`
+        .performer-entry {
+          background: var(--bg-secondary, #f9fafb);
+          border: 1px solid var(--border-color, #e5e7eb);
+          border-radius: 0.5rem;
+          padding: 0.75rem;
+          margin-bottom: 0.75rem;
+        }
+
         .performer-row {
           display: flex;
           gap: 0.5rem;
-          margin-bottom: 0.5rem;
           flex-wrap: wrap;
+          align-items: center;
         }
         .performer-row .form-select {
           flex: 2;
-          min-width: 150px;
+          min-width: 130px;
         }
-        .performer-row .form-input:nth-child(3) {
-          flex: 2;
-          min-width: 150px;
+        .performer-row .form-input {
+          min-width: 60px;
         }
+        .performer-row .btn-danger {
+          padding: 0.25rem 0.5rem;
+          font-size: 1.25rem;
+          line-height: 1;
+        }
+
+        /* Channel Assignment Styles */
+        .channel-assignment {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          margin-top: 0.5rem;
+          padding-top: 0.5rem;
+          border-top: 1px dashed var(--border-color, #d1d5db);
+          flex-wrap: wrap;
+        }
+
+        .channel-label {
+          font-size: 0.85rem;
+          font-weight: 500;
+          color: var(--text-secondary, #6b7280);
+          white-space: nowrap;
+        }
+
+        .channel-inputs {
+          display: flex;
+          gap: 0.375rem;
+          flex-wrap: wrap;
+        }
+
+        .channel-input-group {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 0.125rem;
+        }
+
+        .channel-input-label {
+          font-size: 0.7rem;
+          color: var(--text-secondary, #9ca3af);
+        }
+
+        .channel-input {
+          width: 50px !important;
+          min-width: 50px !important;
+          text-align: center;
+          padding: 0.25rem !important;
+          font-size: 0.9rem;
+        }
+
+        .channel-hint {
+          font-size: 0.75rem;
+          color: #059669;
+          margin-left: auto;
+        }
+
         @media (max-width: 600px) {
           .performer-row {
             flex-direction: column;
           }
           .performer-row > * {
             width: 100% !important;
+            min-width: 100% !important;
+          }
+          .channel-assignment {
+            flex-direction: column;
+            align-items: flex-start;
+          }
+          .channel-hint {
+            margin-left: 0;
+            margin-top: 0.25rem;
           }
         }
 
