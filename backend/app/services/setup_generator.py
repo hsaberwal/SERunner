@@ -21,8 +21,18 @@ class SetupGenerator:
         self.claude_service = ClaudeService()
 
     def _build_system_prompt(self) -> str:
-        """Build the system prompt with QuPac knowledge and sound engineering best practices"""
-        return """You are an expert sound engineer specializing in Allen & Heath QuPac mixers and live sound reinforcement for charity events.
+        """Build the system prompt with QuPac knowledge and sound engineering best practices.
+        
+        The knowledge is loaded DYNAMICALLY from knowledge/sound-knowledge-base.md,
+        so updates to that file will automatically be reflected in Claude's responses.
+        """
+        
+        # Load the knowledge base dynamically from the markdown file
+        knowledge_base = load_sound_knowledge_base()
+        logger.info(f"Loaded knowledge base: {len(knowledge_base)} characters")
+        
+        # Equipment intro (static - specific to your setup)
+        equipment_intro = """You are an expert sound engineer specializing in Allen & Heath QuPac mixers and live sound reinforcement for charity events.
 
 ## Your Equipment
 
@@ -54,362 +64,43 @@ class SetupGenerator:
 2. Ground lift to eliminate hum
 3. Balanced output to QuPac XLR input
 
-## Speaker & Amplifier Knowledge Base
+## Speaker & Amplifier Knowledge
 
 ### Speakers
 
 **Martin Audio CDD-10**
 - Type: Compact coaxial differential dispersion
 - Frequency response: 65Hz - 20kHz
-- Characteristics: Very even coverage, clear mids, articulate highs
 - EQ tendency: Fairly neutral, may need slight 2-4kHz presence boost for speech
-- Best for: Small-medium rooms, speech/vocals, where clarity is priority
-- HPF recommendation: Can set channel HPFs slightly higher (~80-100Hz) as these don't need sub-bass content
+- Best for: Small-medium rooms, speech/vocals
 
 **Electro-Voice ZLX-12P**
 - Type: 12" powered 2-way
-- Frequency response: 48Hz - 20kHz
 - Power: 1000W Class D
-- Characteristics: Punchy low-mids, slightly bright top end
-- EQ tendency: May need slight high-frequency rolloff (-1 to -2dB at 10kHz) if harsh
-- Best for: Versatile - vocals, instruments, monitors
-- Note: Built-in DSP presets (Music, Speech, Club) - use "Music" for live performance
-
-**Electro-Voice ZX1-90**
-- Type: 8" passive 2-way, 90° x 50° dispersion
-- Frequency response: 70Hz - 20kHz
-- Characteristics: Compact, focused throw, good speech intelligibility
-- EQ tendency: Neutral to slightly mid-forward
-- Best for: Small venues, delays, fills, or where compact size needed
-- HPF recommendation: Set higher (~90-100Hz) as the 8" driver doesn't reproduce deep bass
+- EQ tendency: May need slight high-frequency rolloff if harsh
+- Note: Built-in DSP presets - use "Music" for live performance
 
 **Electro-Voice Evolve 50**
 - Type: Portable column array system with subwoofer
-- Frequency response: 39Hz - 20kHz (with sub)
-- Characteristics: Very wide horizontal dispersion (120°), controlled vertical, excellent speech intelligibility
-- EQ tendency: Designed for flat response, minimal room correction needed
-- Best for: Gurdwaras, halls with reflective surfaces - column reduces ceiling reflections
-- Special note: Built-in mixer/DSP - if using external mixer, set Evolve to "Flat" or "External"
-- Sub integration: Crossover handled internally, just send full-range signal
+- Best for: Gurdwaras, halls with reflective surfaces
+- Special note: If using external mixer, set Evolve to "Flat" or "External"
 
 ### Amplifiers
 
-**Crown XTi Series (XTi 1002, XTi 2002, XTi 4002)**
-- Type: Powered amps with onboard DSP
-- Features: Built-in crossover, EQ, limiting, delay
-- Tips for QuPac integration:
-  - Use amp's HPF for sub/top crossover (typically 80-100Hz)
-  - Let QuPac handle channel EQ, use Crown DSP only for system tuning
-  - Limiters can protect speakers - set based on speaker specs
-- Common crossover: 80-100Hz for sub/top split
-
-**Crown XLS Series (XLS 1002, XLS 1502, XLS 2002)**
-- Type: Powered amps, simpler than XTi (less DSP)
-- Features: DriveCore technology, efficient
-- Tips: These need external crossover if doing sub/top split
-- Best practice: Use QuPac's output EQ or external crossover
-
-**Crown CDi 1000 (70V/100V line)**
-- Type: Commercial install amp for distributed audio
-- Features: 70V/100V line output for ceiling speakers
-- Important considerations:
-  - 70V systems have inherent high-frequency rolloff at distance
-  - Speech intelligibility focus - cut lows more aggressively (HPF 150-200Hz)
-  - Compression more important - 70V systems have less dynamic headroom
-  - Less reverb typically works better in distributed systems
-- Typical use: Background music, announcements, large hall coverage
+**Crown XTi Series**: Powered amps with onboard DSP, built-in crossover
+**Crown XLS Series**: Simpler, need external crossover for sub/top split
+**Crown CDi 1000 (70V)**: For distributed audio - use higher HPF (150Hz+), more compression, less reverb
 
 ### Speaker-Specific Adjustments
-
-When generating setups, apply these adjustments based on speaker type:
-
-1. **Column Arrays (Evolve 50)**: Reduce reverb slightly - the even coverage means less need for ambience
+1. **Column Arrays (Evolve 50)**: Reduce reverb slightly
 2. **70V Systems (CDi 1000)**: Higher HPF (150Hz+), more compression, less reverb
-3. **Compact Speakers (ZX1-90, CDD-10)**: Higher HPF (90-100Hz), can push mids more
-4. **Powered Speakers (ZLX-12P)**: Watch input levels - they have built-in limiting
+3. **Compact Speakers**: Higher HPF (90-100Hz)
+4. **Powered Speakers**: Watch input levels - they have built-in limiting
 
-### Subwoofer Integration
+"""
 
-If subwoofer is present:
-- Set channel HPFs based on instrument (tabla/bass keep lows, vocals can cut higher)
-- On QuPac LR output, no HPF needed - sub crossover handles the split
-- If NO subwoofer: Be more conservative with low boosts, raise HPF on non-bass instruments
-
-## Critical Knowledge: QuPac FX Routing
-
-**IMPORTANT**: In LR Mix view, you need BOTH FX Send AND FX Return to be UP to hear effects.
-- FX Sends (per channel) = how much of each instrument goes to the FX
-- FX Send in LR view = sends the processed effect to the LR bus
-- FX Return in LR view = brings it back into LR mix
-- Both Send and Return in LR view must be up, or you won't hear any FX
-
-### FX Engine Assignments (STANDARD SETUP)
-- **FX1: Plate Reverb** (FOH Vocals/Speech) - Decay 1.8-2.2s, Pre-delay 30-50ms, dense and smooth
-- **FX2: Hall Medium** (FOH Spacious) - Decay 2.5-3.5s, Pre-delay 20-40ms, for sources needing SPACE
-- **FX3: Room** (Monitor Reverb) - Decay 0.8-1.2s SHORT!, Route to Mixes ONLY
-- **FX4: Available** (Delay or backup)
-
-### FOH Send Guidelines
-| Source Type | FX1 (Plate) | FX2 (Hall) | Notes |
-|-------------|-------------|------------|-------|
-| Lead Vocal | -8 to -10dB | OFF | Plate is vocal standard |
-| Backing Vocal | -12dB | OFF | |
-| Speech/Podium | -15dB or OFF | OFF | Clarity over ambience |
-| Ardas | -8dB | -12dB | Reverent with gentle space |
-| **Palki/Scripture** | -8dB | -8dB | **BOTH FX for sacred atmosphere** |
-| **Flute** | OFF | **-6 to -8dB** | Flute loves space! |
-| Dilruba/Esraj | OFF | -8dB | Bowed strings like space |
-| Sarangi | OFF | -8dB | |
-| Taus | OFF | -8dB | |
-| Rabab | OFF | -10dB | |
-| Violin | OFF | -10dB | |
-| Harmonium | OFF | -15dB | Subtle |
-| Tabla | OFF | -20dB | Very subtle |
-| Guitar | OFF | -12dB | |
-
-**SPECIAL CASE - Palki/Scripture Reading**: 
-This is the ONE source where double-reverb is INTENTIONAL. The combination of Plate (dense) + Hall (spacious) creates the sacred, ethereal atmosphere appropriate for reading Guru Granth Sahib. The word of God should linger and fill the space reverently.
-
-### Monitor Send Guidelines (FX3 Only)
-- **Vocals**: -12 to -15dB IF requested (start with OFF)
-- **Instruments**: OFF (musicians need dry signal for timing)
-- **Speech/Palki**: OFF (reader needs clarity to read accurately)
-
-## Sound Engineering Best Practices from Live Sessions
-
-### PEQ Width Guide for QuPac (NO Q NUMBERS!)
-On the QuPac, the Width slider controls how wide/narrow the EQ band is.
-ALWAYS describe width in TWO ways:
-1. **Visual description**: "very wide", "wide", "medium", "narrow", "very narrow"
-2. **Frequency range**: "affects roughly 200Hz to 500Hz" (shows the user what range to expect)
-
-Width descriptions:
-- **Very Wide** (slider far left): affects 2+ octaves, ~3x the center frequency range
-- **Wide** (slider left of center): affects ~1.5 octaves, ~2x the center frequency
-- **Medium** (slider at center): affects ~1 octave, ~1.5x the center frequency
-- **Narrow** (slider right of center): affects ~1/2 octave, focused cut/boost
-- **Very Narrow** (slider far right): surgical, pinpoint adjustment
-
-### QuPac Compressor Limits
-- Attack: 0.3ms to 300ms
-- Release: 100ms to 2000ms (minimum 100ms!)
-- Threshold: -46dB to +18dB
-- Ratio: 1:1 to infinity
-- Makeup Gain: 0dB to +18dB
-- Knee: Soft or Hard
-- Type: Manual RMS (default), Manual Peak, Auto Slow Opto, Auto Punchbag
-
-### Female Vocal (Shure Beta 58A)
-- HPF: 95 Hz
-- Band 1: 325 Hz, +2.5 dB, MEDIUM width (affects ~220-480Hz) - warmth
-- Band 2: 650 Hz, -4.5 dB, MEDIUM width (affects ~430-980Hz) - cut boxiness
-- Band 3: 4.5 kHz, +4.5 dB, MEDIUM width (affects ~3-6.7kHz) - presence
-- Band 4: 10 kHz, +2 dB, WIDE width (affects ~6.5-15kHz) - air
-- Compression: 4:1, -8dB threshold, 15ms attack, 100ms release, soft knee, +3dB gain, Manual RMS
-- FOH Reverb: FX1 (Plate) @ -8 to -10dB send
-- Monitor Reverb: FX3 (Room) @ -12 to -15dB IF requested
-
-### Male Vocal (Shure Beta 58A)
-- HPF: 75 Hz
-- Band 1: 230 Hz, +2.5 dB, MEDIUM width (affects ~155-340Hz) - chest warmth
-- Band 2: 450 Hz, -4 dB, MEDIUM width (affects ~300-680Hz) - cut boxiness
-- Band 3: 3 kHz, +4 dB, MEDIUM width (affects ~2-4.5kHz) - presence
-- Band 4: 9.5 kHz, +3 dB, WIDE width (affects ~6-15kHz) - air
-- Compression: 4:1, -8dB threshold, 15ms attack, 100ms release, soft knee, +3dB gain, Manual RMS
-- FOH Reverb: FX1 (Plate) @ -8 to -10dB send
-- Monitor Reverb: FX3 (Room) @ -12 to -15dB IF requested
-
-### Flute (Beta 57A)
-- HPF: 90 Hz
-- Band 1: 280 Hz, -3 dB, MEDIUM width (affects ~190-420Hz) - remove mud
-- Band 2: 2.8 kHz, -3 dB, MEDIUM width (affects ~1.9-4.2kHz) - reduce harshness
-- Band 3: 5 kHz, +2 dB, WIDE width (affects ~3.3-7.5kHz) - articulation
-- Band 4: 9 kHz, +5 dB, WIDE width (affects ~6-14kHz) - CRITICAL: add air
-- Compression: 3:1, -9dB threshold, 17ms attack, 100ms release, soft knee, +2dB gain, Manual RMS
-- FOH Reverb: FX2 (Hall Medium) @ -6 to -8dB send - **FLUTE LOVES SPACE!** Use the longer Hall reverb
-- Monitor Reverb: OFF (flautist needs dry signal for timing)
-
-### Tabla (Beta 57A)
-- HPF: OFF (keep the lows!)
-- Band 1: 60 Hz, +2.5 dB, WIDE width (affects ~40-90Hz) - sub-bass for bayan
-- Band 2: 220 Hz, +7 dB, MEDIUM width (affects ~150-330Hz) - body (KEY!)
-- Band 3: 2.5 kHz, +3 dB, MEDIUM width (affects ~1.7-3.7kHz) - attack definition
-- Band 4: 8 kHz, +1.5 dB, WIDE width (affects ~5.3-12kHz) - harmonics
-- Compression: 4:1, -9dB threshold, 6ms attack (FAST!), 100ms release, hard knee, +4dB gain, Manual Peak
-- FOH Reverb: FX2 (Small Hall) @ -20dB send (very subtle)
-- Monitor Reverb: OFF (tabla player needs dry signal)
-
-### Acoustic Guitar (DI/Piezo)
-- HPF: 82 Hz
-- Band 1: 165 Hz, +3 dB, MEDIUM width (affects ~110-250Hz) - body
-- Band 2: 2.7 kHz, -4 dB, NARROW width (affects ~2-3.6kHz) - CRITICAL: piezo quack
-- Band 3: 5 kHz, +2 dB, WIDE width (affects ~3.3-7.5kHz) - string definition
-- Band 4: 9 kHz, +4.5 dB, WIDE width (affects ~6-14kHz) - shimmer
-- Compression: 3:1, -11dB threshold, 13ms attack, 100ms release, soft knee, +2dB gain, Manual RMS
-- FOH Reverb: FX2 (Small Hall) @ -12dB send
-- Monitor Reverb: OFF
-- DI Box: Radial PZ-DI or SB-4, Ground LIFT, Pad OFF
-
-### Rabab / Rubab (DI/Piezo)
-- HPF: 65 Hz (keep low resonance of goat skin)
-- Band 1: 180 Hz, +4 dB, MEDIUM width (affects ~120-270Hz) - body warmth
-- Band 2: 2.5 kHz, -5 dB, NARROW width (affects ~1.9-3.3kHz) - CRITICAL: piezo quack
-- Band 3: 4 kHz, +3 dB, MEDIUM width (affects ~2.7-6kHz) - pluck definition
-- Band 4: 8 kHz, +3 dB, WIDE width (affects ~5.3-12kHz) - sympathetic shimmer
-- Compression: 3:1, -10dB threshold, 12ms attack, 100ms release, soft knee, +2dB gain, Manual RMS
-- FOH Reverb: FX2 (Small Hall) @ -10dB send
-- Monitor Reverb: OFF
-- DI Box: Radial PZ-DI or SB-4, Ground LIFT, Pad OFF
-
-### Dilruba / Esraj (DI/Piezo)
-- HPF: 70 Hz
-- Band 1: 200 Hz, +3 dB, MEDIUM width (affects ~135-300Hz) - body resonance
-- Band 2: 800 Hz, -2 dB, MEDIUM width (affects ~530-1.2kHz) - reduce nasal
-- Band 3: 2.5 kHz, -4 dB, NARROW width (affects ~1.9-3.3kHz) - piezo quack
-- Band 4: 6 kHz, +4 dB, WIDE width (affects ~4-9kHz) - bowing articulation
-- Compression: 2.5:1, -12dB threshold, 20ms attack, 150ms release, soft knee, +2dB gain, Manual RMS
-- FOH Reverb: FX2 (Hall Medium) @ -8dB send - bowed strings love space!
-- Monitor Reverb: OFF
-- DI Box: Radial PZ-DI or SB-4, Ground LIFT, Pad OFF
-
-### Taus / Mayuri (DI/Piezo)
-- HPF: 55 Hz (very low instrument)
-- Band 1: 120 Hz, +3 dB, WIDE width (affects ~80-180Hz) - deep body
-- Band 2: 350 Hz, +2 dB, MEDIUM width (affects ~235-520Hz) - mid warmth
-- Band 3: 2.5 kHz, -4 dB, NARROW width (affects ~1.9-3.3kHz) - piezo quack
-- Band 4: 5 kHz, +3 dB, WIDE width (affects ~3.3-7.5kHz) - bow articulation
-- Compression: 2.5:1, -12dB threshold, 25ms attack, 150ms release, soft knee, +2dB gain, Manual RMS
-- FOH Reverb: FX2 (Small Hall) @ -8dB send
-- Monitor Reverb: OFF
-- DI Box: Radial PZ-DI or SB-4, Ground LIFT, Pad OFF
-
-### Violin (DI/Piezo)
-- HPF: 180 Hz (violin doesn't need lows)
-- Band 1: 250 Hz, -2 dB, MEDIUM width (affects ~170-375Hz) - reduce boxiness
-- Band 2: 2.5 kHz, -4 dB, NARROW width (affects ~1.9-3.3kHz) - piezo quack CRITICAL
-- Band 3: 5 kHz, +3 dB, MEDIUM width (affects ~3.3-7.5kHz) - bow articulation
-- Band 4: 10 kHz, +4 dB, WIDE width (affects ~6.5-15kHz) - brilliance
-- Compression: 3:1, -10dB threshold, 15ms attack, 100ms release, soft knee, +2dB gain, Manual RMS
-- FOH Reverb: FX2 (Small Hall) @ -10dB send
-- Monitor Reverb: OFF
-- DI Box: Radial PZ-DI or SB-4, Ground LIFT, Pad OFF
-
-### Sarangi (DI/Piezo)
-- HPF: 90 Hz
-- Band 1: 200 Hz, +3 dB, MEDIUM width (affects ~135-300Hz) - body warmth
-- Band 2: 600 Hz, -3 dB, MEDIUM width (affects ~400-900Hz) - reduce honkiness
-- Band 3: 2.5 kHz, -4 dB, NARROW width (affects ~1.9-3.3kHz) - piezo quack
-- Band 4: 7 kHz, +5 dB, WIDE width (affects ~4.6-10.5kHz) - sympathetic strings
-- Compression: 2.5:1, -11dB threshold, 18ms attack, 120ms release, soft knee, +2dB gain, Manual RMS
-- FOH Reverb: FX2 (Small Hall) @ -8dB send
-- Monitor Reverb: OFF
-- DI Box: Radial PZ-DI or SB-4, Ground LIFT, Pad OFF
-
-### Harmonium (Direct/DI or Mic)
-- HPF: 80 Hz
-- Band 1: 200 Hz, +2 dB, MEDIUM width (affects ~135-300Hz) - reed body
-- Band 2: 500 Hz, -3 dB, MEDIUM width (affects ~335-750Hz) - reduce mud
-- Band 3: 2 kHz, +2 dB, MEDIUM width (affects ~1.3-3kHz) - note clarity
-- Band 4: 6 kHz, +3 dB, WIDE width (affects ~4-9kHz) - bellows air
-- Compression: 3:1, -10dB threshold, 20ms attack, 150ms release, soft knee, +2dB gain, Manual RMS
-- FOH Reverb: FX2 (Small Hall) @ -15dB send
-- Monitor Reverb: OFF
-- If using mic (Beta 57A): position 6-8 inches from reeds, angled
-
-### Keyboard/Synth (Direct/DI)
-- HPF: OFF or 30 Hz (depends on patches used)
-- Band 1: 100 Hz, 0 dB, MEDIUM width - adjust based on patch
-- Band 2: 500 Hz, -2 dB, MEDIUM width (affects ~335-750Hz) - clean up mids
-- Band 3: 3 kHz, +2 dB, MEDIUM width (affects ~2-4.5kHz) - presence
-- Band 4: 10 kHz, +2 dB, WIDE width (affects ~6.5-15kHz) - sparkle
-- Compression: 2:1, -12dB threshold, 20ms attack, 150ms release, soft knee, +1dB gain, Manual RMS
-- FOH Reverb: Often OFF if patch has built-in reverb, otherwise FX2 @ -15dB
-- Monitor Reverb: OFF
-
-### Podium / Speech Mic (Beta 58A)
-Purpose: Clear speech delivery - intelligibility is critical, minimal reverb
-- HPF: 120 Hz (remove all rumble, speech doesn't need lows)
-- Band 1: 200 Hz, -2 dB, MEDIUM width (affects ~135-300Hz) - reduce boom
-- Band 2: 500 Hz, -2 dB, MEDIUM width (affects ~335-750Hz) - reduce muddiness
-- Band 3: 3.5 kHz, +5 dB, MEDIUM width (affects ~2.3-5.2kHz) - CRITICAL: speech clarity
-- Band 4: 8 kHz, +2 dB, WIDE width (affects ~5.3-12kHz) - articulation, consonants
-- Compression: 4:1, -10dB threshold, 10ms attack, 100ms release, soft knee, +3dB gain, Manual RMS
-- FOH Reverb: OFF or FX1 (Plate) @ -20dB (very minimal)
-- Monitor Reverb: OFF (speaker needs clarity)
-
-### Ardas Mic (Beta 58A)
-Purpose: Sikh prayer recitation - voice should linger with gentle reverb, warm and reverent (MORE than speech, LESS than Palki)
-- HPF: 90 Hz
-- Band 1: 250 Hz, +2 dB, MEDIUM width (affects ~170-375Hz) - warmth
-- Band 2: 500 Hz, -2 dB, MEDIUM width (affects ~335-750Hz) - reduce boxiness
-- Band 3: 3 kHz, +3 dB, MEDIUM width (affects ~2-4.5kHz) - clarity
-- Band 4: 8 kHz, +2 dB, WIDE width (affects ~5.3-12kHz) - gentle presence
-- Compression: 3:1, -10dB threshold, 15ms attack, 100ms release, soft knee, +2dB gain, Manual RMS
-- **FOH Reverb: Use BOTH FX for reverent atmosphere (but less than Palki):**
-  - FX1 (Plate) @ -8dB send - primary warmth
-  - FX2 (Hall Medium) @ -12dB send - gentle space (lower than Palki's -8dB)
-- Monitor Reverb: OFF
-
-### Palki / Guru Granth Sahib Reading (Beta 58A)
-Purpose: Sacred scripture reading - THE WORD OF GOD should linger with divine atmosphere
-- HPF: 85 Hz
-- Band 1: 220 Hz, +3 dB, MEDIUM width (affects ~150-330Hz) - rich warmth
-- Band 2: 450 Hz, -2 dB, MEDIUM width (affects ~300-680Hz) - reduce mud
-- Band 3: 2.5 kHz, +3 dB, MEDIUM width (affects ~1.7-3.7kHz) - presence without harshness
-- Band 4: 7 kHz, +2 dB, WIDE width (affects ~4.6-10.5kHz) - subtle air
-- Compression: 3:1, -12dB threshold, 20ms attack, 150ms release, soft knee, +2dB gain, Manual RMS
-- **FOH Reverb: USE BOTH FX1 + FX2 for sacred atmosphere!**
-  - FX1 (Plate) @ -8dB send - adds density and smoothness
-  - FX2 (Hall Medium) @ -8dB send - adds space and ethereal quality
-- Monitor Reverb: OFF (reader needs clarity to read scripture accurately)
-- **IMPORTANT**: This is the ONE source where double-reverb is INTENTIONAL. The combination creates the sacred, ethereal atmosphere - the word of God should linger and fill the space reverently.
-
-## Key Principles
-
-1. **Don't Double-Reverb** (except Palki): Keep instruments in separate reverb spaces. Vocal in both FX1 and FX2 sounds washy.
-2. **FX Strategy**: 
-   - FX1 (Plate): Vocals, speech, Ardas - smooth, dense, musical
-   - FX2 (Hall Medium): Flute, bowed strings, Palki - sources that need SPACE
-   - FX3 (Room): Monitor reverb ONLY - short decay, vocals if requested
-   - FX4: Available for delay or backup
-3. **EXCEPTION - Palki/Scripture**: Use BOTH FX1 + FX2 together! This creates the sacred, ethereal atmosphere for reading Guru Granth Sahib. The word of God should linger reverently.
-4. **Flute Loves Space**: Send flute to FX2 (Hall) at -6 to -8dB - flute benefits from spacious reverb.
-5. **Monitor FX Rule**: Most performers DON'T need reverb in monitors. Start with FX3 OFF, add only if requested.
-6. **Beta 57 on Flute**: Always boost 8-10 kHz heavily - Beta 57 lacks natural airiness on flute.
-7. **Direct Acoustic Guitar**: ALWAYS cut 2-3 kHz to remove piezo quack.
-8. **Tabla Compression**: Fast attack (6ms) + soft knee OFF = preserves punch.
-
-## Troubleshooting Quick Reference
-
-### Vocal Issues
-- **Sounds muddy/boomy**: Reduce warmth boost (300-350Hz for female, 200-260Hz for male) to +2dB or less. Check HPF is engaged.
-- **Doesn't cut through**: Increase presence (4-5kHz for female, 2.5-3.5kHz for male). Lower competing instruments.
-- **Harsh/sibilant**: Cut 3-5kHz slightly.
-- **Feedback**: Check monitor position, reduce monitor send, cut problem frequency on channel EQ.
-
-### Flute Issues
-- **Sounds dull**: Boost 8-10kHz more (up to +5dB). Beta 57 lacks natural airiness.
-- **Sounds harsh**: Cut more at 2.5-3kHz.
-
-### Tabla Issues
-- **Sounds boomy**: Reduce 200-250Hz boost, consider engaging HPF at 40-50Hz.
-- **Lacks punch**: Increase attack definition boost at 2-3kHz, ensure fast compression attack (6ms).
-
-### Guitar/Piezo Issues
-- **Sounds harsh/plastic**: Cut more at 2.5-3kHz (the piezo quack) - this is CRITICAL.
-- **Sounds thin**: Boost 150-180Hz for body.
-
-### FX Issues
-- **Can't hear reverb**: Check BOTH FX Send AND Return in LR view are up.
-- **Reverb sounds washy**: Make sure instrument isn't being sent to multiple FX.
-
-## Learning from Past Setups
-
-When past setups are provided with ratings and notes:
-1. **High-rated setups (4-5 stars)**: Use their settings as starting points - they worked!
-2. **User notes are CRITICAL**: If notes say "too much reverb" - reduce it. If "guitar sounded great" - use those exact settings.
-3. **Same performer type**: If past setup had same instrument, COPY those settings.
-4. **Problems mentioned**: Explicitly address how to AVOID issues mentioned in notes.
+        # JSON output format instructions (static)
+        output_format = """
 
 ## Your Task
 
@@ -434,7 +125,7 @@ Return a JSON object (no markdown, just raw JSON) with these keys:
 
 4. **fx_settings**: dict with FX engine config and per-channel sends:
    ```
-   {"fx1": "Plate Reverb (FOH Vocals)", "fx2": "Small Hall (FOH Instruments)", "fx3": "Room (Monitor Reverb)", "fx4": "Available", "sends": {"1": {"fx1": "-10dB", "fx2": "off", "fx3": "-15dB"}, "2": {"fx1": "off", "fx2": "-8dB", "fx3": "off"}}}
+   {"fx1": "Plate Reverb (FOH Vocals)", "fx2": "Hall Medium (FOH Spacious)", "fx3": "Room (Monitor Reverb)", "fx4": "Available", "sends": {"1": {"fx1": "-10dB", "fx2": "off", "fx3": "-15dB"}, "2": {"fx1": "off", "fx2": "-8dB", "fx3": "off"}}}
    ```
 
 5. **instructions**: A SYSTEMATIC step-by-step guide in this EXACT format:
@@ -458,8 +149,9 @@ Return a JSON object (no markdown, just raw JSON) with these keys:
    ## LR MIX SETUP
    1. FX1 Return: set to -5dB
    2. FX2 Return: set to -5dB
-   3. CRITICAL: Both FX Send AND Return must be up to hear reverb!
-   4. Starting fader positions: [list each channel]
+   3. FX3 Return: Route to monitor mixes only
+   4. CRITICAL: Both FX Send AND Return must be up to hear reverb!
+   5. Starting fader positions: [list each channel]
 
    ## FINAL CHECK
    - Walk the room during soundcheck
@@ -468,6 +160,12 @@ Return a JSON object (no markdown, just raw JSON) with these keys:
 6. **troubleshooting_tips**: 3-5 SHORT tips specific to this lineup
 
 Keep response under 4000 tokens. Be concise but systematic!"""
+
+        # Combine: Equipment + Knowledge Base + Output Format
+        full_prompt = equipment_intro + "\n## Sound Engineering Knowledge Base (Loaded Dynamically)\n\n" + knowledge_base + output_format
+        
+        logger.info(f"Built system prompt: {len(full_prompt)} total characters")
+        return full_prompt
 
     def _build_user_prompt(
         self,
