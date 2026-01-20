@@ -130,7 +130,7 @@ async def run_startup_migrations():
             try:
                 await conn.execute(text(f"CREATE INDEX IF NOT EXISTS {idx_name} ON learned_hardware({column})"))
             except Exception:
-            pass
+                pass
 
     logger.info("Startup migrations completed")
 
