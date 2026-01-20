@@ -364,8 +364,21 @@ async def learn_from_existing_gear(
         )
 
         # Optionally update the gear's default_settings
-        if result.get("settings_by_source") and not result.get("error"):
-            gear.default_settings = result.get("settings_by_source")
+        if not result.get("error"):
+            # For amplifiers, store the amp-specific fields
+            if gear.type == 'amplifier':
+                gear.default_settings = {
+                    "watts_per_channel": result.get("watts_per_channel"),
+                    "channels": result.get("channels"),
+                    "amplifier_class": result.get("amplifier_class"),
+                    "features": result.get("features"),
+                    "characteristics": result.get("characteristics"),
+                    "best_for": result.get("best_for"),
+                    "settings_by_source": result.get("settings_by_source")
+                }
+            elif result.get("settings_by_source"):
+                gear.default_settings = result.get("settings_by_source")
+            
             await db.commit()
             await db.refresh(gear)
             logger.info(f"Updated default_settings for gear {gear_id}")

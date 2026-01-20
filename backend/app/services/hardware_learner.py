@@ -59,6 +59,12 @@ Return a JSON object with:
 6. **settings_by_source**: Dict of source types with recommended settings
 7. **knowledge_base_entry**: Formatted markdown for the knowledge base file
 
+For amplifiers, ALSO include these fields:
+8. **watts_per_channel**: Power output string (e.g., "500W x2 @ 4Ω" or "1200W x4 @ 4Ω")
+9. **channels**: Number of output channels as string (e.g., "2" or "4")
+10. **amplifier_class**: The amplifier class (e.g., "Class D", "Class AB")
+11. **features**: List of features (e.g., ["DSP", "Limiters", "Crossover"])
+
 For microphones, include settings for relevant sources:
 - EQ (HPF, 4 bands with frequency, gain, width description, frequency range affected)
 - Compression (ratio, threshold, attack, release, knee, gain, type)
@@ -70,9 +76,14 @@ For speakers, include:
 - Best practices
 
 For amplifiers, include:
+- **watts_per_channel**: Power output per channel at 4Ω (e.g., "500W x2 @ 4Ω")
+- **channels**: Number of channels (e.g., "2" or "4")
+- **amplifier_class**: Class D, Class AB, etc.
+- **features**: DSP, limiters, crossover, etc.
 - Crossover recommendations
 - DSP tips if applicable
 - Integration with QuPac
+- Best speaker pairings
 
 Keep response focused and practical. Real-world tested settings preferred over theoretical."""
 

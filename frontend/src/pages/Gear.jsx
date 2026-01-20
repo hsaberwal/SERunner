@@ -139,6 +139,7 @@ function Gear() {
   const typeLabels = {
     mic: 'Microphones',
     di_box: 'DI Boxes',
+    amplifier: 'Amplifiers',
     mixer: 'Mixers',
     speaker: 'Speakers',
     cable: 'Cables',
@@ -296,6 +297,7 @@ function Gear() {
                   >
                     <option value="mic">Microphone</option>
                     <option value="di_box">DI Box</option>
+                    <option value="amplifier">Amplifier</option>
                     <option value="mixer">Mixer</option>
                     <option value="speaker">Speaker</option>
                     <option value="cable">Cable</option>
@@ -401,8 +403,29 @@ function Gear() {
                         </p>
                       )}
 
-                      {/* Default Settings (if learned) */}
-                      {item.default_settings && Object.keys(item.default_settings).length > 0 && (
+                      {/* Amplifier-specific specs */}
+                      {item.type === 'amplifier' && item.default_settings && (
+                        <div style={{ marginTop: '0.75rem', padding: '0.5rem', background: '#eff6ff', border: '1px solid #3b82f6', borderRadius: '0.375rem' }}>
+                          <strong style={{ fontSize: '0.8rem', color: '#1d4ed8' }}>Amplifier Specs</strong>
+                          <div style={{ fontSize: '0.75rem', color: '#1e40af', margin: '0.25rem 0 0' }}>
+                            {item.default_settings.watts_per_channel && (
+                              <p style={{ margin: '0.15rem 0' }}>⚡ Output: {item.default_settings.watts_per_channel}</p>
+                            )}
+                            {item.default_settings.channels && (
+                              <p style={{ margin: '0.15rem 0' }}>📊 Channels: {item.default_settings.channels}</p>
+                            )}
+                            {item.default_settings.amplifier_class && (
+                              <p style={{ margin: '0.15rem 0' }}>🔧 Class: {item.default_settings.amplifier_class}</p>
+                            )}
+                            {item.default_settings.features && item.default_settings.features.length > 0 && (
+                              <p style={{ margin: '0.15rem 0' }}>✨ Features: {item.default_settings.features.join(', ')}</p>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Default Settings (if learned) - for non-amp gear */}
+                      {item.type !== 'amplifier' && item.default_settings && Object.keys(item.default_settings).length > 0 && (
                         <div style={{ marginTop: '0.75rem', padding: '0.5rem', background: '#ecfdf5', border: '1px solid #10b981', borderRadius: '0.375rem' }}>
                           <strong style={{ fontSize: '0.8rem', color: '#059669' }}>Learned Settings Available</strong>
                           <p style={{ fontSize: '0.75rem', color: '#047857', margin: '0.25rem 0 0' }}>
@@ -441,8 +464,8 @@ function Gear() {
                     </div>
 
                     <div style={{ display: 'flex', gap: '0.5rem', marginLeft: '1rem', flexWrap: 'wrap' }}>
-                      {/* Learn settings for microphones and speakers */}
-                      {['mic', 'speaker', 'di_box'].includes(item.type) && (
+                      {/* Learn settings for microphones, speakers, amps, and DI boxes */}
+                      {['mic', 'speaker', 'di_box', 'amplifier'].includes(item.type) && (
                         <button
                           className="btn btn-info"
                           onClick={() => handleLearnFromGear(item.id)}

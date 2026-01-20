@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { gear } from '../services/api'
 
 // Default empty speaker setup structure
 export const emptySpeakerSetup = {
@@ -109,6 +110,32 @@ function LocationForm({
   showGEQ = true,
   disabled = false
 }) {
+  const [userAmps, setUserAmps] = useState([])
+
+  // Fetch user's amplifiers from gear inventory
+  useEffect(() => {
+    const loadUserAmps = async () => {
+      try {
+        const response = await gear.getAll()
+        const amps = response.data.filter(g => g.type === 'amplifier')
+        setUserAmps(amps)
+      } catch (error) {
+        console.error('Failed to load user amps:', error)
+      }
+    }
+    loadUserAmps()
+  }, [])
+
+  // Get amp display name
+  const getAmpDisplayName = (amp) => {
+    return `${amp.brand || ''} ${amp.model || ''}`.trim() || 'Unknown Amp'
+  }
+
+  // Get amp watts from default_settings
+  const getAmpWatts = (amp) => {
+    return amp.default_settings?.watts_per_channel || amp.specs?.watts || ''
+  }
+
   const updateField = (field, value) => {
     onChange({ ...formData, [field]: value })
   }
@@ -358,30 +385,51 @@ function LocationForm({
           <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '0.5rem' }}>
             <select
               className="form-select"
-              value={knownAmps.find(a => a.value === formData.speaker_setup?.amp?.model)?.value ||
-                     (formData.speaker_setup?.amp?.model ? 'custom' : '')}
+              value={
+                // Check if it's a user amp (by matching display name)
+                userAmps.find(a => getAmpDisplayName(a) === formData.speaker_setup?.amp?.model)
+                  ? `user_${userAmps.find(a => getAmpDisplayName(a) === formData.speaker_setup?.amp?.model)?.id}`
+                  : knownAmps.find(a => a.value === formData.speaker_setup?.amp?.model)?.value ||
+                    (formData.speaker_setup?.amp?.model ? 'custom' : '')
+              }
               onChange={(e) => {
-                const selectedAmp = knownAmps.find(a => a.value === e.target.value)
-                if (e.target.value && e.target.value !== 'custom' && selectedAmp) {
-                  // Extract brand from the value (first word)
-                  const brand = e.target.value.split(' ')[0]
-                  updateSpeakerField('amp', 'brand', brand)
-                  updateSpeakerField('amp', 'model', e.target.value)
-                  // Auto-fill watts and channels from known specs
-                  if (selectedAmp.watts) {
-                    updateSpeakerField('amp', 'watts', selectedAmp.watts)
+                const value = e.target.value
+                
+                // User's amp from inventory
+                if (value.startsWith('user_')) {
+                  const ampId = value.replace('user_', '')
+                  const userAmp = userAmps.find(a => a.id === ampId)
+                  if (userAmp) {
+                    updateSpeakerField('amp', 'brand', userAmp.brand || '')
+                    updateSpeakerField('amp', 'model', getAmpDisplayName(userAmp))
+                    updateSpeakerField('amp', 'watts', getAmpWatts(userAmp))
+                    updateSpeakerField('amp', 'channels', userAmp.default_settings?.channels || '')
                   }
-                  if (selectedAmp.channels) {
-                    updateSpeakerField('amp', 'channels', selectedAmp.channels)
+                }
+                // Known amp from predefined list
+                else if (value && value !== 'custom') {
+                  const selectedAmp = knownAmps.find(a => a.value === value)
+                  if (selectedAmp) {
+                    const brand = value.split(' ')[0]
+                    updateSpeakerField('amp', 'brand', brand)
+                    updateSpeakerField('amp', 'model', value)
+                    if (selectedAmp.watts) {
+                      updateSpeakerField('amp', 'watts', selectedAmp.watts)
+                    }
+                    if (selectedAmp.channels) {
+                      updateSpeakerField('amp', 'channels', selectedAmp.channels)
+                    }
                   }
-                } else if (e.target.value === 'custom') {
-                  // Set a placeholder to trigger custom input display
+                }
+                // Custom amp
+                else if (value === 'custom') {
                   updateSpeakerField('amp', 'brand', '')
                   updateSpeakerField('amp', 'model', 'Custom Amp')
                   updateSpeakerField('amp', 'watts', '')
                   updateSpeakerField('amp', 'channels', '')
-                } else if (e.target.value === '') {
-                  // Clear everything when "Select..." is chosen
+                }
+                // Clear
+                else {
                   updateSpeakerField('amp', 'brand', '')
                   updateSpeakerField('amp', 'model', '')
                   updateSpeakerField('amp', 'watts', '')
@@ -390,22 +438,44 @@ function LocationForm({
               }}
               disabled={disabled}
             >
-              {knownAmps.map(a => (
-                <option key={a.value} value={a.value}>
-                  {a.label}{a.watts ? ` (${a.watts})` : ''}
-                </option>
-              ))}
+              <option value="">Select amplifier...</option>
+              
+              {/* User's amps from inventory */}
+              {userAmps.length > 0 && (
+                <optgroup label="Your Gear Inventory">
+                  {userAmps.map(amp => (
+                    <option key={amp.id} value={`user_${amp.id}`}>
+                      {getAmpDisplayName(amp)}{getAmpWatts(amp) ? ` (${getAmpWatts(amp)})` : ''}
+                    </option>
+                  ))}
+                </optgroup>
+              )}
+              
+              {/* Known amps as suggestions */}
+              <optgroup label="Common Amplifiers">
+                {knownAmps.filter(a => a.value && a.value !== 'custom').map(a => (
+                  <option key={a.value} value={a.value}>
+                    {a.label}{a.watts ? ` (${a.watts})` : ''}
+                  </option>
+                ))}
+              </optgroup>
+              
+              <option value="custom">Other (type below)</option>
             </select>
-            {/* Show watts/channels for known amps (read-only display) */}
-            {formData.speaker_setup?.amp?.watts && knownAmps.find(a => a.value === formData.speaker_setup?.amp?.model) && (
+            
+            {/* Show watts/channels for selected amp */}
+            {formData.speaker_setup?.amp?.watts && (
               <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', padding: '0.25rem 0' }}>
                 <strong>Output:</strong> {formData.speaker_setup?.amp?.watts}
                 {formData.speaker_setup?.amp?.channels && ` • ${formData.speaker_setup?.amp?.channels} channels`}
               </div>
             )}
           </div>
-          {/* Custom amp input - show when model exists but is not a known amp */}
-          {formData.speaker_setup?.amp?.model && !knownAmps.find(a => a.value === formData.speaker_setup?.amp?.model) && (
+          
+          {/* Custom amp input */}
+          {formData.speaker_setup?.amp?.model && 
+           !userAmps.find(a => getAmpDisplayName(a) === formData.speaker_setup?.amp?.model) &&
+           !knownAmps.find(a => a.value === formData.speaker_setup?.amp?.model) && (
             <div style={{ marginTop: '0.5rem' }}>
               <input
                 type="text"
@@ -435,9 +505,16 @@ function LocationForm({
                 />
               </div>
               <p style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', margin: '0.25rem 0 0' }}>
-                Tip: Include power rating at typical impedance (e.g., "500W x2 @ 4Ω")
+                Tip: Add this amp to your Gear inventory and use "Learn" to auto-fetch specs
               </p>
             </div>
+          )}
+          
+          {/* Hint to add amps to inventory */}
+          {userAmps.length === 0 && (
+            <p style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', margin: '0.25rem 0 0' }}>
+              💡 Add amps to your Gear inventory to see them here with learned specs
+            </p>
           )}
         </div>
       </div>
