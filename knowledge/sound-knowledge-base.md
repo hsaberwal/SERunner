@@ -384,7 +384,7 @@ Boost: 60 Hz @ +2-3 dB (sub-bass)
 Boost: 200-250 Hz @ +6 to +10 dB (body — adjust to taste)
 Optional: 2-3 kHz @ +3 dB (attack definition)
 Compression: 4:1, -9 dB threshold, 6ms attack, soft knee OFF
-FOH Reverb: FX2 (Small Hall) @ -20 dB send (very subtle)
+FOH Reverb: FX2 (Hall Medium) @ -20 dB send (very subtle)
 Monitor Reverb: OFF (tabla player needs dry signal)
 ```
 
@@ -395,7 +395,7 @@ Boost: 150-180 Hz @ +3 dB (body)
 Cut: 2.5-3 kHz @ -3 to -4 dB (CRITICAL: piezo quack)
 Boost: 8-10 kHz @ +4 to +5 dB (shimmer)
 Compression: 3:1, -11 dB threshold, 13ms attack, soft knee ON
-FOH Reverb: FX2 (Small Hall) @ -12 dB send
+FOH Reverb: FX2 (Hall Medium) @ -12 dB send
 Monitor Reverb: OFF
 ```
 
