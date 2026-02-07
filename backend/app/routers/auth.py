@@ -299,3 +299,48 @@ async def toggle_admin(
     await db.refresh(user)
 
     return user
+
+
+class AdminCreateUser(BaseModel):
+    email: EmailStr
+    password: str
+    plan: str = "free"  # free, basic, pro
+
+
+@router.post("/admin/users/create", response_model=UserAdminResponse, status_code=status.HTTP_201_CREATED)
+async def admin_create_user(
+    user_data: AdminCreateUser,
+    admin_user: User = Depends(get_admin_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Create a new user directly (admin only) - pre-approved with optional plan."""
+    # Check if user already exists
+    result = await db.execute(select(User).where(User.email == user_data.email))
+    if result.scalar_one_or_none():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Email already registered"
+        )
+
+    # Create user (pre-approved)
+    user = User(
+        email=user_data.email,
+        password_hash=get_password_hash(user_data.password),
+        is_approved=True,
+        is_admin=False
+    )
+    db.add(user)
+    await db.commit()
+    await db.refresh(user)
+
+    # Create subscription with the specified plan
+    from app.models.subscription import Subscription
+    subscription = Subscription(
+        user_id=user.id,
+        plan=user_data.plan,
+        status="active",
+    )
+    db.add(subscription)
+    await db.commit()
+
+    return user

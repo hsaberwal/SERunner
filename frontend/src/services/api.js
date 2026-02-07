@@ -101,6 +101,9 @@ export const billing = {
   getPlans: () => api.get('/billing/plans'),
   createCheckout: (data) => api.post('/billing/create-checkout', data),
   createPortal: () => api.post('/billing/create-portal'),
+  // Admin
+  getAdminSubscriptions: () => api.get('/billing/admin/subscriptions'),
+  adminSetPlan: (userId, plan) => api.put(`/billing/admin/set-plan/${userId}?plan=${plan}`),
 }
 
 // Stats
@@ -121,6 +124,7 @@ export const admin = {
   rejectUser: (userId) => api.put(`/auth/admin/users/${userId}/reject`),
   revokeUser: (userId) => api.put(`/auth/admin/users/${userId}/revoke`),
   toggleAdmin: (userId) => api.put(`/auth/admin/users/${userId}/toggle-admin`),
+  createUser: (data) => api.post('/auth/admin/users/create', data),
 }
 
 export default api
