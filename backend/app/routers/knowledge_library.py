@@ -65,8 +65,8 @@ async def get_all_learned_hardware(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    """Get all learned hardware for the current user"""
-    query = select(LearnedHardware).where(LearnedHardware.user_id == current_user.id)
+    """Get all learned hardware (shared across all users)"""
+    query = select(LearnedHardware)
     
     if hardware_type:
         query = query.where(LearnedHardware.hardware_type == hardware_type)
@@ -88,8 +88,7 @@ async def get_learned_hardware(
     """Get a specific learned hardware item"""
     result = await db.execute(
         select(LearnedHardware).where(
-            LearnedHardware.id == item_id,
-            LearnedHardware.user_id == current_user.id
+            LearnedHardware.id == item_id
         )
     )
     item = result.scalar_one_or_none()
@@ -117,17 +116,21 @@ async def learn_and_save_hardware(
     
     logger.info(f"Learning new hardware: {request.brand} {request.model}")
     
-    # Check if already exists
+    # Check if already exists (globally shared)
     existing = await db.execute(
         select(LearnedHardware).where(
-            LearnedHardware.user_id == current_user.id,
             LearnedHardware.brand == request.brand,
             LearnedHardware.model == request.model
         )
     )
     existing_item = existing.scalar_one_or_none()
-    
-    # Learn from Claude
+
+    # If already learned by any user, return existing data (use relearn to refresh)
+    if existing_item and existing_item.knowledge_base_entry:
+        logger.info(f"Hardware already learned: {request.brand} {request.model} - returning existing data")
+        return existing_item.to_dict()
+
+    # Learn from Claude (only for new or incomplete items)
     learned_data = await learner.learn_hardware(
         hardware_type=request.hardware_type,
         brand=request.brand,
@@ -207,15 +210,14 @@ async def relearn_hardware(
 
     result = await db.execute(
         select(LearnedHardware).where(
-            LearnedHardware.id == item_id,
-            LearnedHardware.user_id == current_user.id
+            LearnedHardware.id == item_id
         )
     )
     item = result.scalar_one_or_none()
-    
+
     if not item:
         raise HTTPException(status_code=404, detail="Learned hardware not found")
-    
+
     settings = get_settings()
     learner = HardwareLearner(api_key=settings.anthropic_api_key)
     
@@ -267,8 +269,7 @@ async def delete_learned_hardware(
     """Delete learned hardware from knowledge library"""
     result = await db.execute(
         select(LearnedHardware).where(
-            LearnedHardware.id == item_id,
-            LearnedHardware.user_id == current_user.id
+            LearnedHardware.id == item_id
         )
     )
     item = result.scalar_one_or_none()

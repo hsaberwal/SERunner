@@ -1,4 +1,4 @@
-"""Instrument profile routes - manage custom instrument/performer types."""
+"""Venue type profile routes - manage learned venue acoustic profiles."""
 
 import logging
 from uuid import UUID
@@ -10,9 +10,9 @@ from pydantic import BaseModel
 
 from app.database import get_db
 from app.models.user import User
-from app.models.instrument import InstrumentProfile
+from app.models.venue_type import VenueTypeProfile
 from app.utils.auth import get_current_user
-from app.services.instrument_learner import InstrumentLearner
+from app.services.venue_type_learner import VenueTypeLearner
 from app.services.usage_tracker import check_learning_allowed, record_learning
 from app.config import get_settings
 
@@ -23,13 +23,13 @@ settings = get_settings()
 
 # ============== Schemas ==============
 
-class InstrumentCreate(BaseModel):
+class VenueTypeCreate(BaseModel):
     name: str
-    category: str = "other"  # vocals, speech, percussion, wind, strings, keys, other
+    category: str = "other"  # worship, performance, commercial, education, outdoor, other
     user_notes: Optional[str] = None
 
 
-class InstrumentUpdate(BaseModel):
+class VenueTypeUpdate(BaseModel):
     display_name: Optional[str] = None
     category: Optional[str] = None
     user_notes: Optional[str] = None
@@ -39,70 +39,70 @@ class InstrumentUpdate(BaseModel):
 # ============== Endpoints ==============
 
 @router.get("")
-async def get_instruments(
+async def get_venue_types(
     category: Optional[str] = None,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    """Get all instrument profiles (shared across all users)."""
-    query = select(InstrumentProfile)
+    """Get all venue type profiles (shared across all users)."""
+    query = select(VenueTypeProfile)
     if category:
-        query = query.where(InstrumentProfile.category == category)
-    query = query.order_by(InstrumentProfile.category, InstrumentProfile.name)
+        query = query.where(VenueTypeProfile.category == category)
+    query = query.order_by(VenueTypeProfile.category, VenueTypeProfile.name)
 
     result = await db.execute(query)
     items = result.scalars().all()
     return [item.to_dict() for item in items]
 
 
-@router.get("/{instrument_id}")
-async def get_instrument(
-    instrument_id: UUID,
+@router.get("/{venue_type_id}")
+async def get_venue_type(
+    venue_type_id: UUID,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    """Get a specific instrument profile."""
+    """Get a specific venue type profile."""
     result = await db.execute(
-        select(InstrumentProfile).where(
-            InstrumentProfile.id == instrument_id
+        select(VenueTypeProfile).where(
+            VenueTypeProfile.id == venue_type_id
         )
     )
     item = result.scalar_one_or_none()
     if not item:
-        raise HTTPException(status_code=404, detail="Instrument not found")
+        raise HTTPException(status_code=404, detail="Venue type not found")
     return item.to_dict()
 
 
 @router.post("/learn")
-async def learn_instrument(
-    request: InstrumentCreate,
+async def learn_venue_type(
+    request: VenueTypeCreate,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    """Learn about an instrument using Claude and save the profile."""
+    """Learn about a venue type using Claude and save the profile."""
     # Check usage limits
     subscription = await check_learning_allowed(current_user, db)
 
     # Check if already exists
-    learner = InstrumentLearner()
+    learner = VenueTypeLearner()
     value_key = learner._make_value_key(request.name)
 
     existing = await db.execute(
-        select(InstrumentProfile).where(
-            InstrumentProfile.value_key == value_key
+        select(VenueTypeProfile).where(
+            VenueTypeProfile.value_key == value_key
         )
     )
     existing_item = existing.scalar_one_or_none()
 
-    # If already learned by any user, return existing data (use relearn to refresh)
+    # If already learned, return existing data (use relearn to refresh)
     if existing_item and existing_item.knowledge_base_entry:
-        logger.info(f"Instrument already learned: {request.name} - returning existing data")
+        logger.info(f"Venue type already learned: {request.name} - returning existing data")
         return existing_item.to_dict()
 
-    # Learn from Claude (only for new or incomplete items)
-    logger.info(f"Learning instrument: {request.name} (category: {request.category})")
-    learned_data = await learner.learn_instrument(
-        instrument_name=request.name,
+    # Learn from Claude
+    logger.info(f"Learning venue type: {request.name} (category: {request.category})")
+    learned_data = await learner.learn_venue_type(
+        venue_type_name=request.name,
         category=request.category,
         user_notes=request.user_notes,
     )
@@ -117,11 +117,14 @@ async def learn_instrument(
         # Update incomplete existing item
         existing_item.display_name = learned_data.get("display_name", request.name)
         existing_item.description = learned_data.get("description")
-        existing_item.mic_recommendations = learned_data.get("mic_recommendations")
-        existing_item.eq_settings = learned_data.get("eq_settings")
-        existing_item.compression_settings = learned_data.get("compression_settings")
-        existing_item.fx_recommendations = learned_data.get("fx_recommendations")
-        existing_item.mixing_notes = learned_data.get("mixing_notes")
+        existing_item.acoustic_characteristics = learned_data.get("acoustic_characteristics")
+        existing_item.sound_goals = learned_data.get("sound_goals")
+        existing_item.acoustic_challenges = learned_data.get("acoustic_challenges")
+        existing_item.eq_strategy = learned_data.get("eq_strategy")
+        existing_item.fx_approach = learned_data.get("fx_approach")
+        existing_item.compression_philosophy = learned_data.get("compression_philosophy")
+        existing_item.monitoring_notes = learned_data.get("monitoring_notes")
+        existing_item.special_considerations = learned_data.get("special_considerations")
         existing_item.knowledge_base_entry = learned_data.get("knowledge_base_entry")
         existing_item.user_notes = request.user_notes
         existing_item.category = request.category
@@ -130,22 +133,25 @@ async def learn_instrument(
         await db.refresh(existing_item)
         await record_learning(subscription, db)
 
-        logger.info(f"Updated instrument profile: {request.name}")
+        logger.info(f"Updated venue type profile: {request.name}")
         return existing_item.to_dict()
     else:
         # Create new
-        new_item = InstrumentProfile(
+        new_item = VenueTypeProfile(
             user_id=current_user.id,
             name=request.name,
             display_name=learned_data.get("display_name", request.name),
             category=request.category,
             value_key=value_key,
             description=learned_data.get("description"),
-            mic_recommendations=learned_data.get("mic_recommendations"),
-            eq_settings=learned_data.get("eq_settings"),
-            compression_settings=learned_data.get("compression_settings"),
-            fx_recommendations=learned_data.get("fx_recommendations"),
-            mixing_notes=learned_data.get("mixing_notes"),
+            acoustic_characteristics=learned_data.get("acoustic_characteristics"),
+            sound_goals=learned_data.get("sound_goals"),
+            acoustic_challenges=learned_data.get("acoustic_challenges"),
+            eq_strategy=learned_data.get("eq_strategy"),
+            fx_approach=learned_data.get("fx_approach"),
+            compression_philosophy=learned_data.get("compression_philosophy"),
+            monitoring_notes=learned_data.get("monitoring_notes"),
+            special_considerations=learned_data.get("special_considerations"),
             knowledge_base_entry=learned_data.get("knowledge_base_entry"),
             user_notes=request.user_notes,
         )
@@ -154,31 +160,31 @@ async def learn_instrument(
         await db.refresh(new_item)
         await record_learning(subscription, db)
 
-        logger.info(f"Created instrument profile: {request.name}")
+        logger.info(f"Created venue type profile: {request.name}")
         return new_item.to_dict()
 
 
-@router.post("/{instrument_id}/relearn")
-async def relearn_instrument(
-    instrument_id: UUID,
+@router.post("/{venue_type_id}/relearn")
+async def relearn_venue_type(
+    venue_type_id: UUID,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    """Re-learn an instrument to update its settings."""
+    """Re-learn a venue type to update its acoustic profile."""
     subscription = await check_learning_allowed(current_user, db)
 
     result = await db.execute(
-        select(InstrumentProfile).where(
-            InstrumentProfile.id == instrument_id
+        select(VenueTypeProfile).where(
+            VenueTypeProfile.id == venue_type_id
         )
     )
     item = result.scalar_one_or_none()
     if not item:
-        raise HTTPException(status_code=404, detail="Instrument not found")
+        raise HTTPException(status_code=404, detail="Venue type not found")
 
-    learner = InstrumentLearner()
-    learned_data = await learner.learn_instrument(
-        instrument_name=item.name,
+    learner = VenueTypeLearner()
+    learned_data = await learner.learn_venue_type(
+        venue_type_name=item.name,
         category=item.category,
         user_notes=item.user_notes,
     )
@@ -191,11 +197,14 @@ async def relearn_instrument(
 
     item.display_name = learned_data.get("display_name", item.name)
     item.description = learned_data.get("description")
-    item.mic_recommendations = learned_data.get("mic_recommendations")
-    item.eq_settings = learned_data.get("eq_settings")
-    item.compression_settings = learned_data.get("compression_settings")
-    item.fx_recommendations = learned_data.get("fx_recommendations")
-    item.mixing_notes = learned_data.get("mixing_notes")
+    item.acoustic_characteristics = learned_data.get("acoustic_characteristics")
+    item.sound_goals = learned_data.get("sound_goals")
+    item.acoustic_challenges = learned_data.get("acoustic_challenges")
+    item.eq_strategy = learned_data.get("eq_strategy")
+    item.fx_approach = learned_data.get("fx_approach")
+    item.compression_philosophy = learned_data.get("compression_philosophy")
+    item.monitoring_notes = learned_data.get("monitoring_notes")
+    item.special_considerations = learned_data.get("special_considerations")
     item.knowledge_base_entry = learned_data.get("knowledge_base_entry")
 
     await db.commit()
@@ -205,22 +214,22 @@ async def relearn_instrument(
     return item.to_dict()
 
 
-@router.put("/{instrument_id}")
-async def update_instrument(
-    instrument_id: UUID,
-    update: InstrumentUpdate,
+@router.put("/{venue_type_id}")
+async def update_venue_type(
+    venue_type_id: UUID,
+    update: VenueTypeUpdate,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    """Update instrument profile metadata (not AI-learned data)."""
+    """Update venue type profile metadata (not AI-learned data)."""
     result = await db.execute(
-        select(InstrumentProfile).where(
-            InstrumentProfile.id == instrument_id
+        select(VenueTypeProfile).where(
+            VenueTypeProfile.id == venue_type_id
         )
     )
     item = result.scalar_one_or_none()
     if not item:
-        raise HTTPException(status_code=404, detail="Instrument not found")
+        raise HTTPException(status_code=404, detail="Venue type not found")
 
     if update.display_name is not None:
         item.display_name = update.display_name
@@ -236,21 +245,21 @@ async def update_instrument(
     return item.to_dict()
 
 
-@router.delete("/{instrument_id}")
-async def delete_instrument(
-    instrument_id: UUID,
+@router.delete("/{venue_type_id}")
+async def delete_venue_type(
+    venue_type_id: UUID,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    """Delete an instrument profile."""
+    """Delete a venue type profile."""
     result = await db.execute(
-        select(InstrumentProfile).where(
-            InstrumentProfile.id == instrument_id
+        select(VenueTypeProfile).where(
+            VenueTypeProfile.id == venue_type_id
         )
     )
     item = result.scalar_one_or_none()
     if not item:
-        raise HTTPException(status_code=404, detail="Instrument not found")
+        raise HTTPException(status_code=404, detail="Venue type not found")
 
     await db.delete(item)
     await db.commit()

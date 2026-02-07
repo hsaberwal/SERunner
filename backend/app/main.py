@@ -4,9 +4,9 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import get_settings
-from app.routers import auth, locations, setups, gear, knowledge_library, billing, instruments
-from app.database import engine, Base
-from app.models import User, Location, Setup, Gear, GearLoan, KnowledgeBase, LearnedHardware, Subscription, InstrumentProfile
+from app.routers import auth, locations, setups, gear, knowledge_library, billing, instruments, venue_types
+from app.database import engine, Base, AsyncSessionLocal
+from app.models import User, Location, Setup, Gear, GearLoan, KnowledgeBase, LearnedHardware, Subscription, InstrumentProfile, VenueTypeProfile
 
 # Configure logging to stdout for Railway
 logging.basicConfig(
@@ -230,16 +230,149 @@ async def run_startup_migrations():
             except Exception:
                 pass
 
+        # Create venue_type_profiles table for learned venue acoustic profiles
+        try:
+            await conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS venue_type_profiles (
+                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                    name VARCHAR(100) NOT NULL,
+                    display_name VARCHAR(150),
+                    category VARCHAR(50) NOT NULL,
+                    value_key VARCHAR(100) NOT NULL,
+                    description TEXT,
+                    acoustic_characteristics JSONB,
+                    sound_goals JSONB,
+                    acoustic_challenges JSONB,
+                    eq_strategy JSONB,
+                    fx_approach JSONB,
+                    compression_philosophy JSONB,
+                    monitoring_notes TEXT,
+                    special_considerations TEXT,
+                    knowledge_base_entry TEXT,
+                    user_notes TEXT,
+                    is_active VARCHAR(5) DEFAULT 'true',
+                    created_at TIMESTAMP DEFAULT NOW(),
+                    updated_at TIMESTAMP DEFAULT NOW()
+                )
+            """))
+        except Exception:
+            pass
+
+        # Create indexes for venue_type_profiles
+        for idx_name, column in [
+            ("ix_venue_type_profiles_user_id", "user_id"),
+            ("ix_venue_type_profiles_category", "category"),
+            ("ix_venue_type_profiles_value_key", "value_key"),
+        ]:
+            try:
+                await conn.execute(text(f"CREATE INDEX IF NOT EXISTS {idx_name} ON venue_type_profiles({column})"))
+            except Exception:
+                pass
+
     logger.info("Startup migrations completed")
+
+
+async def seed_venue_types():
+    """Auto-learn the standard venue types if they don't exist yet."""
+    import json
+    from sqlalchemy import text
+
+    SEED_VENUE_TYPES = [
+        ("Gurdwara", "worship"),
+        ("Church", "worship"),
+        ("Temple", "worship"),
+        ("Hall", "performance"),
+        ("Cafe", "commercial"),
+        ("Outdoor", "outdoor"),
+        ("School", "education"),
+    ]
+
+    try:
+        async with AsyncSessionLocal() as db:
+            # Check if any venue types exist already
+            result = await db.execute(text("SELECT COUNT(*) FROM venue_type_profiles"))
+            count = result.scalar()
+
+            if count > 0:
+                logger.info(f"Venue types already seeded ({count} exist), skipping")
+                return
+
+            # Get the first admin user for the user_id audit field
+            result = await db.execute(text(
+                "SELECT id FROM users WHERE is_admin = TRUE ORDER BY created_at ASC LIMIT 1"
+            ))
+            admin_row = result.first()
+
+            if not admin_row:
+                logger.warning("No admin user found, skipping venue type seeding")
+                return
+
+            admin_id = admin_row[0]
+
+            from app.services.venue_type_learner import VenueTypeLearner
+            learner = VenueTypeLearner()
+
+            for name, category in SEED_VENUE_TYPES:
+                try:
+                    value_key = learner._make_value_key(name)
+
+                    # Check if this specific one exists (in case of partial seed)
+                    existing = await db.execute(text(
+                        "SELECT id FROM venue_type_profiles WHERE value_key = :vk"
+                    ), {"vk": value_key})
+                    if existing.first():
+                        continue
+
+                    logger.info(f"Seeding venue type: {name} ({category})")
+                    learned_data = await learner.learn_venue_type(name, category)
+
+                    if learned_data.get("error"):
+                        logger.error(f"Failed to learn venue type {name}: {learned_data['error']}")
+                        continue
+
+                    from app.models.venue_type import VenueTypeProfile
+                    new_vt = VenueTypeProfile(
+                        user_id=admin_id,
+                        name=name,
+                        display_name=learned_data.get("display_name", name),
+                        category=category,
+                        value_key=value_key,
+                        description=learned_data.get("description"),
+                        acoustic_characteristics=learned_data.get("acoustic_characteristics"),
+                        sound_goals=learned_data.get("sound_goals"),
+                        acoustic_challenges=learned_data.get("acoustic_challenges"),
+                        eq_strategy=learned_data.get("eq_strategy"),
+                        fx_approach=learned_data.get("fx_approach"),
+                        compression_philosophy=learned_data.get("compression_philosophy"),
+                        monitoring_notes=learned_data.get("monitoring_notes"),
+                        special_considerations=learned_data.get("special_considerations"),
+                        knowledge_base_entry=learned_data.get("knowledge_base_entry"),
+                    )
+                    db.add(new_vt)
+                    await db.commit()
+                    logger.info(f"Seeded venue type: {name}")
+
+                except Exception as e:
+                    logger.error(f"Error seeding venue type {name}: {e}")
+                    await db.rollback()
+                    continue
+
+            logger.info("Venue type seeding complete")
+    except Exception as e:
+        logger.error(f"Venue type seeding failed: {e}")
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Create database tables on startup if they don't exist."""
+    import asyncio
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     # Run migrations after tables exist
     await run_startup_migrations()
+    # Seed venue types in background (non-blocking - app serves requests immediately)
+    asyncio.create_task(seed_venue_types())
     yield
     # Cleanup on shutdown (optional)
     await engine.dispose()
@@ -276,6 +409,7 @@ app.include_router(gear.router, prefix="/gear", tags=["Gear"])
 app.include_router(knowledge_library.router, tags=["Knowledge Library"])
 app.include_router(billing.router, prefix="/billing", tags=["Billing"])
 app.include_router(instruments.router, prefix="/instruments", tags=["Instruments"])
+app.include_router(venue_types.router, prefix="/venue-types", tags=["Venue Types"])
 
 
 @app.get("/")

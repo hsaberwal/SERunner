@@ -20,7 +20,7 @@ class SetupGenerator:
     def __init__(self):
         self.claude_service = ClaudeService()
 
-    def _build_system_prompt(self, user_gear: List[Dict[str, Any]] = None, knowledge_library: List[Dict[str, Any]] = None, instrument_profiles: List[Dict[str, Any]] = None) -> str:
+    def _build_system_prompt(self, user_gear: List[Dict[str, Any]] = None, knowledge_library: List[Dict[str, Any]] = None, instrument_profiles: List[Dict[str, Any]] = None, venue_type_profile: Dict[str, Any] = None) -> str:
         """Build the system prompt with QuPac knowledge and sound engineering best practices.
         
         The knowledge is loaded DYNAMICALLY from knowledge/sound-knowledge-base.md,
@@ -295,6 +295,38 @@ class SetupGenerator:
                 
                 instrument_profiles_section += "\n"
 
+        # Build venue type acoustic profile section
+        venue_type_section = ""
+        if venue_type_profile:
+            venue_type_section = "\n## Venue Type Acoustic Profile\n"
+            venue_type_section += f"### {venue_type_profile.get('display_name', venue_type_profile.get('name'))}\n\n"
+
+            if venue_type_profile.get('knowledge_base_entry'):
+                venue_type_section += venue_type_profile['knowledge_base_entry'] + "\n\n"
+            else:
+                # Build from structured data
+                if venue_type_profile.get('description'):
+                    venue_type_section += f"{venue_type_profile['description']}\n\n"
+                if venue_type_profile.get('sound_goals'):
+                    goals = venue_type_profile['sound_goals']
+                    venue_type_section += f"**Sound Goals**: {goals.get('primary_goal', 'N/A')}\n"
+                    venue_type_section += f"- Tonal Character: {goals.get('tonal_character', 'N/A')}\n"
+                    venue_type_section += f"- Dynamics: {goals.get('dynamics', 'N/A')}\n\n"
+                if venue_type_profile.get('acoustic_challenges'):
+                    challenges = venue_type_profile['acoustic_challenges']
+                    if challenges.get('primary_challenges'):
+                        venue_type_section += "**Challenges**: " + ", ".join(challenges['primary_challenges']) + "\n\n"
+                if venue_type_profile.get('eq_strategy'):
+                    eq = venue_type_profile['eq_strategy']
+                    venue_type_section += f"**EQ Strategy**: {eq.get('notes', 'N/A')}\n\n"
+                if venue_type_profile.get('fx_approach'):
+                    fx = venue_type_profile['fx_approach']
+                    venue_type_section += f"**FX Approach**: {fx.get('notes', 'N/A')}\n\n"
+
+            venue_type_section += "**IMPORTANT**: Use this venue type profile as CONTEXT for your decisions, "
+            venue_type_section += "but always prioritize the specific location details (speaker setup, GEQ cuts, room notes) "
+            venue_type_section += "over these general guidelines.\n\n"
+
         speaker_section = """## Speaker & Amplifier Knowledge
 
 ### Speakers
@@ -392,8 +424,8 @@ Return a JSON object (no markdown, just raw JSON) with these keys:
 
 Keep response under 4000 tokens. Be concise but systematic!"""
 
-        # Combine: Equipment + User Gear + Knowledge Library + Instrument Profiles + Speaker Section + Knowledge Base + Output Format
-        full_prompt = equipment_intro + user_gear_section + knowledge_library_section + instrument_profiles_section + speaker_section + "\n## Sound Engineering Knowledge Base (Loaded Dynamically)\n\n" + knowledge_base + output_format
+        # Combine: Equipment + User Gear + Knowledge Library + Instrument Profiles + Venue Type + Speaker Section + Knowledge Base + Output Format
+        full_prompt = equipment_intro + user_gear_section + knowledge_library_section + instrument_profiles_section + venue_type_section + speaker_section + "\n## Sound Engineering Knowledge Base (Loaded Dynamically)\n\n" + knowledge_base + output_format
         
         logger.info(f"Built system prompt: {len(full_prompt)} total characters")
         return full_prompt
@@ -597,14 +629,15 @@ Keep response under 4000 tokens. Be concise but systematic!"""
         user: User,
         user_gear: List[Dict[str, Any]] = None,
         knowledge_library: List[Dict[str, Any]] = None,
-        instrument_profiles: List[Dict[str, Any]] = None
+        instrument_profiles: List[Dict[str, Any]] = None,
+        venue_type_profile: Dict[str, Any] = None
     ) -> Dict[str, Any]:
         """Generate a mixer setup"""
         # Use user's API key if provided
         if user.api_key:
             self.claude_service = ClaudeService(api_key=user.api_key)
 
-        system_prompt = self._build_system_prompt(user_gear=user_gear, knowledge_library=knowledge_library, instrument_profiles=instrument_profiles)
+        system_prompt = self._build_system_prompt(user_gear=user_gear, knowledge_library=knowledge_library, instrument_profiles=instrument_profiles, venue_type_profile=venue_type_profile)
         user_prompt = self._build_user_prompt(location, performers, past_setups)
 
         # Get response from Claude (with timing)

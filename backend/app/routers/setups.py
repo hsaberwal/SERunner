@@ -265,12 +265,12 @@ async def generate_setup(
         past_setups = past_setups_result.scalars().all()
         logger.info(f"Found {len(past_setups)} past rated setups for learning")
 
-        # Get user's gear inventory with learned settings
+        # Get shared gear inventory with learned settings
         gear_result = await db.execute(
-            select(Gear).where(Gear.user_id == current_user.id)
+            select(Gear).order_by(Gear.type, Gear.brand)
         )
         gear_items = gear_result.scalars().all()
-        
+
         # Convert gear to dict format for the generator
         user_gear = []
         for gear in gear_items:
@@ -285,14 +285,14 @@ async def generate_setup(
                 "notes": gear.notes
             }
             user_gear.append(gear_dict)
-        logger.info(f"Found {len(user_gear)} gear items in user's inventory")
+        logger.info(f"Found {len(user_gear)} gear items in shared inventory")
 
-        # Get knowledge library (learned hardware not in inventory)
+        # Get knowledge library (learned hardware, shared across all users)
         knowledge_result = await db.execute(
-            select(LearnedHardware).where(LearnedHardware.user_id == current_user.id)
+            select(LearnedHardware).order_by(LearnedHardware.hardware_type, LearnedHardware.brand)
         )
         knowledge_items = knowledge_result.scalars().all()
-        
+
         # Convert knowledge library to dict format
         knowledge_library = []
         for item in knowledge_items:
@@ -300,17 +300,36 @@ async def generate_setup(
             knowledge_library.append(knowledge_dict)
         logger.info(f"Found {len(knowledge_library)} items in knowledge library")
 
-        # Get instrument profiles (custom learned instruments)
+        # Get instrument profiles (shared across all users)
         from app.models.instrument import InstrumentProfile
         instrument_result = await db.execute(
             select(InstrumentProfile).where(
-                InstrumentProfile.user_id == current_user.id,
                 InstrumentProfile.is_active == "true"
-            )
+            ).order_by(InstrumentProfile.category, InstrumentProfile.name)
         )
         instrument_items = instrument_result.scalars().all()
         instrument_profiles = [item.to_dict() for item in instrument_items]
         logger.info(f"Found {len(instrument_profiles)} instrument profiles")
+
+        # Get venue type profile if the location has a venue_type set
+        venue_type_profile = None
+        if location.venue_type:
+            from app.models.venue_type import VenueTypeProfile
+            from app.services.venue_type_learner import VenueTypeLearner
+            vt_learner = VenueTypeLearner()
+            venue_type_key = vt_learner._make_value_key(location.venue_type)
+            vt_result = await db.execute(
+                select(VenueTypeProfile).where(
+                    VenueTypeProfile.value_key == venue_type_key,
+                    VenueTypeProfile.is_active == "true"
+                )
+            )
+            vt_item = vt_result.scalar_one_or_none()
+            if vt_item:
+                venue_type_profile = vt_item.to_dict()
+                logger.info(f"Found venue type profile: {vt_item.name}")
+            else:
+                logger.info(f"No venue type profile found for: {location.venue_type}")
 
         # Generate setup using Claude API
         logger.info(f"Generating setup for location {location.name} with {len(request.performers)} performers")
@@ -322,7 +341,8 @@ async def generate_setup(
             user=current_user,
             user_gear=user_gear,
             knowledge_library=knowledge_library,
-            instrument_profiles=instrument_profiles
+            instrument_profiles=instrument_profiles,
+            venue_type_profile=venue_type_profile
         )
         logger.info("Setup generated successfully from Claude API")
 
@@ -528,12 +548,12 @@ async def refresh_setup(
         past_setups = past_setups_result.scalars().all()
         logger.info(f"Refreshing setup {setup_id} with {len(past_setups)} past setups for learning")
 
-        # Get user's gear inventory with learned settings
+        # Get shared gear inventory with learned settings
         gear_result = await db.execute(
-            select(Gear).where(Gear.user_id == current_user.id)
+            select(Gear).order_by(Gear.type, Gear.brand)
         )
         gear_items = gear_result.scalars().all()
-        
+
         # Convert gear to dict format for the generator
         user_gear = []
         for gear in gear_items:
@@ -550,25 +570,42 @@ async def refresh_setup(
             user_gear.append(gear_dict)
         logger.info(f"Found {len(user_gear)} gear items for refresh")
 
-        # Get knowledge library (learned hardware not in inventory)
+        # Get knowledge library (shared across all users)
         knowledge_result = await db.execute(
-            select(LearnedHardware).where(LearnedHardware.user_id == current_user.id)
+            select(LearnedHardware).order_by(LearnedHardware.hardware_type, LearnedHardware.brand)
         )
         knowledge_items = knowledge_result.scalars().all()
         knowledge_library = [item.to_dict() for item in knowledge_items]
         logger.info(f"Found {len(knowledge_library)} items in knowledge library for refresh")
 
-        # Get instrument profiles (custom learned instruments)
+        # Get instrument profiles (shared across all users)
         from app.models.instrument import InstrumentProfile
         instrument_result = await db.execute(
             select(InstrumentProfile).where(
-                InstrumentProfile.user_id == current_user.id,
                 InstrumentProfile.is_active == "true"
-            )
+            ).order_by(InstrumentProfile.category, InstrumentProfile.name)
         )
         instrument_items = instrument_result.scalars().all()
         instrument_profiles = [item.to_dict() for item in instrument_items]
         logger.info(f"Found {len(instrument_profiles)} instrument profiles for refresh")
+
+        # Get venue type profile if the location has a venue_type set
+        venue_type_profile = None
+        if location.venue_type:
+            from app.models.venue_type import VenueTypeProfile
+            from app.services.venue_type_learner import VenueTypeLearner
+            vt_learner = VenueTypeLearner()
+            venue_type_key = vt_learner._make_value_key(location.venue_type)
+            vt_result = await db.execute(
+                select(VenueTypeProfile).where(
+                    VenueTypeProfile.value_key == venue_type_key,
+                    VenueTypeProfile.is_active == "true"
+                )
+            )
+            vt_item = vt_result.scalar_one_or_none()
+            if vt_item:
+                venue_type_profile = vt_item.to_dict()
+                logger.info(f"Found venue type profile for refresh: {vt_item.name}")
 
         # Regenerate using Claude API
         generator = SetupGenerator()
@@ -579,7 +616,8 @@ async def refresh_setup(
             user=current_user,
             user_gear=user_gear,
             knowledge_library=knowledge_library,
-            instrument_profiles=instrument_profiles
+            instrument_profiles=instrument_profiles,
+            venue_type_profile=venue_type_profile
         )
         logger.info("Setup regenerated successfully from Claude API")
 

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { gear } from '../services/api'
+import { gear, venueTypes } from '../services/api'
 
 // Default empty speaker setup structure
 export const emptySpeakerSetup = {
@@ -136,6 +136,11 @@ function LocationForm({
   disabled = false
 }) {
   const [userAmps, setUserAmps] = useState([])
+  const [venueTypeList, setVenueTypeList] = useState([])
+  const [showAddVenueType, setShowAddVenueType] = useState(false)
+  const [newVenueTypeName, setNewVenueTypeName] = useState('')
+  const [newVenueTypeCategory, setNewVenueTypeCategory] = useState('other')
+  const [learningVenueType, setLearningVenueType] = useState(false)
 
   // Fetch user's amplifiers from gear inventory
   useEffect(() => {
@@ -149,6 +154,19 @@ function LocationForm({
       }
     }
     loadUserAmps()
+  }, [])
+
+  // Fetch learned venue types
+  useEffect(() => {
+    const loadVenueTypes = async () => {
+      try {
+        const response = await venueTypes.getAll()
+        setVenueTypeList(response.data)
+      } catch (error) {
+        console.error('Failed to load venue types:', error)
+      }
+    }
+    loadVenueTypes()
   }, [])
 
   // Get amp display name
@@ -178,6 +196,33 @@ function LocationForm({
     })
   }
 
+  const handleLearnVenueType = async () => {
+    if (!newVenueTypeName) return
+    setLearningVenueType(true)
+    try {
+      const response = await venueTypes.learn({
+        name: newVenueTypeName,
+        category: newVenueTypeCategory,
+      })
+      // Refresh the list
+      const updatedList = await venueTypes.getAll()
+      setVenueTypeList(updatedList.data)
+      // Auto-select the new venue type
+      updateField('venue_type', response.data.value_key)
+      setShowAddVenueType(false)
+      setNewVenueTypeName('')
+      setNewVenueTypeCategory('other')
+    } catch (error) {
+      if (error.response?.status === 402) {
+        alert(error.response.data?.detail?.message || 'Usage limit reached.')
+      } else {
+        alert('Failed to learn venue type: ' + (error.response?.data?.detail || error.message))
+      }
+    } finally {
+      setLearningVenueType(false)
+    }
+  }
+
   const updateGEQ = (type, freq, value) => {
     const key = type === 'lr' ? 'lr_geq_cuts' : 'monitor_geq_cuts'
     const newCuts = { ...(formData[key] || {}) }
@@ -190,7 +235,7 @@ function LocationForm({
   }
 
   const handleSubmit = (e) => {
-    e.preventDefault()
+    if (e && e.preventDefault) e.preventDefault()
     if (onSubmit) {
       onSubmit(cleanLocationData(formData))
     }
@@ -200,8 +245,11 @@ function LocationForm({
     ? { background: 'var(--bg-primary)', padding: '1rem', borderRadius: '0.5rem', marginBottom: '1rem', border: '1px solid var(--border-color)' }
     : { background: 'var(--bg-secondary)', padding: '1rem', borderRadius: '0.5rem', marginBottom: '1rem' }
 
+  const Wrapper = compact ? 'div' : 'form'
+  const wrapperProps = compact ? {} : { onSubmit: handleSubmit }
+
   return (
-    <form onSubmit={handleSubmit}>
+    <Wrapper {...wrapperProps}>
       {/* Basic Info */}
       <div style={{ display: 'grid', gridTemplateColumns: compact ? '1fr' : '1fr 1fr', gap: '1rem' }}>
         <div className="form-group">
@@ -222,19 +270,68 @@ function LocationForm({
           <select
             className="form-select"
             value={formData.venue_type || ''}
-            onChange={(e) => updateField('venue_type', e.target.value)}
+            onChange={(e) => {
+              if (e.target.value === '__add_new__') {
+                setShowAddVenueType(true)
+              } else {
+                updateField('venue_type', e.target.value)
+              }
+            }}
             disabled={disabled}
           >
             <option value="">Select type...</option>
-            <option value="gurdwara">Gurdwara</option>
-            <option value="church">Church</option>
-            <option value="temple">Temple</option>
-            <option value="hall">Hall</option>
-            <option value="cafe">Cafe</option>
-            <option value="outdoor">Outdoor</option>
-            <option value="school">School</option>
+            {venueTypeList.filter(vt => vt.is_active).map(vt => (
+              <option key={vt.id} value={vt.value_key}>
+                {vt.display_name || vt.name}
+              </option>
+            ))}
             <option value="other">Other</option>
+            <option value="__add_new__">+ Add New Venue Type...</option>
           </select>
+          {showAddVenueType && (
+            <div style={{ marginTop: '0.5rem', padding: '0.75rem', background: 'var(--bg-secondary)', borderRadius: '0.5rem', border: '1px solid var(--border-color)' }}>
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+                <div style={{ flex: 1, minWidth: '120px' }}>
+                  <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>Venue Type Name</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="e.g., Studio, Banquet Hall..."
+                    value={newVenueTypeName}
+                    onChange={(e) => setNewVenueTypeName(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>Category</label>
+                  <select className="form-select" value={newVenueTypeCategory} onChange={(e) => setNewVenueTypeCategory(e.target.value)}>
+                    <option value="worship">Worship</option>
+                    <option value="performance">Performance</option>
+                    <option value="commercial">Commercial</option>
+                    <option value="education">Education</option>
+                    <option value="outdoor">Outdoor</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  disabled={!newVenueTypeName || learningVenueType}
+                  onClick={handleLearnVenueType}
+                  style={{ whiteSpace: 'nowrap' }}
+                >
+                  {learningVenueType ? 'Learning...' : 'Learn'}
+                </button>
+                <button type="button" className="btn btn-secondary" onClick={() => { setShowAddVenueType(false); setNewVenueTypeName('') }}>
+                  Cancel
+                </button>
+              </div>
+              {learningVenueType && (
+                <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.5rem', marginBottom: 0 }}>
+                  Claude is researching acoustic characteristics for this venue type... This may take 15-20 seconds.
+                </p>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
@@ -646,7 +743,12 @@ function LocationForm({
 
       {/* Buttons */}
       <div style={{ display: 'flex', gap: '0.5rem' }}>
-        <button type="submit" className="btn btn-primary" disabled={disabled}>
+        <button
+          type={compact ? 'button' : 'submit'}
+          className="btn btn-primary"
+          disabled={disabled}
+          onClick={compact ? handleSubmit : undefined}
+        >
           {submitLabel}
         </button>
         {showCancel && onCancel && (
@@ -655,7 +757,7 @@ function LocationForm({
           </button>
         )}
       </div>
-    </form>
+    </Wrapper>
   )
 }
 

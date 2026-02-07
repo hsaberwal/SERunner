@@ -10,6 +10,7 @@ from datetime import datetime
 from app.database import get_db
 from app.models.user import User
 from app.models.gear import Gear, GearLoan
+from app.models.knowledge_library import LearnedHardware
 from app.utils.auth import get_current_user
 from app.schemas import BaseResponse
 from app.services.hardware_learner import HardwareLearner
@@ -114,11 +115,10 @@ async def get_gear(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    """Get all gear for current user with loan status"""
+    """Get all gear across all users (shared inventory)"""
     result = await db.execute(
         select(Gear)
         .options(selectinload(Gear.loans))
-        .where(Gear.user_id == current_user.id)
         .order_by(Gear.type, Gear.brand)
     )
     gear_items = result.scalars().all()
@@ -180,10 +180,7 @@ async def get_gear_item(
     result = await db.execute(
         select(Gear)
         .options(selectinload(Gear.loans))
-        .where(
-            Gear.id == gear_id,
-            Gear.user_id == current_user.id
-        )
+        .where(Gear.id == gear_id)
     )
     gear = result.scalar_one_or_none()
 
@@ -210,14 +207,11 @@ async def update_gear(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    """Update a gear item"""
+    """Update a gear item (shared inventory)"""
     result = await db.execute(
         select(Gear)
         .options(selectinload(Gear.loans))
-        .where(
-            Gear.id == gear_id,
-            Gear.user_id == current_user.id
-        )
+        .where(Gear.id == gear_id)
     )
     gear = result.scalar_one_or_none()
 
@@ -250,12 +244,9 @@ async def delete_gear(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    """Delete a gear item"""
+    """Delete a gear item (shared inventory)"""
     result = await db.execute(
-        select(Gear).where(
-            Gear.id == gear_id,
-            Gear.user_id == current_user.id
-        )
+        select(Gear).where(Gear.id == gear_id)
     )
     gear = result.scalar_one_or_none()
 
@@ -293,6 +284,53 @@ async def learn_hardware_settings(
 
     # Check usage limits before calling Claude
     subscription = await check_learning_allowed(current_user, db)
+
+    # Check if this hardware already exists in knowledge library (globally shared)
+    existing = await db.execute(
+        select(LearnedHardware).where(
+            LearnedHardware.brand == request.brand,
+            LearnedHardware.model == request.model
+        )
+    )
+    existing_item = existing.scalar_one_or_none()
+
+    if existing_item and existing_item.knowledge_base_entry:
+        logger.info(f"Hardware already in knowledge library: {request.brand} {request.model} - returning existing data")
+        return HardwareLearnResponse(
+            hardware_type=existing_item.hardware_type,
+            brand=existing_item.brand,
+            model=existing_item.model,
+            characteristics=existing_item.characteristics,
+            best_for=existing_item.best_for,
+            settings_by_source=existing_item.settings_by_source,
+            knowledge_base_entry=existing_item.knowledge_base_entry,
+            error=None
+        )
+
+    # Also check if any gear item already has learned settings for this brand/model
+    existing_gear = await db.execute(
+        select(Gear).where(
+            Gear.brand == request.brand,
+            Gear.model == request.model,
+            Gear.default_settings.isnot(None)
+        )
+    )
+    existing_gear_item = existing_gear.scalar_one_or_none()
+
+    if existing_gear_item and existing_gear_item.default_settings:
+        settings = existing_gear_item.default_settings
+        if settings.get('settings_by_source') or settings.get('characteristics'):
+            logger.info(f"Gear already has learned settings: {request.brand} {request.model} - returning existing data")
+            return HardwareLearnResponse(
+                hardware_type=request.hardware_type,
+                brand=request.brand,
+                model=request.model,
+                characteristics=settings.get("characteristics"),
+                best_for=settings.get("best_for"),
+                settings_by_source=settings.get("settings_by_source") if isinstance(settings.get("settings_by_source"), dict) else settings,
+                knowledge_base_entry=None,
+                error=None
+            )
 
     try:
         # Use user's API key if available
@@ -351,12 +389,9 @@ async def learn_from_existing_gear(
     # Check usage limits before calling Claude
     subscription = await check_learning_allowed(current_user, db)
 
-    # Get the gear item
+    # Get the gear item (shared across all users)
     result = await db.execute(
-        select(Gear).where(
-            Gear.id == gear_id,
-            Gear.user_id == current_user.id
-        )
+        select(Gear).where(Gear.id == gear_id)
     )
     gear = result.scalar_one_or_none()
 
@@ -364,6 +399,20 @@ async def learn_from_existing_gear(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Gear not found"
+        )
+
+    # If already has learned settings, return them (use relearn to refresh)
+    if gear.default_settings and (gear.default_settings.get('settings_by_source') or gear.default_settings.get('characteristics')):
+        logger.info(f"Gear already has learned settings: {gear.brand} {gear.model} - returning existing data")
+        return HardwareLearnResponse(
+            hardware_type=gear.type,
+            brand=gear.brand or "Unknown",
+            model=gear.model or "Unknown",
+            characteristics=gear.default_settings.get("characteristics"),
+            best_for=gear.default_settings.get("best_for"),
+            settings_by_source=gear.default_settings.get("settings_by_source") if isinstance(gear.default_settings.get("settings_by_source"), dict) else gear.default_settings,
+            knowledge_base_entry=None,
+            error=None
         )
 
     try:
@@ -435,14 +484,11 @@ async def create_loan(
     db: AsyncSession = Depends(get_db)
 ):
     """Loan out gear to someone"""
-    # Get gear with loans
+    # Get gear with loans (shared inventory)
     result = await db.execute(
         select(Gear)
         .options(selectinload(Gear.loans))
-        .where(
-            Gear.id == gear_id,
-            Gear.user_id == current_user.id
-        )
+        .where(Gear.id == gear_id)
     )
     gear = result.scalar_one_or_none()
 
@@ -483,12 +529,9 @@ async def get_gear_loans(
     db: AsyncSession = Depends(get_db)
 ):
     """Get all loans for a gear item"""
-    # Verify gear ownership
+    # Verify gear exists (shared inventory)
     result = await db.execute(
-        select(Gear).where(
-            Gear.id == gear_id,
-            Gear.user_id == current_user.id
-        )
+        select(Gear).where(Gear.id == gear_id)
     )
     gear = result.scalar_one_or_none()
 
@@ -522,8 +565,7 @@ async def return_loan(
     result = await db.execute(
         select(GearLoan).where(
             GearLoan.id == loan_id,
-            GearLoan.gear_id == gear_id,
-            GearLoan.user_id == current_user.id
+            GearLoan.gear_id == gear_id
         )
     )
     loan = result.scalar_one_or_none()
@@ -558,10 +600,7 @@ async def get_all_outstanding_loans(
     """Get all outstanding (not returned) loans across all gear"""
     result = await db.execute(
         select(GearLoan)
-        .where(
-            GearLoan.user_id == current_user.id,
-            GearLoan.is_returned == False
-        )
+        .where(GearLoan.is_returned == False)
         .order_by(GearLoan.loan_date.desc())
     )
     loans = result.scalars().all()

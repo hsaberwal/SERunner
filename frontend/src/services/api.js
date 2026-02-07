@@ -106,6 +106,17 @@ export const instruments = {
   delete: (id) => api.delete(`/instruments/${id}`),
 }
 
+// Venue Types - Learned venue acoustic profiles
+export const venueTypes = {
+  getAll: (category = null) =>
+    api.get('/venue-types', { params: category ? { category } : {} }),
+  getOne: (id) => api.get(`/venue-types/${id}`),
+  learn: (data) => api.post('/venue-types/learn', data),
+  relearn: (id) => api.post(`/venue-types/${id}/relearn`),
+  update: (id, data) => api.put(`/venue-types/${id}`, data),
+  delete: (id) => api.delete(`/venue-types/${id}`),
+}
+
 // Billing & Subscriptions
 export const billing = {
   getStatus: () => api.get('/billing/status'),
