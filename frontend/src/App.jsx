@@ -12,6 +12,8 @@ import Setup from './pages/Setup'
 import AdminUsers from './pages/AdminUsers'
 import EventWizard from './pages/EventWizard'
 import KnowledgeLibrary from './pages/KnowledgeLibrary'
+import Pricing from './pages/Pricing'
+import Billing from './pages/Billing'
 import './App.css'
 
 function PrivateRoute({ children }) {
@@ -102,6 +104,22 @@ function App() {
               element={
                 <PrivateRoute>
                   <KnowledgeLibrary />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/pricing"
+              element={
+                <PrivateRoute>
+                  <Pricing />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/billing"
+              element={
+                <PrivateRoute>
+                  <Billing />
                 </PrivateRoute>
               }
             />

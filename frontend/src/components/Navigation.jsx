@@ -77,6 +77,11 @@ function Navigation() {
               📚
             </Link>
           </li>
+          <li>
+            <Link to="/billing" className={`nav-link ${isActive('/billing') || isActive('/pricing') ? 'active' : ''}`}>
+              Billing
+            </Link>
+          </li>
           {isAdmin && (
             <li>
               <Link to="/admin/users" className={`nav-link ${isActive('/admin/users') ? 'active' : ''}`}>

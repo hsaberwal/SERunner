@@ -107,6 +107,11 @@ async def learn_and_save_hardware(
     db: AsyncSession = Depends(get_db)
 ):
     """Learn about hardware using Claude and save to knowledge library"""
+    from app.services.usage_tracker import check_learning_allowed, record_learning
+
+    # Check usage limits before calling Claude
+    subscription = await check_learning_allowed(current_user, db)
+
     settings = get_settings()
     learner = HardwareLearner(api_key=settings.anthropic_api_key)
     
@@ -160,6 +165,8 @@ async def learn_and_save_hardware(
         await db.refresh(existing_item)
         
         logger.info(f"Updated existing learned hardware: {request.brand} {request.model}")
+        # Record usage after successful learning
+        await record_learning(subscription, db)
         return existing_item.to_dict()
     else:
         # Create new
@@ -181,6 +188,8 @@ async def learn_and_save_hardware(
         await db.refresh(new_item)
         
         logger.info(f"Saved new learned hardware: {request.brand} {request.model}")
+        # Record usage after successful learning
+        await record_learning(subscription, db)
         return new_item.to_dict()
 
 
@@ -191,6 +200,11 @@ async def relearn_hardware(
     db: AsyncSession = Depends(get_db)
 ):
     """Re-learn hardware to update its settings"""
+    from app.services.usage_tracker import check_learning_allowed, record_learning
+
+    # Check usage limits before calling Claude
+    subscription = await check_learning_allowed(current_user, db)
+
     result = await db.execute(
         select(LearnedHardware).where(
             LearnedHardware.id == item_id,
@@ -238,6 +252,9 @@ async def relearn_hardware(
     await db.commit()
     await db.refresh(item)
     
+    # Record usage after successful relearn
+    await record_learning(subscription, db)
+
     return item.to_dict()
 
 

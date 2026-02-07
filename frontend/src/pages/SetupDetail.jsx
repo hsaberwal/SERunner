@@ -172,7 +172,11 @@ function SetupDetail() {
       setNotes(response.data.notes || '')
       alert('Setup refreshed successfully with latest knowledge!')
     } catch (error) {
-      alert('Failed to refresh setup: ' + (error.response?.data?.detail || error.message))
+      if (error.response?.status === 402) {
+        alert(error.response.data?.detail?.message || 'Usage limit reached. Please upgrade your plan.')
+      } else {
+        alert('Failed to refresh setup: ' + (error.response?.data?.detail || error.message))
+      }
     } finally {
       setRefreshing(false)
       setRefreshMessage('')

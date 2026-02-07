@@ -118,7 +118,11 @@ function Gear() {
       // Reload gear to get updated default_settings
       loadGear()
     } catch (error) {
-      alert('Failed to learn settings: ' + (error.response?.data?.detail || error.message))
+      if (error.response?.status === 402) {
+        alert(error.response.data?.detail?.message || 'Usage limit reached. Please upgrade your plan.')
+      } else {
+        alert('Failed to learn settings: ' + (error.response?.data?.detail || error.message))
+      }
     } finally {
       setLearningGearId(null)
       setLearningHardwareInfo(null)
@@ -140,7 +144,11 @@ function Gear() {
       const response = await gear.learn(newHardwareData)
       setLearnedSettings(response.data)
     } catch (error) {
-      alert('Failed to learn settings: ' + (error.response?.data?.detail || error.message))
+      if (error.response?.status === 402) {
+        alert(error.response.data?.detail?.message || 'Usage limit reached. Please upgrade your plan.')
+      } else {
+        alert('Failed to learn settings: ' + (error.response?.data?.detail || error.message))
+      }
     } finally {
       setLearningGearId(null)
       setLearningHardwareInfo(null)

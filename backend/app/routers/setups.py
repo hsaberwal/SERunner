@@ -232,7 +232,11 @@ async def generate_setup(
 ):
     """Generate a new setup using Claude API"""
     import logging
+    from app.services.usage_tracker import check_generation_allowed, record_generation
     logger = logging.getLogger(__name__)
+
+    # Check usage limits before calling Claude
+    subscription = await check_generation_allowed(current_user, db)
 
     try:
         # Verify location exists and belongs to user
@@ -325,6 +329,9 @@ async def generate_setup(
         db.add(setup)
         await db.commit()
         await db.refresh(setup)
+
+        # Record usage after successful generation
+        await record_generation(subscription, db)
 
         return setup
     except HTTPException:
@@ -460,7 +467,11 @@ async def refresh_setup(
     using the latest knowledge base and any new learnings from rated setups.
     """
     import logging
+    from app.services.usage_tracker import check_generation_allowed, record_generation
     logger = logging.getLogger(__name__)
+
+    # Check usage limits before calling Claude
+    subscription = await check_generation_allowed(current_user, db)
 
     # Get the existing setup
     result = await db.execute(
@@ -555,6 +566,9 @@ async def refresh_setup(
 
         await db.commit()
         await db.refresh(setup)
+
+        # Record usage after successful refresh
+        await record_generation(subscription, db)
 
         return setup
     except HTTPException:

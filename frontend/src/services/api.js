@@ -95,6 +95,14 @@ export const knowledgeLibrary = {
   delete: (id) => api.delete(`/knowledge-library/${id}`),
 }
 
+// Billing & Subscriptions
+export const billing = {
+  getStatus: () => api.get('/billing/status'),
+  getPlans: () => api.get('/billing/plans'),
+  createCheckout: (data) => api.post('/billing/create-checkout', data),
+  createPortal: () => api.post('/billing/create-portal'),
+}
+
 // Stats
 export const stats = {
   getResponseTimes: () => api.get('/api/response-times'),

@@ -49,7 +49,11 @@ function KnowledgeLibrary() {
       setFormData({ hardware_type: 'mic', brand: '', model: '', user_notes: '' })
       loadItems()
     } catch (error) {
-      alert('Failed to learn hardware: ' + (error.response?.data?.detail || error.message))
+      if (error.response?.status === 402) {
+        alert(error.response.data?.detail?.message || 'Usage limit reached. Please upgrade your plan.')
+      } else {
+        alert('Failed to learn hardware: ' + (error.response?.data?.detail || error.message))
+      }
     } finally {
       setLearningId(null)
       setLearningInfo(null)
@@ -68,7 +72,11 @@ function KnowledgeLibrary() {
       await knowledgeLibrary.relearn(item.id)
       loadItems()
     } catch (error) {
-      alert('Failed to re-learn hardware: ' + (error.response?.data?.detail || error.message))
+      if (error.response?.status === 402) {
+        alert(error.response.data?.detail?.message || 'Usage limit reached. Please upgrade your plan.')
+      } else {
+        alert('Failed to re-learn hardware: ' + (error.response?.data?.detail || error.message))
+      }
     } finally {
       setLearningId(null)
       setLearningInfo(null)

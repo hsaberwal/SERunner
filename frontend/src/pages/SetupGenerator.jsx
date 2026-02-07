@@ -4,6 +4,7 @@ import { locations, setups, gear } from '../services/api'
 import Navigation from '../components/Navigation'
 import LocationForm, { getEmptyLocationData } from '../components/LocationForm'
 import GeneratingOverlay from '../components/GeneratingOverlay'
+import UsageBanner from '../components/UsageBanner'
 
 function SetupGenerator() {
   const navigate = useNavigate()
@@ -262,7 +263,12 @@ function SetupGenerator() {
       const response = await setups.generate(formData)
       navigate(`/setup/${response.data.id}`)
     } catch (error) {
-      alert('Failed to generate setup: ' + (error.response?.data?.detail || error.message))
+      if (error.response?.status === 402) {
+        const detail = error.response.data?.detail
+        alert(detail?.message || 'Usage limit reached. Please upgrade your plan.')
+      } else {
+        alert('Failed to generate setup: ' + (error.response?.data?.detail || error.message))
+      }
     } finally {
       setLoading(false)
     }
@@ -274,6 +280,7 @@ function SetupGenerator() {
       <GeneratingOverlay isVisible={loading} />
       <div className="container">
         <h1 style={{ marginBottom: '2rem' }}>Quick Generate Setup</h1>
+        <UsageBanner type="generation" />
 
         <div className="card">
           <form onSubmit={handleSubmit}>

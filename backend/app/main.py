@@ -4,9 +4,9 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import get_settings
-from app.routers import auth, locations, setups, gear, knowledge_library
+from app.routers import auth, locations, setups, gear, knowledge_library, billing
 from app.database import engine, Base
-from app.models import User, Location, Setup, Gear, GearLoan, KnowledgeBase, LearnedHardware
+from app.models import User, Location, Setup, Gear, GearLoan, KnowledgeBase, LearnedHardware, Subscription
 
 # Configure logging to stdout for Railway
 logging.basicConfig(
@@ -147,6 +147,52 @@ async def run_startup_migrations():
         except Exception:
             pass
 
+        # Create subscriptions table for Stripe billing
+        try:
+            await conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS subscriptions (
+                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                    stripe_customer_id VARCHAR,
+                    stripe_subscription_id VARCHAR,
+                    plan VARCHAR(20) DEFAULT 'free',
+                    status VARCHAR(30) DEFAULT 'active',
+                    generations_used INTEGER DEFAULT 0,
+                    learning_used INTEGER DEFAULT 0,
+                    period_start TIMESTAMP,
+                    period_end TIMESTAMP,
+                    created_at TIMESTAMP DEFAULT NOW(),
+                    updated_at TIMESTAMP DEFAULT NOW(),
+                    canceled_at TIMESTAMP,
+                    UNIQUE(user_id)
+                )
+            """))
+        except Exception:
+            pass
+
+        # Create indexes for subscriptions
+        for idx_name, column in [
+            ("ix_subscriptions_user_id", "user_id"),
+            ("ix_subscriptions_stripe_customer_id", "stripe_customer_id"),
+            ("ix_subscriptions_stripe_subscription_id", "stripe_subscription_id"),
+        ]:
+            try:
+                await conn.execute(text(f"CREATE INDEX IF NOT EXISTS {idx_name} ON subscriptions({column})"))
+            except Exception:
+                pass
+
+        # Auto-create admin subscription for existing admins
+        try:
+            await conn.execute(text("""
+                INSERT INTO subscriptions (id, user_id, plan, status)
+                SELECT gen_random_uuid(), id, 'admin', 'active'
+                FROM users
+                WHERE is_admin = TRUE
+                AND id NOT IN (SELECT user_id FROM subscriptions)
+            """))
+        except Exception:
+            pass
+
     logger.info("Startup migrations completed")
 
 
@@ -191,6 +237,7 @@ app.include_router(locations.router, prefix="/locations", tags=["Locations"])
 app.include_router(setups.router, prefix="/setups", tags=["Setups"])
 app.include_router(gear.router, prefix="/gear", tags=["Gear"])
 app.include_router(knowledge_library.router, tags=["Knowledge Library"])
+app.include_router(billing.router, prefix="/billing", tags=["Billing"])
 
 
 @app.get("/")

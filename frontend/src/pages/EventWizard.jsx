@@ -4,6 +4,7 @@ import { locations, setups, gear } from '../services/api'
 import Navigation from '../components/Navigation'
 import LocationForm, { getEmptyLocationData, geqFrequencies, emptyPEQ, peqWidthOptions } from '../components/LocationForm'
 import GeneratingOverlay from '../components/GeneratingOverlay'
+import UsageBanner from '../components/UsageBanner'
 
 // Phase definitions
 const PHASES = [
@@ -379,7 +380,12 @@ function EventWizard() {
       setPhaseCompleted({ ...phaseCompleted, 5: true })
       setCurrentPhase(6)
     } catch (error) {
-      alert('Failed to generate setup: ' + (error.response?.data?.detail || error.message))
+      if (error.response?.status === 402) {
+        const detail = error.response.data?.detail
+        alert(detail?.message || 'Usage limit reached. Please upgrade your plan.')
+      } else {
+        alert('Failed to generate setup: ' + (error.response?.data?.detail || error.message))
+      }
     } finally {
       setLoading(false)
     }
@@ -1033,6 +1039,7 @@ function EventWizard() {
       <p className="phase-description">
         Enter your performers and generate QuPac setup instructions.
       </p>
+      <UsageBanner type="generation" />
 
       <div className="form-group">
         <label className="form-label">Event Name</label>

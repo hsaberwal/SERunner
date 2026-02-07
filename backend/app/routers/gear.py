@@ -274,7 +274,8 @@ async def delete_gear(
 @router.post("/learn", response_model=HardwareLearnResponse)
 async def learn_hardware_settings(
     request: HardwareLearnRequest,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
 ):
     """
     Use Claude to generate recommended settings for new hardware.
@@ -287,7 +288,11 @@ async def learn_hardware_settings(
     that isn't in the knowledge base yet.
     """
     import logging
+    from app.services.usage_tracker import check_learning_allowed, record_learning
     logger = logging.getLogger(__name__)
+
+    # Check usage limits before calling Claude
+    subscription = await check_learning_allowed(current_user, db)
 
     try:
         # Use user's API key if available
@@ -302,6 +307,10 @@ async def learn_hardware_settings(
             user_notes=request.user_notes
         )
 
+        # Record usage after successful learning
+        if not result.get("error"):
+            await record_learning(subscription, db)
+
         return HardwareLearnResponse(
             hardware_type=result.get("hardware_type", request.hardware_type),
             brand=result.get("brand", request.brand),
@@ -312,6 +321,8 @@ async def learn_hardware_settings(
             knowledge_base_entry=result.get("knowledge_base_entry"),
             error=result.get("error")
         )
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Hardware learning failed: {type(e).__name__}: {str(e)}")
         raise HTTPException(
@@ -334,7 +345,11 @@ async def learn_from_existing_gear(
     recommended settings via Claude.
     """
     import logging
+    from app.services.usage_tracker import check_learning_allowed, record_learning
     logger = logging.getLogger(__name__)
+
+    # Check usage limits before calling Claude
+    subscription = await check_learning_allowed(current_user, db)
 
     # Get the gear item
     result = await db.execute(
@@ -365,6 +380,9 @@ async def learn_from_existing_gear(
 
         # Optionally update the gear's default_settings
         if not result.get("error"):
+            # Record usage after successful learning
+            await record_learning(subscription, db)
+
             # For amplifiers, store the amp-specific fields
             if gear.type == 'amplifier':
                 gear.default_settings = {
@@ -397,6 +415,8 @@ async def learn_from_existing_gear(
             knowledge_base_entry=result.get("knowledge_base_entry"),
             error=result.get("error")
         )
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Hardware learning failed for gear {gear_id}: {type(e).__name__}: {str(e)}")
         raise HTTPException(
