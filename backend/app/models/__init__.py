@@ -5,5 +5,6 @@ from app.models.gear import Gear, GearLoan
 from app.models.knowledge_base import KnowledgeBase
 from app.models.knowledge_library import LearnedHardware
 from app.models.subscription import Subscription
+from app.models.instrument import InstrumentProfile
 
-__all__ = ["User", "Location", "Setup", "Gear", "GearLoan", "KnowledgeBase", "LearnedHardware", "Subscription"]
+__all__ = ["User", "Location", "Setup", "Gear", "GearLoan", "KnowledgeBase", "LearnedHardware", "Subscription", "InstrumentProfile"]

@@ -1,16 +1,22 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { locations, setups, gear } from '../services/api'
+import { locations, setups, gear, instruments } from '../services/api'
 import Navigation from '../components/Navigation'
 import LocationForm, { getEmptyLocationData } from '../components/LocationForm'
 import GeneratingOverlay from '../components/GeneratingOverlay'
+import LearningOverlay from '../components/LearningOverlay'
 import UsageBanner from '../components/UsageBanner'
 
 function SetupGenerator() {
   const navigate = useNavigate()
   const [locationList, setLocationList] = useState([])
   const [gearList, setGearList] = useState([])
+  const [customInstruments, setCustomInstruments] = useState([])
   const [loading, setLoading] = useState(false)
+  const [showAddInstrument, setShowAddInstrument] = useState(false)
+  const [newInstrument, setNewInstrument] = useState({ name: '', category: 'other', user_notes: '' })
+  const [learningInstrument, setLearningInstrument] = useState(false)
+  const [learningInfo, setLearningInfo] = useState(null)
   const [showNewLocation, setShowNewLocation] = useState(false)
   const [creatingLocation, setCreatingLocation] = useState(false)
   const [formData, setFormData] = useState({
@@ -29,7 +35,39 @@ function SetupGenerator() {
   useEffect(() => {
     loadLocations()
     loadGear()
+    loadInstruments()
   }, [])
+
+  const loadInstruments = async () => {
+    try {
+      const response = await instruments.getAll()
+      setCustomInstruments(response.data)
+    } catch (error) {
+      console.error('Failed to load instruments:', error)
+    }
+  }
+
+  const handleAddInstrument = async (e) => {
+    e.preventDefault()
+    if (!newInstrument.name) return
+    setLearningInstrument(true)
+    setLearningInfo({ type: 'instrument', brand: '', model: newInstrument.name })
+    try {
+      await instruments.learn(newInstrument)
+      setNewInstrument({ name: '', category: 'other', user_notes: '' })
+      setShowAddInstrument(false)
+      loadInstruments()
+    } catch (error) {
+      if (error.response?.status === 402) {
+        alert(error.response.data?.detail?.message || 'Usage limit reached. Please upgrade your plan.')
+      } else {
+        alert('Failed to learn instrument: ' + (error.response?.data?.detail || error.message))
+      }
+    } finally {
+      setLearningInstrument(false)
+      setLearningInfo(null)
+    }
+  }
 
   const loadGear = async () => {
     try {
@@ -278,6 +316,7 @@ function SetupGenerator() {
     <>
       <Navigation />
       <GeneratingOverlay isVisible={loading} />
+      <LearningOverlay isVisible={learningInstrument} hardwareInfo={learningInfo} />
       <div className="container">
         <h1 style={{ marginBottom: '2rem' }}>Quick Generate Setup</h1>
         <UsageBanner type="generation" />
@@ -349,7 +388,63 @@ function SetupGenerator() {
             </div>
 
             <div className="form-group">
-              <label className="form-label">Performers *</label>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <label className="form-label" style={{ margin: 0 }}>Performers *</label>
+                <button
+                  type="button"
+                  className="btn btn-small btn-secondary"
+                  onClick={() => setShowAddInstrument(!showAddInstrument)}
+                  style={{ fontSize: '0.8rem', padding: '0.25rem 0.6rem' }}
+                >
+                  {showAddInstrument ? 'Cancel' : '+ Add Instrument Type'}
+                </button>
+              </div>
+              {showAddInstrument && (
+                <div className="add-instrument-form" style={{ background: '#f0f9ff', border: '1px solid #bfdbfe', borderRadius: '0.5rem', padding: '0.75rem', marginTop: '0.5rem', marginBottom: '0.5rem' }}>
+                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+                    <div style={{ flex: '1', minWidth: '120px' }}>
+                      <label style={{ fontSize: '0.75rem', fontWeight: 600 }}>Instrument Name</label>
+                      <input
+                        type="text"
+                        className="form-input"
+                        value={newInstrument.name}
+                        onChange={e => setNewInstrument({ ...newInstrument, name: e.target.value })}
+                        placeholder="e.g. Dhol, Sitar, Bansuri..."
+                        style={{ padding: '0.4rem 0.6rem', fontSize: '0.85rem' }}
+                      />
+                    </div>
+                    <div style={{ minWidth: '100px' }}>
+                      <label style={{ fontSize: '0.75rem', fontWeight: 600 }}>Category</label>
+                      <select
+                        className="form-input"
+                        value={newInstrument.category}
+                        onChange={e => setNewInstrument({ ...newInstrument, category: e.target.value })}
+                        style={{ padding: '0.4rem 0.6rem', fontSize: '0.85rem' }}
+                      >
+                        <option value="vocals">Vocals</option>
+                        <option value="speech">Speech</option>
+                        <option value="percussion">Percussion</option>
+                        <option value="wind">Wind</option>
+                        <option value="strings">Strings</option>
+                        <option value="keys">Keys</option>
+                        <option value="other">Other</option>
+                      </select>
+                    </div>
+                    <button
+                      type="button"
+                      className="btn btn-primary btn-small"
+                      onClick={handleAddInstrument}
+                      disabled={!newInstrument.name || learningInstrument}
+                      style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem', whiteSpace: 'nowrap' }}
+                    >
+                      {learningInstrument ? 'Learning...' : 'Learn & Add'}
+                    </button>
+                  </div>
+                  <p style={{ fontSize: '0.75rem', color: '#64748b', margin: '0.4rem 0 0 0' }}>
+                    AI will research mic placement, EQ, compression, and FX settings for this instrument.
+                  </p>
+                </div>
+              )}
               {formData.performers.map((performer, index) => (
                 <div key={index} className="performer-entry">
                   <div className="performer-row">
@@ -371,9 +466,15 @@ function SetupGenerator() {
                       </optgroup>
                       <optgroup label="Percussion">
                         <option value="tabla">Tabla</option>
+                        {customInstruments.filter(i => i.category === 'percussion').map(i => (
+                          <option key={i.value_key} value={i.value_key}>{i.display_name || i.name}</option>
+                        ))}
                       </optgroup>
                       <optgroup label="Wind">
                         <option value="flute">Flute</option>
+                        {customInstruments.filter(i => i.category === 'wind').map(i => (
+                          <option key={i.value_key} value={i.value_key}>{i.display_name || i.name}</option>
+                        ))}
                       </optgroup>
                       <optgroup label="Strings (Piezo/DI)">
                         <option value="acoustic_guitar">Acoustic Guitar</option>
@@ -382,11 +483,24 @@ function SetupGenerator() {
                         <option value="taus">Taus / Mayuri</option>
                         <option value="violin">Violin (Piezo)</option>
                         <option value="sarangi">Sarangi</option>
+                        {customInstruments.filter(i => i.category === 'strings').map(i => (
+                          <option key={i.value_key} value={i.value_key}>{i.display_name || i.name}</option>
+                        ))}
                       </optgroup>
                       <optgroup label="Keys">
                         <option value="harmonium">Harmonium</option>
                         <option value="keyboard">Keyboard / Synth</option>
+                        {customInstruments.filter(i => i.category === 'keys').map(i => (
+                          <option key={i.value_key} value={i.value_key}>{i.display_name || i.name}</option>
+                        ))}
                       </optgroup>
+                      {customInstruments.filter(i => ['vocals', 'speech', 'other'].includes(i.category)).length > 0 && (
+                        <optgroup label="Custom (Learned)">
+                          {customInstruments.filter(i => ['vocals', 'speech', 'other'].includes(i.category)).map(i => (
+                            <option key={i.value_key} value={i.value_key}>{i.display_name || i.name}</option>
+                          ))}
+                        </optgroup>
+                      )}
                       <option value="other">Other</option>
                     </select>
                     <select

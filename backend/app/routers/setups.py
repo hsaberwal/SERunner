@@ -300,6 +300,18 @@ async def generate_setup(
             knowledge_library.append(knowledge_dict)
         logger.info(f"Found {len(knowledge_library)} items in knowledge library")
 
+        # Get instrument profiles (custom learned instruments)
+        from app.models.instrument import InstrumentProfile
+        instrument_result = await db.execute(
+            select(InstrumentProfile).where(
+                InstrumentProfile.user_id == current_user.id,
+                InstrumentProfile.is_active == "true"
+            )
+        )
+        instrument_items = instrument_result.scalars().all()
+        instrument_profiles = [item.to_dict() for item in instrument_items]
+        logger.info(f"Found {len(instrument_profiles)} instrument profiles")
+
         # Generate setup using Claude API
         logger.info(f"Generating setup for location {location.name} with {len(request.performers)} performers")
         generator = SetupGenerator()
@@ -309,7 +321,8 @@ async def generate_setup(
             past_setups=past_setups,
             user=current_user,
             user_gear=user_gear,
-            knowledge_library=knowledge_library
+            knowledge_library=knowledge_library,
+            instrument_profiles=instrument_profiles
         )
         logger.info("Setup generated successfully from Claude API")
 
@@ -545,6 +558,18 @@ async def refresh_setup(
         knowledge_library = [item.to_dict() for item in knowledge_items]
         logger.info(f"Found {len(knowledge_library)} items in knowledge library for refresh")
 
+        # Get instrument profiles (custom learned instruments)
+        from app.models.instrument import InstrumentProfile
+        instrument_result = await db.execute(
+            select(InstrumentProfile).where(
+                InstrumentProfile.user_id == current_user.id,
+                InstrumentProfile.is_active == "true"
+            )
+        )
+        instrument_items = instrument_result.scalars().all()
+        instrument_profiles = [item.to_dict() for item in instrument_items]
+        logger.info(f"Found {len(instrument_profiles)} instrument profiles for refresh")
+
         # Regenerate using Claude API
         generator = SetupGenerator()
         setup_data = await generator.generate(
@@ -553,7 +578,8 @@ async def refresh_setup(
             past_setups=past_setups,
             user=current_user,
             user_gear=user_gear,
-            knowledge_library=knowledge_library
+            knowledge_library=knowledge_library,
+            instrument_profiles=instrument_profiles
         )
         logger.info("Setup regenerated successfully from Claude API")
 

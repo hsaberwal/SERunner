@@ -4,9 +4,9 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import get_settings
-from app.routers import auth, locations, setups, gear, knowledge_library, billing
+from app.routers import auth, locations, setups, gear, knowledge_library, billing, instruments
 from app.database import engine, Base
-from app.models import User, Location, Setup, Gear, GearLoan, KnowledgeBase, LearnedHardware, Subscription
+from app.models import User, Location, Setup, Gear, GearLoan, KnowledgeBase, LearnedHardware, Subscription, InstrumentProfile
 
 # Configure logging to stdout for Railway
 logging.basicConfig(
@@ -193,6 +193,43 @@ async def run_startup_migrations():
         except Exception:
             pass
 
+        # Create instrument_profiles table for custom performer/instrument types
+        try:
+            await conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS instrument_profiles (
+                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                    name VARCHAR(100) NOT NULL,
+                    display_name VARCHAR(150),
+                    category VARCHAR(50) NOT NULL,
+                    value_key VARCHAR(100) NOT NULL,
+                    description TEXT,
+                    mic_recommendations JSONB,
+                    eq_settings JSONB,
+                    compression_settings JSONB,
+                    fx_recommendations JSONB,
+                    mixing_notes TEXT,
+                    knowledge_base_entry TEXT,
+                    user_notes TEXT,
+                    is_active VARCHAR(5) DEFAULT 'true',
+                    created_at TIMESTAMP DEFAULT NOW(),
+                    updated_at TIMESTAMP DEFAULT NOW()
+                )
+            """))
+        except Exception:
+            pass
+
+        # Create indexes for instrument_profiles
+        for idx_name, column in [
+            ("ix_instrument_profiles_user_id", "user_id"),
+            ("ix_instrument_profiles_category", "category"),
+            ("ix_instrument_profiles_value_key", "value_key"),
+        ]:
+            try:
+                await conn.execute(text(f"CREATE INDEX IF NOT EXISTS {idx_name} ON instrument_profiles({column})"))
+            except Exception:
+                pass
+
     logger.info("Startup migrations completed")
 
 
@@ -238,6 +275,7 @@ app.include_router(setups.router, prefix="/setups", tags=["Setups"])
 app.include_router(gear.router, prefix="/gear", tags=["Gear"])
 app.include_router(knowledge_library.router, tags=["Knowledge Library"])
 app.include_router(billing.router, prefix="/billing", tags=["Billing"])
+app.include_router(instruments.router, prefix="/instruments", tags=["Instruments"])
 
 
 @app.get("/")

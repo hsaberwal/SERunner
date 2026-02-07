@@ -95,6 +95,17 @@ export const knowledgeLibrary = {
   delete: (id) => api.delete(`/knowledge-library/${id}`),
 }
 
+// Instruments - Custom performer/instrument types
+export const instruments = {
+  getAll: (category = null) =>
+    api.get('/instruments', { params: category ? { category } : {} }),
+  getOne: (id) => api.get(`/instruments/${id}`),
+  learn: (data) => api.post('/instruments/learn', data),
+  relearn: (id) => api.post(`/instruments/${id}/relearn`),
+  update: (id, data) => api.put(`/instruments/${id}`, data),
+  delete: (id) => api.delete(`/instruments/${id}`),
+}
+
 // Billing & Subscriptions
 export const billing = {
   getStatus: () => api.get('/billing/status'),

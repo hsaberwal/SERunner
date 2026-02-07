@@ -20,7 +20,7 @@ class SetupGenerator:
     def __init__(self):
         self.claude_service = ClaudeService()
 
-    def _build_system_prompt(self, user_gear: List[Dict[str, Any]] = None, knowledge_library: List[Dict[str, Any]] = None) -> str:
+    def _build_system_prompt(self, user_gear: List[Dict[str, Any]] = None, knowledge_library: List[Dict[str, Any]] = None, instrument_profiles: List[Dict[str, Any]] = None) -> str:
         """Build the system prompt with QuPac knowledge and sound engineering best practices.
         
         The knowledge is loaded DYNAMICALLY from knowledge/sound-knowledge-base.md,
@@ -244,6 +244,57 @@ class SetupGenerator:
                         knowledge_library_section += f"- Best for: {item['best_for']}\n"
                 knowledge_library_section += "\n"
 
+        # Build instrument profiles section
+        instrument_profiles_section = ""
+        if instrument_profiles:
+            instrument_profiles_section = "\n## Learned Instrument Profiles\n"
+            instrument_profiles_section += "**IMPORTANT**: Use these EXACT settings when these instruments appear in the performer lineup.\n\n"
+            for profile in instrument_profiles:
+                instrument_profiles_section += f"### {profile.get('display_name', profile.get('name'))}\n"
+                if profile.get('description'):
+                    instrument_profiles_section += f"{profile['description']}\n\n"
+                
+                if profile.get('knowledge_base_entry'):
+                    instrument_profiles_section += profile['knowledge_base_entry'] + "\n\n"
+                else:
+                    # Build from structured data
+                    if profile.get('mic_recommendations'):
+                        mic = profile['mic_recommendations']
+                        primary = mic.get('primary', {})
+                        instrument_profiles_section += f"**Mic**: {', '.join(primary.get('examples', []))} - {primary.get('placement', 'Standard placement')}\n"
+                        if primary.get('distance'):
+                            instrument_profiles_section += f"  Distance: {primary['distance']}\n"
+                        if mic.get('di_notes'):
+                            instrument_profiles_section += f"  DI: {mic['di_notes']}\n"
+                    
+                    if profile.get('eq_settings'):
+                        eq = profile['eq_settings']
+                        instrument_profiles_section += "\n**EQ**:\n"
+                        if eq.get('hpf'):
+                            instrument_profiles_section += f"- HPF: {eq['hpf'].get('frequency', 80)}Hz {'ON' if eq['hpf'].get('enabled', True) else 'OFF'}\n"
+                        for band in ['band1', 'band2', 'band3', 'band4']:
+                            if eq.get(band):
+                                b = eq[band]
+                                instrument_profiles_section += f"- {band}: {b.get('frequency', '?')}Hz @ {b.get('gain', 0)}dB ({b.get('width', 'medium')}) - {b.get('purpose', '')}\n"
+                    
+                    if profile.get('compression_settings'):
+                        comp = profile['compression_settings']
+                        instrument_profiles_section += f"\n**Compression**: {comp.get('ratio', '3:1')}, {comp.get('threshold_db', -10)}dB threshold, "
+                        instrument_profiles_section += f"{comp.get('attack_ms', 15)}ms attack, {comp.get('release_ms', 100)}ms release, "
+                        instrument_profiles_section += f"{'Soft' if comp.get('soft_knee', True) else 'Hard'} knee\n"
+                    
+                    if profile.get('fx_recommendations'):
+                        fx = profile['fx_recommendations']
+                        instrument_profiles_section += f"\n**FX**: {fx.get('fx_engine', 'FX1')} ({fx.get('primary_fx', 'plate')}) @ {fx.get('send_level_db', -10)}dB"
+                        if fx.get('secondary_fx') and fx['secondary_fx'] != 'none':
+                            instrument_profiles_section += f" + {fx.get('secondary_engine', 'FX2')} ({fx['secondary_fx']}) @ {fx.get('secondary_send_db', -12)}dB"
+                        instrument_profiles_section += "\n"
+                    
+                    if profile.get('mixing_notes'):
+                        instrument_profiles_section += f"\n**Notes**: {profile['mixing_notes']}\n"
+                
+                instrument_profiles_section += "\n"
+
         speaker_section = """## Speaker & Amplifier Knowledge
 
 ### Speakers
@@ -341,8 +392,8 @@ Return a JSON object (no markdown, just raw JSON) with these keys:
 
 Keep response under 4000 tokens. Be concise but systematic!"""
 
-        # Combine: Equipment + User Gear + Knowledge Library + Speaker Section + Knowledge Base + Output Format
-        full_prompt = equipment_intro + user_gear_section + knowledge_library_section + speaker_section + "\n## Sound Engineering Knowledge Base (Loaded Dynamically)\n\n" + knowledge_base + output_format
+        # Combine: Equipment + User Gear + Knowledge Library + Instrument Profiles + Speaker Section + Knowledge Base + Output Format
+        full_prompt = equipment_intro + user_gear_section + knowledge_library_section + instrument_profiles_section + speaker_section + "\n## Sound Engineering Knowledge Base (Loaded Dynamically)\n\n" + knowledge_base + output_format
         
         logger.info(f"Built system prompt: {len(full_prompt)} total characters")
         return full_prompt
@@ -545,14 +596,15 @@ Keep response under 4000 tokens. Be concise but systematic!"""
         past_setups: List[Setup],
         user: User,
         user_gear: List[Dict[str, Any]] = None,
-        knowledge_library: List[Dict[str, Any]] = None
+        knowledge_library: List[Dict[str, Any]] = None,
+        instrument_profiles: List[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
         """Generate a mixer setup"""
         # Use user's API key if provided
         if user.api_key:
             self.claude_service = ClaudeService(api_key=user.api_key)
 
-        system_prompt = self._build_system_prompt(user_gear=user_gear, knowledge_library=knowledge_library)
+        system_prompt = self._build_system_prompt(user_gear=user_gear, knowledge_library=knowledge_library, instrument_profiles=instrument_profiles)
         user_prompt = self._build_user_prompt(location, performers, past_setups)
 
         # Get response from Claude (with timing)
