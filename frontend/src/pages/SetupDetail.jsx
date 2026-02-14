@@ -261,30 +261,131 @@ function SetupDetail() {
           </div>
         )}
 
+        {/* Channel Configuration */}
         {setup.channel_config && Object.keys(setup.channel_config).length > 0 && (
           <div className="card">
             <h2 className="card-header">Channel Configuration</h2>
-            <pre style={{ whiteSpace: 'pre-wrap', fontSize: '0.875rem' }}>
-              {JSON.stringify(setup.channel_config, null, 2)}
-            </pre>
+            <div className="settings-table-wrapper">
+              <table className="settings-table">
+                <thead>
+                  <tr>
+                    <th>Ch</th>
+                    <th>Instrument</th>
+                    <th>Mic</th>
+                    <th>Position</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {Object.entries(setup.channel_config).map(([ch, config]) => (
+                    <tr key={ch}>
+                      <td className="channel-cell">{ch}</td>
+                      <td className="instrument-cell">{config.instrument || '-'}</td>
+                      <td>{config.mic || '-'}</td>
+                      <td>{config.position || '-'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
 
+        {/* EQ Settings */}
         {setup.eq_settings && Object.keys(setup.eq_settings).length > 0 && (
           <div className="card">
             <h2 className="card-header">EQ Settings</h2>
-            <pre style={{ whiteSpace: 'pre-wrap', fontSize: '0.875rem' }}>
-              {JSON.stringify(setup.eq_settings, null, 2)}
-            </pre>
+            {Object.entries(setup.eq_settings).map(([ch, eq]) => (
+              <div key={ch} className="channel-settings-block">
+                <h4 className="channel-settings-title">
+                  Channel {ch}{setup.channel_config?.[ch]?.instrument ? `: ${setup.channel_config[ch].instrument}` : ''}
+                </h4>
+                <div className="settings-grid">
+                  {eq.hpf && <div className="setting-item"><span className="setting-label">HPF</span><span className="setting-value">{eq.hpf}</span></div>}
+                  {eq.band1 && <div className="setting-item"><span className="setting-label">Band 1</span><span className="setting-value">{eq.band1}</span></div>}
+                  {eq.band2 && <div className="setting-item"><span className="setting-label">Band 2</span><span className="setting-value">{eq.band2}</span></div>}
+                  {eq.band3 && <div className="setting-item"><span className="setting-label">Band 3</span><span className="setting-value">{eq.band3}</span></div>}
+                  {eq.band4 && <div className="setting-item"><span className="setting-label">Band 4</span><span className="setting-value">{eq.band4}</span></div>}
+                </div>
+              </div>
+            ))}
           </div>
         )}
 
+        {/* Compression Settings */}
+        {setup.compression_settings && Object.keys(setup.compression_settings).length > 0 && (
+          <div className="card">
+            <h2 className="card-header">Compression Settings</h2>
+            {Object.entries(setup.compression_settings).map(([ch, comp]) => (
+              <div key={ch} className="channel-settings-block">
+                <h4 className="channel-settings-title">
+                  Channel {ch}{setup.channel_config?.[ch]?.instrument ? `: ${setup.channel_config[ch].instrument}` : ''}
+                </h4>
+                <div className="settings-grid">
+                  {comp.ratio && <div className="setting-item"><span className="setting-label">Ratio</span><span className="setting-value">{comp.ratio}</span></div>}
+                  {comp.threshold && <div className="setting-item"><span className="setting-label">Threshold</span><span className="setting-value">{comp.threshold}</span></div>}
+                  {comp.attack && <div className="setting-item"><span className="setting-label">Attack</span><span className="setting-value">{comp.attack}</span></div>}
+                  {comp.release && <div className="setting-item"><span className="setting-label">Release</span><span className="setting-value">{comp.release}</span></div>}
+                  {comp.knee && <div className="setting-item"><span className="setting-label">Knee</span><span className="setting-value">{comp.knee}</span></div>}
+                  {comp.gain && <div className="setting-item"><span className="setting-label">Gain</span><span className="setting-value">{comp.gain}</span></div>}
+                  {comp.type && <div className="setting-item"><span className="setting-label">Type</span><span className="setting-value">{comp.type}</span></div>}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* FX Settings */}
         {setup.fx_settings && Object.keys(setup.fx_settings).length > 0 && (
           <div className="card">
             <h2 className="card-header">FX Settings</h2>
-            <pre style={{ whiteSpace: 'pre-wrap', fontSize: '0.875rem' }}>
-              {JSON.stringify(setup.fx_settings, null, 2)}
-            </pre>
+
+            {/* FX Engine Assignments */}
+            <div className="fx-engines">
+              <h4 className="channel-settings-title">FX Engine Assignments</h4>
+              <div className="fx-engine-grid">
+                {['fx1', 'fx2', 'fx3', 'fx4'].map(engine => (
+                  setup.fx_settings[engine] && (
+                    <div key={engine} className="fx-engine-card">
+                      <span className="fx-engine-label">{engine.toUpperCase()}</span>
+                      <span className="fx-engine-value">{setup.fx_settings[engine]}</span>
+                    </div>
+                  )
+                ))}
+              </div>
+            </div>
+
+            {/* Per-Channel FX Sends */}
+            {setup.fx_settings.sends && Object.keys(setup.fx_settings.sends).length > 0 && (
+              <div className="fx-sends">
+                <h4 className="channel-settings-title">Per-Channel FX Sends</h4>
+                <div className="settings-table-wrapper">
+                  <table className="settings-table">
+                    <thead>
+                      <tr>
+                        <th>Ch</th>
+                        <th>Instrument</th>
+                        {['fx1', 'fx2', 'fx3', 'fx4'].filter(e => setup.fx_settings[e]).map(engine => (
+                          <th key={engine}>{engine.toUpperCase()}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {Object.entries(setup.fx_settings.sends).map(([ch, sends]) => (
+                        <tr key={ch}>
+                          <td className="channel-cell">{ch}</td>
+                          <td className="instrument-cell">{setup.channel_config?.[ch]?.instrument || '-'}</td>
+                          {['fx1', 'fx2', 'fx3', 'fx4'].filter(e => setup.fx_settings[e]).map(engine => (
+                            <td key={engine} className={sends[engine] && sends[engine] !== 'off' ? 'fx-active' : 'fx-off'}>
+                              {sends[engine] || 'off'}
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -853,6 +954,161 @@ function SetupDetail() {
 
         .btn-secondary:hover {
           background: #4b5563;
+        }
+
+        /* Settings Table Styles */
+        .settings-table-wrapper {
+          overflow-x: auto;
+          -webkit-overflow-scrolling: touch;
+        }
+
+        .settings-table {
+          width: 100%;
+          border-collapse: collapse;
+          font-size: 0.875rem;
+        }
+
+        .settings-table th {
+          background: #f3f4f6;
+          padding: 0.5rem 0.75rem;
+          text-align: left;
+          font-weight: 600;
+          color: #374151;
+          border-bottom: 2px solid #d1d5db;
+          white-space: nowrap;
+        }
+
+        .settings-table td {
+          padding: 0.5rem 0.75rem;
+          border-bottom: 1px solid #e5e7eb;
+          color: #374151;
+        }
+
+        .settings-table tr:last-child td {
+          border-bottom: none;
+        }
+
+        .settings-table .channel-cell {
+          font-weight: 700;
+          color: #1f2937;
+          text-align: center;
+          width: 2.5rem;
+        }
+
+        .settings-table .instrument-cell {
+          font-weight: 500;
+        }
+
+        /* Channel Settings Block (EQ, Compression per channel) */
+        .channel-settings-block {
+          padding: 0.75rem 0;
+          border-bottom: 1px solid #e5e7eb;
+        }
+
+        .channel-settings-block:last-child {
+          border-bottom: none;
+        }
+
+        .channel-settings-title {
+          color: #1f2937;
+          font-size: 0.95rem;
+          margin: 0 0 0.5rem;
+          font-weight: 600;
+        }
+
+        .settings-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+          gap: 0.375rem;
+        }
+
+        .setting-item {
+          display: flex;
+          gap: 0.5rem;
+          align-items: baseline;
+          padding: 0.25rem 0.5rem;
+          background: #f9fafb;
+          border-radius: 0.25rem;
+          font-size: 0.85rem;
+        }
+
+        .setting-label {
+          font-weight: 600;
+          color: #6b7280;
+          white-space: nowrap;
+          min-width: 60px;
+        }
+
+        .setting-value {
+          color: #1f2937;
+        }
+
+        /* FX Engine Styles */
+        .fx-engines {
+          margin-bottom: 1.25rem;
+        }
+
+        .fx-engine-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+          gap: 0.5rem;
+        }
+
+        .fx-engine-card {
+          display: flex;
+          flex-direction: column;
+          gap: 0.25rem;
+          padding: 0.75rem;
+          background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+          border: 1px solid #93c5fd;
+          border-radius: 0.5rem;
+        }
+
+        .fx-engine-label {
+          font-weight: 700;
+          font-size: 0.8rem;
+          color: #1e40af;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+        }
+
+        .fx-engine-value {
+          font-size: 0.85rem;
+          color: #1e3a5f;
+        }
+
+        /* FX Sends Styles */
+        .fx-sends {
+          margin-top: 0.5rem;
+        }
+
+        .settings-table .fx-active {
+          color: #059669;
+          font-weight: 600;
+        }
+
+        .settings-table .fx-off {
+          color: #9ca3af;
+          font-style: italic;
+        }
+
+        @media (max-width: 480px) {
+          .settings-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .fx-engine-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .settings-table {
+            font-size: 0.8rem;
+          }
+
+          .settings-table th,
+          .settings-table td {
+            padding: 0.375rem 0.5rem;
+          }
         }
       `}</style>
     </>
