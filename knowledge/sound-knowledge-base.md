@@ -27,21 +27,26 @@ Adjust proportionally if overall FX is too loud/quiet.
 
 ## FX Assignments (QuPac 4 FX Engines)
 
+### QuPac FX Library Categories (available on the mixer)
+**Reverb**: Arena, Chamber, EMT, Hall, Overheads, Plate, Room, Slap
+**Other**: Delays, Modulators, Gated Verb
+Each category contains multiple factory presets. Always reference presets from these categories.
+
 ### FOH Reverb Strategy
-- **FX1 (Plate)**: Primary vocal reverb — smooth, dense, musical
-- **FX2 (Hall Medium)**: Spacious reverb — flute, bowed strings, Palki (sources that need SPACE)
+- **FX1 (Plate category)**: Primary vocal reverb — smooth, dense, musical
+- **FX2 (Hall category)**: Spacious reverb — flute, bowed strings, Palki (sources that need SPACE). Use a Hall preset like Hall Large, Hall Strings, or Hall Wide Large
 
 ### Monitor Reverb Strategy
-- **FX3 (Room/Short Plate)**: Monitor reverb — short decay, vocals only
-- **FX4 (Available)**: Slapback delay or backup
+- **FX3 (Room category)**: Monitor reverb — short decay, vocals only
+- **FX4 (Available)**: Slapback delay (use Slap or Delays category) or backup
 
 **Important**: Don't double-reverb EXCEPT for Palki! Most sources should use ONE reverb only.
 
 ### Recommended FX Settings
 
-#### FX1: Plate Reverb (FOH Vocals/Speech)
+#### FX1: Plate (FOH Vocals/Speech)
 ```
-Type: Plate
+Category: Plate (pick a vocal Plate preset from QuPac FX Library)
 Decay: 1.8 - 2.2 seconds
 Pre-delay: 30-50ms (keeps vocals upfront)
 HF Damping: Medium
@@ -49,9 +54,9 @@ Diffusion: High
 ```
 **Why Plate?** Industry standard for live vocals. Dense and musical without getting washy. Sits well in the mix.
 
-#### FX2: Hall Medium (FOH Spacious)
+#### FX2: Hall (FOH Spacious)
 ```
-Type: Hall (Medium)
+Category: Hall (suggested presets: Hall Large, Hall Strings, or Hall Wide Large)
 Decay: 2.5 - 3.5 seconds
 Pre-delay: 20-40ms
 HF Damping: Medium
@@ -60,7 +65,7 @@ HF Damping: Medium
 
 #### FX3: Room (Monitor Reverb)
 ```
-Type: Room or Short Plate
+Category: Room (pick a short/small Room preset from QuPac FX Library)
 Decay: 0.8 - 1.2 seconds (SHORT!)
 Pre-delay: 15-25ms
 HF Damping: High (reduce harshness in wedges)
@@ -70,7 +75,7 @@ Route: Monitor mixes ONLY (not LR)
 
 #### FX4: Available (Optional Delay)
 ```
-Type: Mono Delay (if used)
+Category: Slap or Delays (if used)
 Time: 80-120ms (slapback)
 Feedback: 0-10%
 ```
@@ -328,8 +333,8 @@ The Beta 57 makes flute sound thick and lacks airiness. Always boost 8-10 kHz an
 ### 4. Direct Acoustic Guitar = Cut the Quack
 Piezo pickups have a harsh "plastic" sound around 2-3 kHz. This cut is essential.
 
-### 5. Tabla Compression = Fast Attack, Hard Knee
-Unlike other instruments, tabla needs fast attack to catch transients, and soft knee OFF to preserve punch.
+### 5. Tabla Compression = Fast Attack, Soft Knee OFF
+Unlike other instruments, tabla needs fast attack to catch transients, and Soft Knee OFF to preserve punch.
 
 ### 6. Avoid Limiter Mode on Musical Sources
 Ratio at "Inf." acts as a brick-wall limiter — use 3:1 to 5:1 for musical compression.
@@ -373,7 +378,7 @@ Cut: 250-300 Hz @ -3 dB (remove mud)
 Cut: 2.5-3 kHz @ -3 dB (reduce harshness)
 Boost: 8-10 kHz @ +4 dB (add air)
 Compression: 3:1, -9 dB threshold, 17ms attack, soft knee ON
-FOH Reverb: FX2 (Hall Medium) @ -6 to -8 dB send - FLUTE LOVES SPACE!
+FOH Reverb: FX2 (Hall) @ -6 to -8 dB send - FLUTE LOVES SPACE!
 Monitor Reverb: OFF (flautist needs dry signal for timing)
 ```
 
@@ -384,7 +389,7 @@ Boost: 60 Hz @ +2-3 dB (sub-bass)
 Boost: 200-250 Hz @ +6 to +10 dB (body — adjust to taste)
 Optional: 2-3 kHz @ +3 dB (attack definition)
 Compression: 4:1, -9 dB threshold, 6ms attack, soft knee OFF
-FOH Reverb: FX2 (Hall Medium) @ -20 dB send (very subtle)
+FOH Reverb: FX2 (Hall) @ -20 dB send (very subtle)
 Monitor Reverb: OFF (tabla player needs dry signal)
 ```
 
@@ -395,7 +400,7 @@ Boost: 150-180 Hz @ +3 dB (body)
 Cut: 2.5-3 kHz @ -3 to -4 dB (CRITICAL: piezo quack)
 Boost: 8-10 kHz @ +4 to +5 dB (shimmer)
 Compression: 3:1, -11 dB threshold, 13ms attack, soft knee ON
-FOH Reverb: FX2 (Hall Medium) @ -12 dB send
+FOH Reverb: FX2 (Hall) @ -12 dB send
 Monitor Reverb: OFF
 ```
 

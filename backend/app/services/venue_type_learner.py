@@ -84,9 +84,10 @@ You MUST return a valid JSON object with this EXACT structure:
     },
     "fx_approach": {
         "reverb_strategy": "Add reverb vs rely on natural, and why",
-        "recommended_reverb_type": "plate/hall/room/none and reasoning",
+        "recommended_reverb_type": "plate/hall/room/chamber/none - these are QuPac FX Library categories",
+        "suggested_presets": "Suggest specific QuPac presets if applicable (e.g., Hall Large, Chamber Small)",
         "reverb_amount": "Less than normal / Normal / More than normal",
-        "delay_notes": "If delay is useful in this venue type",
+        "delay_notes": "If delay is useful in this venue type (QuPac has Slap and Delays categories)",
         "notes": "Overall FX philosophy"
     },
     "compression_philosophy": {

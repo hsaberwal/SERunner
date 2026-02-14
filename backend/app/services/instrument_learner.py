@@ -61,10 +61,10 @@ You MUST return a valid JSON object with this EXACT structure:
     },
     "eq_settings": {
         "hpf": {"frequency": 80, "enabled": true, "notes": "Why this HPF frequency"},
-        "band1": {"frequency": 250, "gain": -3.0, "width": "medium", "purpose": "What this cut/boost achieves"},
-        "band2": {"frequency": 500, "gain": 0.0, "width": "medium", "purpose": "..."},
-        "band3": {"frequency": 3000, "gain": 2.0, "width": "medium", "purpose": "..."},
-        "band4": {"frequency": 8000, "gain": 3.0, "width": "medium", "purpose": "..."},
+        "band1": {"frequency": 250, "gain": -3.0, "freq_range": "170-370Hz", "purpose": "What this cut/boost achieves"},
+        "band2": {"frequency": 500, "gain": 0.0, "freq_range": "330-750Hz", "purpose": "..."},
+        "band3": {"frequency": 3000, "gain": 2.0, "freq_range": "2-4.5kHz", "purpose": "..."},
+        "band4": {"frequency": 8000, "gain": 3.0, "freq_range": "5.2-12kHz", "purpose": "..."},
         "notes": "General EQ approach for this instrument"
     },
     "compression_settings": {
@@ -77,15 +77,16 @@ You MUST return a valid JSON object with this EXACT structure:
         "notes": "Why these settings work for this instrument"
     },
     "fx_recommendations": {
-        "primary_fx": "plate|hall_medium|room|none",
+        "primary_fx": "plate|hall|room|chamber|none",
         "fx_engine": "FX1|FX2|FX3|none",
         "send_level_db": -10,
-        "secondary_fx": "none|hall_medium|plate",
+        "suggested_preset": "e.g. Hall Large, Plate Vocal, etc. from QuPac FX Library",
+        "secondary_fx": "none|hall|plate",
         "secondary_engine": "none|FX1|FX2",
         "secondary_send_db": null,
         "monitor_reverb": true,
         "monitor_send_db": -15,
-        "notes": "FX approach for this instrument (our FX1=Plate for vocals, FX2=Hall Medium for spacious instruments, FX3=Room for monitors)"
+        "notes": "FX approach for this instrument (our FX1=Plate category for vocals, FX2=Hall category for spacious instruments, FX3=Room category for monitors)"
     },
     "mixing_notes": "3-5 sentences covering: frequency range, common problems, interaction with other instruments, gain staging tips, and any special considerations for live Kirtan or worship music contexts.",
     "knowledge_base_entry": "A complete markdown section (like in our knowledge base) with ### heading, EQ table, compression table, and quick reference starting point. Format it ready to paste into our sound-knowledge-base.md file."
@@ -93,9 +94,12 @@ You MUST return a valid JSON object with this EXACT structure:
 
 IMPORTANT RULES:
 - EQ gain values: negative = cut, positive = boost, 0 = flat
-- Width options: "narrow", "medium", "wide"
+- For each EQ band, provide freq_range showing the approximate frequency range affected (e.g., "170-370Hz")
+- The QuPac PEQ displays a logarithmic curve on the touchscreen - users set width visually using the frequency range
 - All frequencies in Hz (use 2500 not 2.5kHz in JSON)
-- FX engine mapping: FX1=Plate (vocals/speech), FX2=Hall Medium (spacious instruments), FX3=Room (monitors)
+- QuPac FX Library categories: Arena, Chamber, EMT, Hall, Overheads, Plate, Room, Slap, Delays, Modulators, Gated Verb
+- FX engine mapping: FX1=Plate category (vocals/speech), FX2=Hall category (spacious instruments), FX3=Room category (monitors)
+- Suggest specific QuPac FX Library presets where possible (e.g., Hall Large, Hall Strings, Plate Vocal)
 - For Kirtan instruments, consider how they sit alongside harmonium, tabla, and vocals
 - Return ONLY the JSON object, no markdown formatting or explanation outside it
 """

@@ -44,8 +44,12 @@ class SetupGenerator:
 - 16 on-board mic/line inputs (XLR/TRS)
 - 32 mono + 3 stereo DSP channels
 - 4 mono + 3 stereo aux sends
-- 4 stereo FX engines
-- Per-channel: HPF, gate, 4-band PEQ, compressor, delay, ducker
+- 4 stereo FX engines with built-in FX Library
+  - **Reverb categories**: Arena, Chamber, EMT, Hall, Overheads, Plate, Room, Slap
+  - **Other FX**: Delays, Modulators, Gated Verb
+  - Each category has multiple factory presets (e.g., Hall has: Hall Large, Hall Strings, Hall Small Vocal, Hall Wide Large, etc.)
+  - IMPORTANT: Only reference FX preset names that exist in the QuPac FX Library above
+- Per-channel: HPF, gate, 4-band PEQ (frequency, gain, width shown as logarithmic curve), compressor, delay, ducker
 - Per-output: PEQ, 1/3 octave GEQ, compressor, delay
 - Scene recall, channel libraries
 
@@ -376,20 +380,23 @@ Return a JSON object (no markdown, just raw JSON) with these keys:
    {"1": {"instrument": "Female Vocal", "mic": "Beta 58A", "position": "2-3 inches from mouth"}}
    ```
 
-2. **eq_settings**: dict with channel numbers as keys, include width AND frequency range:
+2. **eq_settings**: dict with channel numbers as keys, include frequency range affected:
    ```
-   {"1": {"hpf": "95Hz", "band1": "325Hz +2.5dB MEDIUM (220-480Hz)", "band2": "650Hz -4dB MEDIUM (430-980Hz)", "band3": "4.5kHz +4dB MEDIUM (3-6.7kHz)", "band4": "10kHz +2dB WIDE (6.5-15kHz)"}}
+   {"1": {"hpf": "95Hz", "band1": "325Hz +2.5dB (220-480Hz)", "band2": "650Hz -4dB (430-980Hz)", "band3": "4.5kHz +4dB (3-6.7kHz)", "band4": "10kHz +2dB (6.5-15kHz)"}}
    ```
+   NOTE: QuPac PEQ shows a logarithmic curve on the touchscreen. The frequency range in parentheses tells the user how wide to set the bell curve visually. Do NOT use labels like WIDE/MEDIUM/NARROW - they don't appear on the QuPac display.
 
 3. **compression_settings**: dict with channel numbers, include all params:
    ```
-   {"1": {"ratio": "4:1", "threshold": "-8dB", "attack": "15ms", "release": "100ms", "knee": "soft", "gain": "+3dB", "type": "Manual RMS"}}
+   {"1": {"ratio": "4:1", "threshold": "-8dB", "attack": "15ms", "release": "100ms", "knee": "Soft Knee ON", "gain": "+3dB", "type": "Manual RMS"}}
    ```
+   NOTE: QuPac compressor knee is ONLY "Soft Knee ON" or "Soft Knee OFF" - no other options exist.
 
-4. **fx_settings**: dict with FX engine config and per-channel sends:
+4. **fx_settings**: dict with FX engine config and per-channel sends. ONLY use preset names from the QuPac FX Library:
    ```
-   {"fx1": "Plate Reverb (FOH Vocals)", "fx2": "Hall Medium (FOH Spacious)", "fx3": "Room (Monitor Reverb)", "fx4": "Available", "sends": {"1": {"fx1": "-10dB", "fx2": "off", "fx3": "-15dB"}, "2": {"fx1": "off", "fx2": "-8dB", "fx3": "off"}}}
+   {"fx1": "Plate (FOH Vocals) - suggest preset e.g. Plate Vocal", "fx2": "Hall (FOH Spacious) - suggest preset e.g. Hall Large or Hall Strings", "fx3": "Room (Monitor Reverb) - suggest preset e.g. Room Small", "fx4": "Available", "sends": {"1": {"fx1": "-10dB", "fx2": "off", "fx3": "-15dB"}, "2": {"fx1": "off", "fx2": "-8dB", "fx3": "off"}}}
    ```
+   QuPac FX Library reverb categories: Arena, Chamber, EMT, Hall, Overheads, Plate, Room, Slap. Pick the most appropriate category and suggest a specific preset if known.
 
 5. **instructions**: A SYSTEMATIC step-by-step guide in this EXACT format:
 
@@ -397,14 +404,14 @@ Return a JSON object (no markdown, just raw JSON) with these keys:
    1. Connect [Mic] to Channel 1
    2. Set gain: have performer play, target -12 to -8dB peaks
    3. HPF: [setting]
-   4. EQ Band 1: [freq] [gain], [WIDTH] width (affects [low]-[high]) - [why]
-   5. EQ Band 2: [freq] [gain], [WIDTH] width (affects [low]-[high]) - [why]
-   6. EQ Band 3: [freq] [gain], [WIDTH] width (affects [low]-[high]) - [why]
-   7. EQ Band 4: [freq] [gain], [WIDTH] width (affects [low]-[high]) - [why]
-   8. Compression: [ratio], [threshold], [attack], [release], [knee], [gain], [type]
+   4. EQ Band 1: [freq] [gain] (affects [low]-[high]) - [why]
+   5. EQ Band 2: [freq] [gain] (affects [low]-[high]) - [why]
+   6. EQ Band 3: [freq] [gain] (affects [low]-[high]) - [why]
+   7. EQ Band 4: [freq] [gain] (affects [low]-[high]) - [why]
+   8. Compression: [ratio], [threshold], [attack], [release], Soft Knee [ON/OFF], [gain], [type]
    9. FX Send: [which FX] at [level]
 
-   Example EQ line: "4.5kHz +4dB, MEDIUM width (affects 3-6.7kHz) - adds presence"
+   Example EQ line: "4.5kHz +4dB (affects 3-6.7kHz) - adds presence for vocal clarity"
 
    ## CHANNEL 2: [Instrument] - [Mic]
    [repeat same structure]

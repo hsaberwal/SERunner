@@ -286,6 +286,7 @@ async def seed_venue_types():
         ("Cafe", "commercial"),
         ("Outdoor", "outdoor"),
         ("School", "education"),
+        ("Studio", "commercial"),
     ]
 
     try:
